@@ -242,7 +242,7 @@ function podobneZakupy(p, kupione) {
   return wynik.sort((a, b) => b.sort - a.sort);
 }
 
-// ====================================================================== sekcja „Co mamy, co dokupić”
+// ====================================================================== sekcja „Wyposażenie i zakupy”
 const stanMamy = { dane: null, ladowanie: null, blad: null, ...czytaj(KLUCZ_WIDOKU, { zakladka: 'wyposazenie', filtr: 'wszystko' }) };
 function zapiszWidok() { zapisz(KLUCZ_WIDOKU, { zakladka: stanMamy.zakladka, filtr: stanMamy.filtr }); }
 
@@ -612,7 +612,7 @@ function htmlElektryka() {
   return `
     <section class="karta-strony">
       <h3>Rozdzielnica (skrzynka z bezpiecznikami) ${plakietkaBrakow(braki)}</h3>
-      ${!kartyCache.rozdzielnica ? szkielet(1, true) : wyl.length ? `${przelacznik}
+      ${!kartyCache.rozdzielnica ? szkielet(1, true) : kartyCache.rozdzielnica.blad && !wyl.length ? htmlBladArkusza(kartyCache.rozdzielnica.blad) : wyl.length ? `${przelacznik}
         ${widok === 'lista' ? htmlListaWylacznikow(wyl, A) : `<div class="szafa-zoom">
           <button type="button" data-szafa-zoom="-1" aria-label="Pomniejsz rysunek">−</button>
           <button type="button" data-szafa-zoom="1" aria-label="Powiększ rysunek">+</button>
@@ -774,7 +774,7 @@ function pokazWyl(nr) {
   document.querySelectorAll('.wyl-svg.wybrany').forEach((g) => g.classList.remove('wybrany'));
   const g = document.querySelector(`.wyl-svg[data-wyl="${CSS.escape(nr)}"]`);
   g?.classList.add('wybrany');
-  g?.scrollIntoView?.({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  g?.scrollIntoView?.({ block: 'nearest', inline: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   const lista = stanInst.wyl, i = lista.indexOf(w);
   info.innerHTML = `<div class="szafa-nawig">
       <button type="button" data-wyl-krok="${esc(lista[i - 1]?.nr || '')}" ${i > 0 ? '' : 'disabled'} aria-label="Poprzedni wyłącznik">◀</button>
@@ -886,7 +886,7 @@ function htmlHydraulika() {
   return `
     <section class="karta-strony" data-zwijana="studnia">
       <h3>Studnia i zasilanie domu w wodę ${plakietkaBrakow(BRAKI_STUDNI)}</h3>
-      ${!kartyCache.studnia ? szkielet(2, true) : fakty || '<p class="male">Brak wpisów.</p>'}
+      ${!kartyCache.studnia ? szkielet(2, true) : kartyCache.studnia.blad && !fakty ? htmlBladArkusza(kartyCache.studnia.blad) : fakty || '<p class="male">Brak wpisów.</p>'}
       <h4 style="margin:12px 0 4px">Z zakupów – prawdopodobnie studnia i instalacja wodna</h4>
       ${htmlZakupy(zakupyPasujace(STUDNIA_ZAKUPY), stanMamy.dane ? 'Brak pasujących zakupów.' : 'Wczytywanie listy zakupów…')}
       ${zakupyPasujace(PEX_ZAKUPY).length ? `<details style="margin-top:8px"><summary class="male">Rury i złączki PEX z zakupów (${zakupyPasujace(PEX_ZAKUPY).length}) – woda albo ogrzewanie, do ustalenia</summary>
@@ -916,7 +916,7 @@ function htmlListaZaworow() {
   if (!w.length) {
     if (!kartyCache.zawory) return szkielet(1, true);
     return `<p>Jeszcze żaden zawór nie jest opisany.</p>
-      ${kartyCache.zawory?.blad ? `<p class="uwaga">${esc(kartyCache.zawory.blad)}</p>` : ''}
+      ${kartyCache.zawory?.blad ? htmlBladArkusza(kartyCache.zawory.blad) : ''}
       ${jakUzupelnic(`Arkusz „MójDomek”, karta <b>Zawory</b>: ID | Pomieszczenie | Gdzie dokładnie | Co odcina | Rodzaj | Wiarygodność | Uwagi – najlepiej od razu ze zdjęciem.
         Gdzie zwykle bywają zawory (sprawdź, które są u Was): pomieszczenie gospodarcze – zawór główny (wejście wody ze studni), przy hydroforze i filtrach,
         przy zasobniku ciepłej wody; łazienka – pod umywalką, przy stelażu WC, przy baterii wannowej, przy pralce; kuchnia – pod zlewem, zasilanie zmywarki.
@@ -981,9 +981,15 @@ async function otworzBraki() {
     }).join('');
 }
 
+// błąd wczytania karty arkusza: co się stało i przycisk ponownej próby (plan GUI, pkt 12)
+const htmlBladArkusza = (blad) => `<p class="uwaga">Nie udało się wczytać arkusza „MójDomek” (${esc(blad)}). Sprawdź internet.</p>
+  <button type="button" data-ponow-sekcje>Spróbuj ponownie</button>`;
+document.addEventListener('click', (e) => { if (e.target.closest?.('[data-ponow-sekcje]')) pokazSekcje(); });
+
 // szare „szkielety” kart zamiast napisu „Wczytywanie…” (plan GUI, pkt 12)
 function szkielet(n = 2, wTresci = false) {
-  const k = Array.from({ length: n }, () => '<div class="szkielet-linia"></div><div class="szkielet-linia krotka"></div>').join('');
+  const k = Array.from({ length: n }, () => '<div class="szkielet-linia"></div><div class="szkielet-linia krotka"></div>').join('')
+    + '<div class="szkielet-dlugo">Wczytywanie trwa dłużej niż zwykle – sprawdź internet. <button type="button" data-ponow-sekcje>Spróbuj ponownie</button></div>';
   return wTresci ? `<div class="szkielet" aria-label="Wczytywanie">${k}</div>`
     : Array.from({ length: n }, () => `<div class="karta-strony szkielet" aria-label="Wczytywanie"><div class="szkielet-linia tytul"></div>${k}</div>`).join('');
 }
@@ -1017,6 +1023,16 @@ window.addEventListener('mojdomek:status', () => { if (document.body.dataset.sek
 // ====================================================================== wyszukiwarka (plan GUI, pkt 10)
 // Szuka w pomieszczeniach, punktach (po ID i opisie), wyłącznikach, kurkach, zaworach, wyposażeniu i zakupach.
 const KLUCZ_SZUKANYCH = 'mojDomek.szukane.v1';
+// jeden zestaw ikon w całej aplikacji – te same rysunki co w menu (plan GUI, pkt 15)
+const IKONY_SVG = {
+  dom: '<path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/>',
+  prad: '<path d="M13 2 5 14h6l-1 8 8-12h-6z"/>',
+  ogien: '<path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-3 2-4 2-7 2 1 3 3 3 5 1-2 0-6 0-9z"/>',
+  kropla: '<path d="M12 3c3 4.5 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 3-6.5 6-11z"/>',
+  lista: '<path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke-width="2.4" stroke-linecap="round"/>',
+  ok: '<path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
+};
+const svgIkona = (k) => `<svg class="ik-zast" viewBox="0 0 24 24" aria-hidden="true">${IKONY_SVG[k] || IKONY_SVG.dom}</svg>`;
 const szukajPanel = $('#szukaj'), szukajPole = $('#szukaj-pole'), szukajWyniki = $('#szukaj-wyniki');
 let indeks = [], wynikiTeraz = [], wczytujeIndeks = false;
 const enc = encodeURIComponent;
@@ -1024,7 +1040,7 @@ function zbudujIndeks() {
   const A = window.mojDomek?.stan?.A;
   const w = [];
   if (A) {
-    for (const r of A.rooms) w.push({ rodzaj: 'Pomieszczenie', znak: 'P', tytul: r.nazwa, opis: `sufit ${String(r.sufit).replace('.', ',')} cm`, hash: '#pokoj=' + enc(r.nazwa), szukaj: r.nazwa + ' pokój pomieszczenie' });
+    for (const r of A.rooms) w.push({ rodzaj: 'Pomieszczenie', ik: 'dom', tytul: r.nazwa, opis: `sufit ${String(r.sufit).replace('.', ',')} cm`, hash: '#pokoj=' + enc(r.nazwa), szukaj: r.nazwa + ' pokój pomieszczenie' });
     for (const p of A.items) {
       const T = TYPY[p.typ] || { nazwa: p.typ };
       const pok = p.naZewnatrz ? 'na zewnątrz' : (p.pokoj?.nazwa || '');
@@ -1034,19 +1050,19 @@ function zbudujIndeks() {
   }
   for (const x of wylZArkusza()) {
     const ids = String(x.punkty || '').split(/[\s,;]+/).filter(Boolean);
-    w.push({ rodzaj: 'Wyłącznik', znak: '⚡', tytul: `${x.nr} · ${rodzajWyl(x).skrot}`, opis: nieopisany(x) ? 'nieopisany' : x.zasila,
+    w.push({ rodzaj: 'Wyłącznik', ik: 'prad', tytul: `${x.nr} · ${rodzajWyl(x).skrot}`, opis: nieopisany(x) ? 'nieopisany' : x.zasila,
       hash: '#wyl=' + enc(x.nr), naModelu: ids.length ? '#punkty=' + ids.map(enc).join(',') : null,
       szukaj: [x.nr, x.opis, x.zasila, x.pokoje, 'wyłącznik bezpiecznik rozdzielnica'].join(' ') });
   }
-  for (const p of petleZArkusza()) w.push({ rodzaj: 'Kurek ogrzewania', znak: p.nr, tytul: `Kurek ${p.nr}`, opis: p.pokoj || 'nieopisany',
+  for (const p of petleZArkusza()) w.push({ rodzaj: 'Kurek ogrzewania', ik: 'ogien', tytul: `Kurek ${p.nr}`, opis: p.pokoj || 'nieopisany',
     hash: '#ogrzewanie', naModelu: p.pokoj ? '#ogrzewanie=' + enc(p.pokoj) : null, szukaj: ['kurek pętla ogrzewanie rozdzielacz', p.nr, p.pokoj, p.uwagi].join(' ') });
-  for (const z of kartyCache.zawory?.wiersze || []) w.push({ rodzaj: 'Zawór', znak: 'Z', tytul: String(z[0] || 'zawór'), opis: [z[3], z[1]].filter(Boolean).join(' · '),
+  for (const z of kartyCache.zawory?.wiersze || []) w.push({ rodzaj: 'Zawór', ik: 'kropla', tytul: String(z[0] || 'zawór'), opis: [z[3], z[1]].filter(Boolean).join(' · '),
     hash: '#hydraulika', naModelu: z[1] ? '#pokoj=' + enc(z[1]) : null, szukaj: ['zawór kurek woda', ...z].join(' ') });
   const d = stanMamy.dane;
   if (d) {
-    for (const g of d.wyposazenie) for (const p of g.pozycje) w.push({ rodzaj: 'Wyposażenie', znak: '▤', tytul: p.nazwa, opis: [g.nazwa, STATUS[p.status]?.nazwa].filter(Boolean).join(' · '),
+    for (const g of d.wyposazenie) for (const p of g.pozycje) w.push({ rodzaj: 'Wyposażenie', ik: 'lista', tytul: p.nazwa, opis: [g.nazwa, STATUS[p.status]?.nazwa].filter(Boolean).join(' · '),
       mamy: { zakladka: 'wyposazenie', q: p.nazwa }, szukaj: [p.nazwa, g.nazwa, ...p.uwagi, ...p.kandydaci].join(' ') });
-    for (const k of d.kupione) w.push({ rodzaj: 'Kupione', znak: '✓', tytul: k.nazwa, opis: [k.gdzie, k.kiedy].filter(Boolean).join(' · '),
+    for (const k of d.kupione) w.push({ rodzaj: 'Kupione', ik: 'ok', tytul: k.nazwa, opis: [k.gdzie, k.kiedy].filter(Boolean).join(' · '),
       mamy: { zakladka: 'kupione', q: k.nazwa }, szukaj: [k.nazwa, k.gdzie, 'kupione'].join(' ') });
   }
   for (const x of w) { x.n = norm(x.szukaj); x.nt = norm(x.tytul); }
@@ -1068,7 +1084,7 @@ function szukajTeraz() {
   szukajWyniki.innerHTML = wynikiTeraz.length
     ? `<ul>${wynikiTeraz.map((x, i) => `<li>
         <a class="wynik${i === 0 ? ' pierwszy' : ''}" href="${x.hash || '#mamy'}" data-wynik="${i}">
-          ${x.ikona ? `<img src="${x.ikona}" alt="">` : `<span class="ik-zast" aria-hidden="true">${esc(x.znak || '•')}</span>`}
+          ${x.ikona ? `<img src="${x.ikona}" alt="">` : svgIkona(x.ik)}
           <b>${esc(x.tytul)}</b><span class="male">${esc(x.rodzaj)}${x.opis && x.opis !== x.rodzaj ? ' · ' + esc(x.opis.replace(x.rodzaj + ' · ', '')) : ''}</span></a>
         ${x.naModelu ? `<a class="link-model wynik-model" href="${x.naModelu}" data-wynik="${i}">na modelu</a>` : ''}</li>`).join('')}</ul>`
     : `<div class="szukaj-info">Nic nie znaleziono${wczytujeIndeks ? ' (jeszcze wczytuję dane z arkusza…)' : ''}.</div>`;

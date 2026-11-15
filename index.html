@@ -6,6 +6,12 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#10171e">
 <meta name="color-scheme" content="dark light">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikony/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mój domek">
 <title>Mój domek</title>
 <script>
   // Motyw: Ciemny (domyślny) / Jasny / Jak w telefonie – ustawiany tutaj, zanim strona się narysuje (bez mignięcia).
@@ -41,11 +47,20 @@
     zastosuj();
   })();
 </script>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 30 32 10l24 20v24H8z' fill='%23e8e4da' stroke='%2320303f' stroke-width='4' stroke-linejoin='round'/%3E%3Ccircle cx='32' cy='38' r='8' fill='%23e03131'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 30 32 10l24 20v24H8z' fill='%23e8e4da' stroke='%2320303f' stroke-width='4' stroke-linejoin='round'/%3E%3Ccircle cx='32' cy='38' r='8' fill='%23f59f00'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="styl.css">
 <script>
   if (location.protocol === 'file:') document.documentElement.classList.add('plik');
   document.documentElement.classList.add(/\.github\.io$/i.test(location.hostname) ? 'github' : 'lokalnie');
+  // aplikacja na ekranie głównym i praca bez internetu (sw.js); ?bezsw w adresie wyłącza to awaryjnie
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    if (/[?&]bezsw\b/.test(location.search)) {
+      navigator.serviceWorker.getRegistrations().then(function (l) { l.forEach(function (r) { r.unregister(); }); });
+      if (window.caches) caches.keys().then(function (k) { k.forEach(function (n) { caches.delete(n); }); });
+    } else {
+      addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () { /* bez trybu offline */ }); });
+    }
+  }
 </script>
 <script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
 </head>
@@ -137,6 +152,10 @@
       <button id="btn-panel" type="button" class="tylko-telefon" aria-controls="panel">Warstwy</button>
     </div>
     <div id="podpowiedz"></div>
+    <div id="ladowanie-3d" class="ladowanie" role="status">
+      <span>Wczytywanie modelu domu…</span>
+      <button type="button" hidden>Spróbuj ponownie</button>
+    </div>
     <div id="karta" role="dialog" aria-label="Szczegóły punktu" hidden></div>
     <div id="komunikat" role="status" hidden></div>
   </div>

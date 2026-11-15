@@ -770,7 +770,16 @@ async function wczytajObwody() {
   pokazInfoObwodow();
 }
 
+// wczytywanie modelu: po 8 s bez danych – wyjaśnienie i „Spróbuj ponownie” (plan GUI, pkt 12)
+const ladowanie3d = $('#ladowanie-3d');
+setTimeout(() => {
+  if (stan.A || !ladowanie3d) return;
+  ladowanie3d.querySelector('span').textContent = 'Wczytywanie trwa dłużej niż zwykle – sprawdź internet albo czy działa serwer (URUCHOM.bat).';
+  ladowanie3d.querySelector('button').hidden = false;
+}, 8000);
+ladowanie3d?.querySelector('button').addEventListener('click', () => wczytaj());
 function zastosujDane(M, wersja, pierwszy) {
+  if (ladowanie3d) ladowanie3d.hidden = true;
   // M – dane z pliku (geometria + punkty z rysunku); punkty z bazy zastępują punkty z rysunku po zalogowaniu
   const zBazy = dane.punktyZBazy();
   stan.Mplik = M;

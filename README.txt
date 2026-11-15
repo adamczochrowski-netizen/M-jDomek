@@ -170,6 +170,13 @@ wynik, telefon pamięta ostatnie wyszukiwania.
 Stan danych: na komputerze (szerokim) plakietka w nagłówku („Zsynchronizowano 08:12”, „Bez internetu”,
 „Dane z …”), na telefonie kolor kropki przy koncie; szczegóły i „Odśwież dane” – w panelu konta.
 Przygotowane pod zapis globalny: „N zmian czeka”, „Błąd zapisu – ponów” (js/status.js).
+Wczytywanie: szare „szkielety” kart; gdy trwa dłużej niż kilka sekund albo arkusz się nie wczyta –
+wyjaśnienie i przycisk „Spróbuj ponownie”.
+Aplikacja na ekranie głównym telefonu (PWA): w Chrome „Dodaj do ekranu głównego” / „Zainstaluj”,
+w Safari „Udostępnij → Do ekranu początkowego”. Otwiera się bez paska adresu, na ostatnio używanej
+sekcji. sw.js zapisuje szkielet aplikacji, dane domu i karty arkusza – po utracie internetu
+pokazuje ostatnią kopię (zawsze najpierw próbuje sieci, więc nowe wersje przychodzą od razu).
+Awaryjnie: dopisz do adresu ?bezsw – strona wyłączy tryb offline i wyczyści zapisane pliki.
 
 „Rzut z góry” – widok jak rysunek (bez perspektywy); przyciskiem obok wracasz do 3D.
 ⟲ – ustawia widok od nowa.

@@ -173,7 +173,7 @@ a { color: var(--akcent); }
   color: var(--tekst); text-decoration: none; border-radius: 8px; background: none; border: 0; text-align: left; }
 .wynik:hover, .wynik:focus-visible, .wynik.pierwszy { background: var(--akcent-tlo); }
 .wynik img, .wynik .ik-zast { grid-row: span 2; width: 24px; height: 24px; border-radius: 6px; }
-.wynik .ik-zast { display: inline-flex; align-items: center; justify-content: center; background: var(--akcent-tlo); color: var(--akcent); font-weight: 700; font-size: 13px; }
+.wynik .ik-zast { padding: 3px; background: var(--akcent-tlo); color: var(--akcent); fill: currentColor; stroke: currentColor; stroke-width: 0; }
 .wynik b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wynik .male { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wynik-model { white-space: nowrap; padding: 8px; font-size: var(--fs-male); }
@@ -405,6 +405,13 @@ details.braki ul { margin: 6px 0; }
 .szkielet-linia.krotka { width: 60%; }
 .szkielet-linia.tytul { height: 18px; width: 40%; }
 @keyframes szkielet { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.szkielet-dlugo { visibility: hidden; margin-top: 8px; color: var(--tekst2); font-size: var(--fs-male); animation: pokaz 0s 7s forwards; }
+.szkielet-dlugo button { margin-top: 6px; display: block; }
+@keyframes pokaz { to { visibility: visible; } }
+/* wczytywanie modelu 3D */
+.ladowanie { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  padding: 24px; text-align: center; color: var(--tekst2); z-index: 2; pointer-events: none; }
+.ladowanie button { pointer-events: auto; }
 
 /* ---------------------------------------------------------------- układ */
 main { position: relative; display: grid; grid-template-columns: 310px 1fr; min-height: 0; }
@@ -639,6 +646,6 @@ html.plik .tylko-plik { display: flex; }
   .kurek span { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  #panel, .etykieta, #podpowiedz { transition: none; }
-  .zawor.mignij { animation: none; }
+  #panel, .etykieta, #podpowiedz, details.grupa summary::before, .grupa-warstw > summary::before { transition: none; }
+  .zawor.mignij, .szkielet-linia { animation: none; }
 }
