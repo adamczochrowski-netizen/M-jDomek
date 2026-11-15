@@ -2,6 +2,7 @@
 // Rzut (x, yd, z) -> Three.js (X, Y, Z) = (x, z, yd): Y w górę, rzut z góry wygląda jak rysunek.
 import * as THREE from 'three';
 import { TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
+import { kanwaZnacznika, ikonaTypu } from './ikony.js';
 
 export const POZIOM_PODLOGI = 0.4;
 const P = (x, yd, z) => [x, z, yd];
@@ -212,20 +213,15 @@ export function zbudujSciany(A, mat, wysokosc) {
   return g;
 }
 
-// ---------------------------------------------------------------- tekstury znaczników
-function teksturaZnacznika(t) {
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const x = c.getContext('2d');
-  const T = TYPY[t] || { kolor: '#888', tekst: '#fff' };
-  x.beginPath(); x.arc(64, 64, 54, 0, Math.PI * 2);
-  x.fillStyle = T.kolor; x.fill();
-  x.lineWidth = 10; x.strokeStyle = T.obrys || 'rgba(255,255,255,0.95)'; x.stroke();
-  x.fillStyle = T.tekst; x.font = 'bold 62px system-ui, Segoe UI, Arial, sans-serif';
-  x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(t, 64, 68);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+// ---------------------------------------------------------------- tekstury znaczników (rysunek ikon: js/ikony.js)
+const tekstury = new Map();
+export function teksturaZnacznika(t, w = 'R') {
+  if (!tekstury.has(t + w)) {
+    const tex = new THREE.CanvasTexture(kanwaZnacznika(t, w));
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tekstury.set(t + w, tex);
+  }
+  return tekstury.get(t + w);
 }
 export function teksturaWyboru() {
   const c = document.createElement('canvas');
@@ -238,7 +234,7 @@ export function teksturaWyboru() {
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
-export const ikonaTypu = (t) => teksturaZnacznika(t).image.toDataURL();
+export { ikonaTypu };
 
 // ---------------------------------------------------------------- cała scena
 // zwraca { warstwy: {klucz: THREE.Group}, znaczniki: {typ: THREE.Points} }
@@ -371,7 +367,7 @@ export function zbudujDom(M, A, mat, opcje = {}) {
 
   // elektryka: prawdziwej wielkości puszki + znaczniki (kółka o stałej wielkości na ekranie)
   const poz = { };
-  for (const t of KOLEJNOSC_TYPOW) { grupa('el_' + t); poz[t] = []; }
+  for (const t of KOLEJNOSC_TYPOW) { grupa('el_' + t); poz[t] = {}; }
   for (const p of A.items) {
     const t = p.typ, k = 'el_' + (W['el_' + t] ? t : 'Z');
     const { ax, c, s } = p;
@@ -392,18 +388,25 @@ export function zbudujDom(M, A, mat, opcje = {}) {
       grupa(k).add(ax === 'v' ? blok(c + s * d / 2, p.yd, zc + zP, d, ln, hz, m) : blok(p.x, c + s * d / 2, zc + zP, ln, d, hz, m));
       p.znacznik = new THREE.Vector3(...(ax === 'v' ? P(c + s * (d + 3), p.yd, zc + zP) : P(p.x, c + s * (d + 3), zc + zP)));
     }
-    poz[t in poz ? t : 'Z'].push(p.znacznik.x, p.znacznik.y, p.znacznik.z);
+    const kt = t in poz ? t : 'Z';
+    (poz[kt][p.wiar || 'R'] = poz[kt][p.wiar || 'R'] || []).push(p);
   }
+  // znaczniki: osobny zestaw dla każdego rodzaju i stopnia pewności (inna ikona); p.znacznikRef pozwala
+  // schować pojedynczy punkt (łączenie bliskich punktów w bańkę) i przygasić resztę po wyborze punktu
   const znaczniki = {};
   for (const t of KOLEJNOSC_TYPOW) {
-    if (!poz[t].length) continue;
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(poz[t], 3));
-    const pm = new THREE.PointsMaterial({ size: 20, sizeAttenuation: false, map: teksturaZnacznika(t), transparent: true, alphaTest: 0.2 });
-    const pts = new THREE.Points(geo, pm);
-    pts.renderOrder = 3;
-    znaczniki[t] = pts;
-    grupa('el_' + t).add(pts);
+    for (const [w, lista] of Object.entries(poz[t])) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(lista.flatMap((p) => [p.znacznik.x, p.znacznik.y, p.znacznik.z]), 3));
+      const pm = new THREE.PointsMaterial({ size: 22, sizeAttenuation: false, map: teksturaZnacznika(t, w), transparent: true, alphaTest: 0.2,
+        opacity: w === 'N' ? 0.75 : 1 });
+      const pts = new THREE.Points(geo, pm);
+      pts.renderOrder = 3;
+      pts.userData.pelna = pm.opacity;
+      lista.forEach((p, i) => { p.znacznikRef = { pts, i }; });
+      znaczniki[t + w] = pts;
+      grupa('el_' + t).add(pts);
+    }
   }
   return { warstwy: W, znaczniki };
 }

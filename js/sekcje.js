@@ -1,4 +1,5 @@
 import { TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
+import { ikonaTypu } from './ikony.js';
 // Mój domek – menu (Widok / Instalacje / Ogrzewanie / Wyposażenie) i sekcje czytane z publicznego Arkusza Google „MójDomek”.
 // „MójDomek” sam pobiera (IMPORTRANGE) potrzebne kolumny z prywatnego arkusza „Domek Wirko”:
 // Wyposażenie w całości, Kupione bez kwot i bez „kto płacił”. Pompę, pętle, rozdzielnicę, zawory i studnię
@@ -490,6 +491,7 @@ function rysujInstalacje() {
   document.querySelectorAll('[data-inst]').forEach((b) => b.classList.toggle('aktywny', b.dataset.inst === stanInst.zakladka));
   const el = $('#instalacje-tresc');
   if (!el) return;
+  el.dataset.inst = stanInst.zakladka;
   el.innerHTML = stanInst.zakladka === 'hydraulika' ? htmlHydraulika() : stanInst.zakladka === 'kanalizacja' ? htmlKanalizacja() : htmlElektryka();
   const s = $('#zawory-szukaj');
   if (s) {
@@ -688,7 +690,7 @@ document.addEventListener('keydown', (e) => {
 function htmlPunktId(id, A) {
   const p = A?.items.find((q) => q.id === id);
   const T = p ? TYPY[p.typ] : null;
-  return `<a class="pkt" href="#punkt=${encodeURIComponent(id)}">${T ? `<i style="background:${T.kolor};color:${T.tekst}">${p.typ}</i>` : '<i>?</i>'}${esc(id)}</a>`;
+  return `<a class="pkt" href="#punkt=${encodeURIComponent(id)}">${T ? `<img class="ik" src="${ikonaTypu(p.typ, p.wiar)}" alt="${esc(T.nazwa)}">` : '<i>?</i>'}${esc(id)}</a>`;
 }
 function htmlPunktyPokoi(A) {
   const grupy = new Map();
@@ -703,7 +705,7 @@ function htmlPunktyPokoi(A) {
     const ile = KOLEJNOSC_TYPOW.map((t) => [t, l.filter((p) => p.typ === t).reduce((s, p) => s + p.n, 0)]).filter(([, n]) => n)
       .map(([t, n]) => `${n}× ${TYPY[t].nazwa.toLowerCase()}`).join(', ');
     return `<div class="pokoj-punkty"><h4><span>${esc(nazwa)} <span class="male">${esc(ile)}</span></span>${nazwa !== 'Na zewnątrz' ? linkPokoju(nazwa) : ''}</h4>
-      <div class="pkt-lista">${l.map((p) => `<a class="pkt" href="#punkt=${encodeURIComponent(p.id)}" title="${esc(TYPY[p.typ].nazwa)}, ${Math.round(p.z)} cm"><i style="background:${TYPY[p.typ].kolor};color:${TYPY[p.typ].tekst}">${p.typ}</i>${esc(p.id.replace(/^.*-/, ''))} · ${Math.round(p.z)} cm</a>`).join('')}</div></div>`;
+      <div class="pkt-lista">${l.map((p) => `<a class="pkt" href="#punkt=${encodeURIComponent(p.id)}" title="${esc(TYPY[p.typ].nazwa)}, ${Math.round(p.z)} cm"><img class="ik" src="${ikonaTypu(p.typ, p.wiar)}" alt="">${esc(p.id.replace(/^.*-/, ''))} · ${Math.round(p.z)} cm</a>`).join('')}</div></div>`;
   }).join('');
 }
 

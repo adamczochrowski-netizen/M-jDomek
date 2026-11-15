@@ -26,7 +26,7 @@ const bezZrodla = (r) => { const { zrodlo, ...reszta } = r; return reszta; };
 
 // źródło położenia z generatora (pole „zrodlo”, gdy generuj.py zacznie je zapisywać):
 // pomiar → POTWIERDZONA; rysunek, szacunek albo brak informacji → PRAWDOPODOBNA (nigdy na wyrost)
-function wiarygodnoscPolozenia(r) {
+export function wiarygodnoscPolozenia(r) {
   if (r.zrodlo === 'pomiar') return { polozenie: 'POTWIERDZONA', zrodlo: 'pomiar (wymiary.ini)' };
   if (r.zrodlo === 'szacunek' || r.zrodlo === 'pomiar+szacunek') return { polozenie: 'PRAWDOPODOBNA', zrodlo: 'częściowo szacunek ze zdjęcia (wymiary.ini)' };
   if (r.zrodlo === 'rysunek') return { polozenie: 'PRAWDOPODOBNA', zrodlo: 'rysunek PPTX (±10–15 cm)' };

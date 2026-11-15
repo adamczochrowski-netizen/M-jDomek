@@ -2,8 +2,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../lib/OrbitControls.js';
 import { analizuj, TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
-import { zbudujDom, zbudujSciany, materialy, teksturaWyboru, ikonaTypu, POZIOM_PODLOGI, KOLOR_RUR } from './budowa3d.js';
+import { zbudujDom, zbudujSciany, materialy, teksturaWyboru, teksturaZnacznika, ikonaTypu, POZIOM_PODLOGI, KOLOR_RUR } from './budowa3d.js';
 import * as dane from './dane/elementy.js';
+import { WIAR_OPIS } from './ikony.js';
 
 // dane_modelu.json tworzy ODSWIEZ.bat (skrypty/generuj.py):
 //  - na komputerze (serwer.py) czytamy świeży plik ../skrypty/dane_modelu.json,
@@ -86,11 +87,22 @@ const sterowanie = () => (stan.tryb === 'gora' ? sterGora : ster3d);
 const wyborGeo = new THREE.BufferGeometry();
 wyborGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3));
 const wyborPkt = new THREE.Points(wyborGeo, new THREE.PointsMaterial({
-  size: dotyk ? 46 : 38, sizeAttenuation: false, map: teksturaWyboru(), transparent: true, depthTest: false,
+  size: dotyk ? 52 : 44, sizeAttenuation: false, map: teksturaWyboru(), transparent: true, depthTest: false,
 }));
 wyborPkt.renderOrder = 20;
 wyborPkt.visible = false;
 scene.add(wyborPkt);
+// ikona wybranego punktu – zawsze pełna, nad przygaszoną resztą
+const wyborIkona = new THREE.Points(wyborGeo, new THREE.PointsMaterial({
+  size: dotyk ? 30 : 26, sizeAttenuation: false, transparent: true, depthTest: false, alphaTest: 0.2,
+}));
+wyborIkona.renderOrder = 21;
+wyborIkona.visible = false;
+scene.add(wyborIkona);
+const ROZMIAR_ZNACZNIKA = dotyk ? 30 : 26;
+function przygasZnaczniki(tak) {
+  for (const pts of Object.values(stan.znaczniki || {})) pts.material.opacity = tak ? 0.28 : pts.userData.pelna ?? 1;
+}
 
 // ---------------------------------------------------------------- rysowanie na żądanie
 let potrzebaRender = true;
@@ -102,9 +114,10 @@ function petla() {
   potrzebaRender = false;
   renderer.render(scene, kamera());
   aktualizujEtykiety();
+  aktualizujBanki();
 }
-ster3d.addEventListener('change', render);
-sterGora.addEventListener('change', render);
+ster3d.addEventListener('change', () => { render(); planujBanki(); });
+sterGora.addEventListener('change', () => { render(); planujBanki(); });
 
 function rozmiar() {
   const w = kontener.clientWidth, h = kontener.clientHeight;
@@ -113,6 +126,7 @@ function rozmiar() {
   kamera3d.aspect = w / h;
   kamera3d.updateProjectionMatrix();
   ustawFrustumGora();
+  planujBanki();
   // aplikacja mogła wystartować na innej zakładce menu – kadr ustawiamy przy pierwszym pokazaniu sceny
   if (stan.A && !stan.dopasowano) { stan.dopasowano = true; widokUkos(); }
   render();
@@ -211,6 +225,9 @@ const _v = new THREE.Vector3();
 function aktualizujEtykiety() {
   if (!stan.wid.nazwy) return;
   const w = kontener.clientWidth, h = kontener.clientHeight, cam = kamera();
+  // z daleka sama nazwa (mniej zasłania punkty); wysokość sufitu po przybliżeniu
+  const blisko = stan.tryb === 'gora' ? kameraGora.zoom >= 1.8 : kamera3d.position.distanceTo(ster3d.target) < 1100;
+  etykietyEl.classList.toggle('szczegoly', blisko);
   for (const e of etykiety) {
     _v.copy(e.poz).project(cam);
     const ok = _v.z > -1 && _v.z < 1;
@@ -227,11 +244,105 @@ function zaslonieteEtykiety() {
   for (const e of etykiety) e.el.classList.toggle('zasloniety', e.proby.every((q) => zasloniety(q, cam, przeszkody)));
 }
 
+// ---------------------------------------------------------------- bliskie punkty: bańka z liczbą
+// Punkty, które na ekranie nachodzą na siebie (np. potrójne gniazdko), chowamy i pokazujemy jedną bańkę „3”.
+// Dotknięcie bańki przybliża widok, aż punkty się rozdzielą. Przeliczenie po zatrzymaniu kamery.
+const bankiEl = document.createElement('div');
+bankiEl.id = 'banki';
+kontener.append(bankiEl);
+let banki = [];
+function pokazZnacznik(p, tak) {
+  const r = p.znacznikRef;
+  if (!r) return;
+  const a = r.pts.geometry.attributes.position;
+  a.setXYZ(r.i, p.znacznik.x, tak ? p.znacznik.y : -1e7, p.znacznik.z);
+  a.needsUpdate = true;
+}
+function planujBanki(ms = 160) {
+  clearTimeout(planujBanki.t);
+  planujBanki.t = setTimeout(przeliczBanki, ms);
+}
+function przeliczBanki() {
+  if (!stan.A) return;
+  const w = kontener.clientWidth, h = kontener.clientHeight, cam = kamera();
+  if (!w || !h) return;
+  const R = dotyk ? 28 : 20;
+  const kand = [];
+  for (const p of stan.A.items) {
+    p.wBance = false;
+    if (!widocznyPunkt(p) || p === stan.wybrany) continue;
+    _v.copy(p.znacznik).project(cam);
+    if (_v.z < -1 || _v.z > 1) continue;
+    const sx = ((_v.x + 1) / 2) * w, sy = ((1 - _v.y) / 2) * h;
+    if (sx < -R || sy < -R || sx > w + R || sy > h + R) continue;
+    kand.push({ p, sx, sy });
+  }
+  // tylko punkty, które mają sąsiada i nie są zasłonięte ścianą (zasłonięte i tak nie są widoczne)
+  const maSasiada = kand.filter((a) => kand.some((b) => a !== b && Math.hypot(a.sx - b.sx, a.sy - b.sy) <= R));
+  const przeszkody = zaslaniajace();
+  const widoczne = maSasiada.filter((k) => !zasloniety(k.p.znacznik, cam, przeszkody)).sort((a, b) => a.sx - b.sx);
+  const grupy = [];
+  for (const a of widoczne) {
+    if (a.g) continue;
+    const g = [a];
+    a.g = g;
+    for (const b of widoczne) if (!b.g && Math.hypot(a.sx - b.sx, a.sy - b.sy) <= R) { b.g = g; g.push(b); }
+    if (g.length > 1) grupy.push(g.map((k) => k.p));
+  }
+  for (const g of grupy) for (const p of g) p.wBance = true;
+  for (const p of stan.A.items) if (p.znacznikRef) pokazZnacznik(p, !p.wBance);
+  bankiEl.textContent = '';
+  banki = grupy.map((punkty) => {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'banka';
+    el.textContent = String(punkty.length);
+    el.setAttribute('aria-label', `${punkty.length} punkty blisko siebie: ${punkty.map((p) => p.id).join(', ')} – przybliż`);
+    el.title = punkty.map((p) => p.id).join(', ');
+    const srodek = punkty.reduce((s, p) => s.add(p.znacznik), new THREE.Vector3()).multiplyScalar(1 / punkty.length);
+    el.addEventListener('click', () => przyblizDo(srodek));
+    bankiEl.append(el);
+    return { el, srodek };
+  });
+  aktualizujBanki();
+  render();
+}
+function aktualizujBanki() {
+  if (!banki.length) return;
+  const w = kontener.clientWidth, h = kontener.clientHeight, cam = kamera();
+  for (const b of banki) {
+    _v.copy(b.srodek).project(cam);
+    const ok = _v.z > -1 && _v.z < 1;
+    b.el.style.display = ok ? '' : 'none';
+    if (ok) b.el.style.transform = `translate(${((_v.x + 1) / 2) * w}px, ${((1 - _v.y) / 2) * h}px) translate(-50%, -50%)`;
+  }
+}
+function przyblizDo(c) {
+  if (stan.tryb === 'gora') {
+    sterGora.target.set(c.x, 0, c.z);
+    kameraGora.position.set(c.x, 3000, c.z);
+    kameraGora.zoom = Math.min(sterGora.maxZoom, kameraGora.zoom * 2.6);
+    kameraGora.updateProjectionMatrix();
+    kameraGora.lookAt(c.x, 0, c.z);
+    sterGora.update();
+  } else {
+    const kier = kamera3d.position.clone().sub(ster3d.target);
+    const d = Math.max(ster3d.minDistance * 3, kier.length() * 0.38);
+    ster3d.target.copy(c);
+    kamera3d.position.copy(c).addScaledVector(kier.normalize(), d);
+    ster3d.update();
+  }
+  planujBanki(0);
+  render();
+}
+
 // ---------------------------------------------------------------- budowa sceny z danych
 function zwolnij(obj) {
   obj.traverse((o) => {
     if (o.geometry) o.geometry.dispose();
-    if ((o.isPoints && o !== wyborPkt) || o.userData?.wlasnyMaterial) { o.material.map?.dispose(); o.material.dispose(); }
+    // tekstury ikon są wspólne (pamięć w budowa3d.js) – zwalniamy tylko materiał znaczników
+    if (o.isPoints && o !== wyborPkt && o !== wyborIkona) o.material.dispose();
+    else if (o.userData?.wlasnyMaterial) { o.material.map?.dispose(); o.material.dispose(); }
   });
 }
 function zbudujScene() {
@@ -243,7 +354,9 @@ function zbudujScene() {
   stan.korzen = new THREE.Group();
   for (const g of Object.values(warstwy)) stan.korzen.add(g);
   scene.add(stan.korzen);
-  for (const p of Object.values(znaczniki)) p.material.size = dotyk ? 22 : 20;
+  for (const p of Object.values(znaczniki)) p.material.size = ROZMIAR_ZNACZNIKA;
+  banki = []; bankiEl.textContent = '';
+  if (stan.wybrany) przygasZnaczniki(true);
   ustawCiecie();
   zbudujEtykiety();
   zastosujWidocznosc();
@@ -270,6 +383,7 @@ function przebudujSciany() {
 function zastosujWidocznosc() {
   for (const [k, g] of Object.entries(stan.warstwy)) g.visible = !!stan.wid[k];
   etykietyEl.style.display = stan.wid.nazwy ? '' : 'none';
+  planujBanki(0);
   if (stan.wybrany && !stan.wid['el_' + stan.wybrany.typ]) zamknijKarte();
   render();
 }
@@ -333,8 +447,15 @@ function zbudujPanel() {
     const L = A.liczniki[t] || { ramki: 0, sztuki: 0 };
     razemRamki += L.ramki; razemSzt += L.sztuki;
     const ile = L.sztuki === L.ramki ? `${L.ramki} szt.` : `${L.ramki} ${odmiana(L.ramki, ['ramka', 'ramki', 'ramek'])} · ${L.sztuki} gn.`;
-    le.append(wierszWarstwy('el_' + t, NAZWA_WARSTWY_EL[t] || TYPY[t].nazwa, { ikona: ikonaTypu(t), ile, wylaczony: !L.ramki }));
+    le.append(wierszWarstwy('el_' + t, NAZWA_WARSTWY_EL[t] || TYPY[t].nazwa, { ikona: ikonaTypu(t, 'R'), ile, wylaczony: !L.ramki }));
   }
+  const ileW = { P: 0, R: 0, N: 0 };
+  for (const p of A.items) ileW[p.wiar] += 1;
+  const lw = document.createElement('div');
+  lw.className = 'legenda-wiar';
+  lw.innerHTML = '<div class="male">Pewność położenia (znaczek na ikonie):</div>' + ['P', 'R', 'N'].map((w) =>
+    `<div class="lw"><img src="${ikonaTypu('Z', w)}" alt=""><span>${esc(WIAR_OPIS[w])}</span><span class="ile">${ileW[w]}</span></div>`).join('');
+  le.append(lw);
   $('#suma-el').textContent = `Razem ${razemRamki} ${odmiana(razemRamki, ['punkt', 'punkty', 'punktów'])} (${razemSzt} ${odmiana(razemSzt, ['element', 'elementy', 'elementów'])} licząc każde gniazdo w ramce). Kliknij punkt na modelu, żeby zobaczyć szczegóły.`;
 
   const sel = $('#kamery');
@@ -425,10 +546,10 @@ function punktPod(clientX, clientY) {
   const rect = renderer.domElement.getBoundingClientRect();
   const mx = clientX - rect.left, my = clientY - rect.top;
   const cam = kamera();
-  const promien = dotyk ? 26 : 15;
+  const promien = dotyk ? 24 : 16;                     // ok. 48 px średnicy na telefonie
   const kand = [];
   for (const p of stan.A.items) {
-    if (!widocznyPunkt(p)) continue;
+    if (!widocznyPunkt(p) || p.wBance) continue;
     _v.copy(p.znacznik).project(cam);
     if (_v.z < -1 || _v.z > 1) continue;
     const d = Math.hypot(((_v.x + 1) / 2) * rect.width - mx, ((1 - _v.y) / 2) * rect.height - my);
@@ -473,6 +594,11 @@ function wybierz(p) {
   wyborGeo.attributes.position.needsUpdate = true;
   wyborGeo.computeBoundingSphere();
   wyborPkt.visible = true;
+  wyborIkona.material.map = teksturaZnacznika(p.typ, p.wiar);
+  wyborIkona.material.needsUpdate = true;
+  wyborIkona.visible = true;
+  przygasZnaczniki(true);
+  planujBanki(0);
   pokazKarte(p);
   document.body.classList.remove('panel-otwarty');
   render();
@@ -480,6 +606,9 @@ function wybierz(p) {
 function zamknijKarte() {
   stan.wybrany = null;
   wyborPkt.visible = false;
+  wyborIkona.visible = false;
+  przygasZnaczniki(false);
+  planujBanki(0);
   $('#karta').hidden = true;
   render();
 }
@@ -515,25 +644,63 @@ function pokazKarte(p) {
     ['Opis', esc(opis)],
     ...(osprzet ? [['Osprzęt', osprzet]] : []),
     ['Obwód', obwod ? esc([obwod.id, obwod.nazwa].filter(Boolean).join(' – ')) : '<span class="male">jeszcze nieprzypisany</span>'],
-    ...(p.baza ? [['Pewność położenia', wiarPunktu(p.baza)]] : []),
-    ['ID punktu', `<code>${esc(p.id)}</code><button type="button" class="kopiuj" data-kopiuj="${esc(p.id)}">kopiuj</button>`],
+    ['Pewność położenia', p.baza ? wiarPunktu(p.baza) : wiarZPliku(p)],
+    ['ID punktu', `<code>${esc(p.id)}</code>`],
     ['Położenie', `<span class="male">na licu ściany: x = ${cm(p.ax === 'v' ? p.c : p.x)}, y = ${cm(p.ax === 'v' ? p.yd : p.c)} (od wewnętrznego lewego górnego narożnika domu)</span>`],
   ];
   const k = $('#karta');
   k.innerHTML = `
     <div class="karta-naglowek">
-      <img src="${ikonaTypu(p.typ)}" alt="">
+      <img src="${ikonaTypu(p.typ, p.wiar)}" alt="">
       <div><h3>${esc(T.nazwa)}</h3><div class="pod">${esc(gdzie)}</div></div>
       <button type="button" class="zamknij" aria-label="Zamknij">✕</button>
     </div>
     <div class="karta-tresc">
       <dl>${wiersze.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>
+      <div class="karta-akcje">
+        <button type="button" data-akcja="rzut">Pokaż na rzucie</button>
+        <button type="button" data-akcja="kopiuj">Kopiuj ID</button>
+        <button type="button" data-akcja="link">Udostępnij link</button>
+      </div>
       <p class="ostrzezenie">Część położeń pochodzi z rysunku i może odbiegać o ok. 10–15 cm. Przewody od puszki biegną zwykle w pionie lub poziomie – przed wierceniem w pobliżu sprawdź ścianę wykrywaczem.${stan.obw?.ogrzewanie_podlogowe ? `<br><b>Podłoga:</b> ${esc(stan.obw.ogrzewanie_podlogowe.uwagi || 'jest ogrzewanie podłogowe – nie wierć w posadzce.')}` : ''}</p>
     </div>`;
   k.hidden = false;
   k.scrollTop = 0;
   k.querySelector('.zamknij').addEventListener('click', zamknijKarte);
-  k.querySelector('.kopiuj').addEventListener('click', (e) => kopiuj(e.currentTarget.dataset.kopiuj, e.currentTarget));
+  k.querySelector('[data-akcja="kopiuj"]').addEventListener('click', (e) => kopiuj(p.id, e.currentTarget));
+  k.querySelector('[data-akcja="rzut"]').addEventListener('click', () => pokazNaRzucie(p));
+  k.querySelector('[data-akcja="link"]').addEventListener('click', (e) => udostepnij(p, T, e.currentTarget));
+}
+
+// rzut z góry przybliżony do punktu; na telefonie karta się chowa (dotknięcie punktu ją przywraca)
+function pokazNaRzucie(p) {
+  widokGora();
+  const c = p.znacznik, telefon = matchMedia('(max-width: 760px)').matches;
+  kameraGora.zoom = Math.min(sterGora.maxZoom, 3.2);
+  // na komputerze karta zasłania prawą część sceny – punkt ustawiamy na środku widocznej części
+  const k = $('#karta'), naCm = (kameraGora.right - kameraGora.left) / kameraGora.zoom / kontener.clientWidth;
+  const x = c.x + (!telefon && !k.hidden ? ((k.offsetWidth + 24) / 2) * naCm : 0);
+  sterGora.target.set(x, 0, c.z);
+  kameraGora.position.set(x, 3000, c.z);
+  kameraGora.updateProjectionMatrix();
+  kameraGora.lookAt(x, 0, c.z);
+  sterGora.update();
+  if (telefon) { k.hidden = true; pokazKomunikat(`${p.id} – dotknij punkt, żeby wrócić do karty`); }
+  planujBanki(0);
+  render();
+}
+async function udostepnij(p, T, przycisk) {
+  const url = location.href.split('#')[0] + '#punkt=' + encodeURIComponent(p.id);
+  if (navigator.share) {
+    try { await navigator.share({ title: `Mój domek – ${T.nazwa} ${p.id}`, url }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  kopiuj(url, przycisk, 'skopiowano link');
+}
+// pewność położenia bez logowania: ze źródła zapisanego przez generuj.py w pliku rysunku
+function wiarZPliku(p) {
+  const w = dane.wiarygodnoscPolozenia({ zrodlo: p.zrodlo });
+  const [klasa, etyk] = w.polozenie === 'POTWIERDZONA' ? ['wiar-potw', 'potwierdzona'] : ['wiar-prawd', 'prawdopodobna'];
+  return `<span class="wiar ${klasa}">${etyk}</span> <span class="male">${esc(w.zrodlo)}</span>`;
 }
 
 // znaczek wiarygodności położenia + źródło i ostatnia zmiana (punkty z bazy)
@@ -546,7 +713,7 @@ function wiarPunktu(b) {
     + `${b.wersja ? `<br>wersja ${b.wersja}${b.zmienilNazwa ? ` · ${esc(b.zmienilNazwa)}` : ''}${kiedy ? ` · ${kiedy}` : ''}` : ''}</span>`;
 }
 
-async function kopiuj(tekst, przycisk) {
+async function kopiuj(tekst, przycisk, gotowe = 'skopiowano') {
   try {
     await navigator.clipboard.writeText(tekst);
   } catch {
@@ -555,8 +722,9 @@ async function kopiuj(tekst, przycisk) {
     try { document.execCommand('copy'); } catch { /* trudno */ }
     t.remove();
   }
-  przycisk.textContent = 'skopiowano';
-  setTimeout(() => { przycisk.textContent = 'kopiuj'; }, 1500);
+  const bylo = przycisk.dataset.napis || (przycisk.dataset.napis = przycisk.textContent);
+  przycisk.textContent = gotowe;
+  setTimeout(() => { przycisk.textContent = bylo; }, 1500);
 }
 
 // ---------------------------------------------------------------- wczytywanie danych

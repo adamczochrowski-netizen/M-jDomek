@@ -143,6 +143,13 @@ Wygląd: Ciemny (domyślnie) / Jasny / Jak w telefonie – na komputerze trzy ik
 (księżyc, słońce, półkole), na telefonie w panelu konta (przycisk z imieniem albo „Zaloguj”).
 Każde urządzenie pamięta swój wybór. Kolory są zmiennymi na początku styl.css (oba motywy
 spełniają kontrast WCAG AA); na telefonie tekst ma 16 px, a przyciski co najmniej 44 px.
+Ikony punktów: rodzaj po kształcie i literze (gniazdko – kółko, do sprzętu – kwadrat, indukcja –
+sześciokąt, włącznik – prostokąt, dzwonek/gong – romb, lampa – gwiazdka), kolor elektryki
+żółto-pomarańczowy (rozdz. 17: czerwony = ogrzewanie, niebieski = woda). Zielony znaczek ✓ –
+położenie potwierdzone pomiarem; szara ikona z „?” – niezweryfikowane. Punkty, które na ekranie
+nachodzą na siebie, łączą się w bańkę z liczbą – dotknięcie przybliża. Karta punktu ma przyciski
+„Pokaż na rzucie”, „Kopiuj ID” i „Udostępnij link”. Etykiety pomieszczeń pokazują wysokość
+sufitu dopiero po przybliżeniu.
 
 „Rzut z góry” – widok jak rysunek (bez perspektywy); przyciskiem obok wracasz do 3D.
 ⟲ – ustawia widok od nowa.

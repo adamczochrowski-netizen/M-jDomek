@@ -3,13 +3,14 @@
 // Jednostki: cm. Logika siatki komórek jest przeniesiona z skrypty/buduj_3d.py.
 
 export const TYPY = {
-  Z: { nazwa: 'Gniazdko zwykłe', kolor: '#e03131', tekst: '#ffffff' },
-  S: { nazwa: 'Gniazdko do sprzętu', kolor: '#2f54c9', tekst: '#ffffff' },
-  I: { nazwa: 'Gniazdko indukcji', kolor: '#f2c200', tekst: '#1d1d1d' },
-  W: { nazwa: 'Włącznik', kolor: '#37a52b', tekst: '#ffffff' },
-  D: { nazwa: 'Dzwonek (przycisk)', kolor: '#262626', tekst: '#ffffff' },
-  G: { nazwa: 'Gong dzwonka', kolor: '#f6f6f6', tekst: '#1d1d1d', obrys: '#555555' },
-  L: { nazwa: 'Lampa zewnętrzna', kolor: '#ff9f1c', tekst: '#1d1d1d' },
+  // rozdz. 17: elektryka żółto-pomarańczowa (czerwony = ogrzewanie, niebieski = woda); rodzaj rozróżnia kształt (js/ikony.js)
+  Z: { nazwa: 'Gniazdko zwykłe', kolor: '#f59f00', tekst: '#1d1d1d', ksztalt: 'kolo' },
+  S: { nazwa: 'Gniazdko do sprzętu', kolor: '#f59f00', tekst: '#1d1d1d', ksztalt: 'kwadrat' },
+  I: { nazwa: 'Gniazdko indukcji', kolor: '#f59f00', tekst: '#1d1d1d', ksztalt: 'szesciokat' },
+  W: { nazwa: 'Włącznik', kolor: '#ffd43b', tekst: '#1d1d1d', ksztalt: 'prostokat' },
+  D: { nazwa: 'Dzwonek (przycisk)', kolor: '#ffd43b', tekst: '#1d1d1d', ksztalt: 'romb' },
+  G: { nazwa: 'Gong dzwonka', kolor: '#ffd43b', tekst: '#1d1d1d', ksztalt: 'romb' },
+  L: { nazwa: 'Lampa zewnętrzna', kolor: '#ffd43b', tekst: '#1d1d1d', ksztalt: 'gwiazda' },
 };
 export const KOLEJNOSC_TYPOW = ['Z', 'S', 'I', 'W', 'D', 'G', 'L'];
 
@@ -230,7 +231,11 @@ export function analizuj(M) {
       idx, typ: it.type, x: it.x, yd: it.yd, z: it.z, n: it.n || 1, pion: !!it.pion,
       ax, c, s, size: it.size || 8, opisDanych: it.opis || '', idDanych: it.id || null,
       baza: it.baza || null,        // punkt ze wspólnej bazy: wiarygodność, wersja, kto zmienił
+      zrodlo: it.zrodlo || null,    // z generuj.py: pomiar / pomiar+szacunek / szacunek / rysunek
     };
+    // pewność położenia: z bazy, a bez logowania – ze źródła w pliku (tylko „pomiar” = potwierdzona; nigdy na wyrost)
+    const pol = it.baza?.wiarygodnosc?.polozenie || (it.zrodlo === 'pomiar' ? 'POTWIERDZONA' : 'PRAWDOPODOBNA');
+    p.wiar = pol === 'POTWIERDZONA' ? 'P' : pol === 'NIEZWERYFIKOWANA' ? 'N' : 'R';
     const along = ax === 'v' ? it.yd : it.x;
     const m = ax === 'v' ? miejsce(c + s * 5, it.yd) : miejsce(it.x, c + s * 5);
     p.naZewnatrz = m.typ !== 'pokoj';

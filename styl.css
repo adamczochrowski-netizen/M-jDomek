@@ -44,6 +44,8 @@
   --kurek-tekst: #f6ecd0;
   --kurek: #c0392b;      --kurek-pusty: #6b6b6b;  --kurek-obrys: #f6ecd0;
   --szafa-wybor: #0a6cd6;              /* rysunek szafy jest jasny w obu motywach */
+  /* kolory instalacji (rozdz. 17) */
+  --inst-el: #f59f00;  --inst-woda: #4dabf7;  --inst-kan: #adb5bd;  --inst-og: #ff6b5b;  --inst-plan: #b18ae6;
   --szafa-filtr: brightness(.9);
   /* rozmiary: komputer (telefon – niżej, w @media) */
   --fs: 15px;
@@ -90,6 +92,7 @@
   --kurek-tekst: #2a2100;
   --kurek-obrys: #ffffff;
   --szafa-filtr: none;
+  --inst-el: #e8890c;  --inst-woda: #1c7ed6;  --inst-kan: #868e96;  --inst-og: #d9452b;  --inst-plan: #9b6ad6;
   color-scheme: light;
 }
 @media (max-width: 760px) {
@@ -385,7 +388,8 @@ main { position: relative; display: grid; grid-template-columns: 310px 1fr; min-
 }
 .etykieta.zasloniety { opacity: .28; }
 .etykieta b { display: block; font-weight: 650; }
-.etykieta span { font-size: 11px; color: var(--etykieta-tekst2); }
+.etykieta span { font-size: 11px; color: var(--etykieta-tekst2); display: none; }
+#etykiety.szczegoly .etykieta span { display: block; }
 #podpowiedz {
   position: absolute;
   left: 12px; bottom: 12px;
@@ -399,6 +403,28 @@ main { position: relative; display: grid; grid-template-columns: 310px 1fr; min-
   transition: opacity .4s;
 }
 #podpowiedz.schowana { opacity: 0; }
+
+/* bliskie punkty połączone w bańkę z liczbą (dotknięcie przybliża) */
+#banki { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
+.banka { position: absolute; left: 0; top: 0; pointer-events: auto; width: 34px; height: 34px; min-height: 0; padding: 0;
+  border-radius: 50%; border: 3px solid #fff; background: var(--inst-el); color: #1d1d1d; font-weight: 800; font-size: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.35); will-change: transform; }
+.banka::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; }   /* pole dotyku ok. 46 px */
+.banka:hover { border-color: #fff; filter: brightness(1.08); }
+.legenda-wiar { margin: 8px 0 2px; display: grid; gap: 2px; }
+.legenda-wiar .lw { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; font-size: var(--fs-male); }
+.legenda-wiar img { width: 20px; height: 20px; }
+.legenda-wiar .ile { color: var(--tekst2); }
+.pkt img.ik { width: 22px; height: 22px; flex-shrink: 0; }
+/* kolory instalacji: pasek przy zakładkach i kartach */
+.zakladki button[data-inst] { border-bottom-width: 3px; }
+.zakladki button[data-inst="elektryka"] { border-bottom-color: var(--inst-el); }
+.zakladki button[data-inst="hydraulika"] { border-bottom-color: var(--inst-woda); }
+.zakladki button[data-inst="kanalizacja"] { border-bottom-color: var(--inst-kan); }
+#instalacje-tresc[data-inst="elektryka"] > .karta-strony { border-left: 4px solid var(--inst-el); }
+#instalacje-tresc[data-inst="hydraulika"] > .karta-strony { border-left: 4px solid var(--inst-woda); }
+#instalacje-tresc[data-inst="kanalizacja"] > .karta-strony { border-left: 4px solid var(--inst-kan); }
+#pompa-tresc > .karta-strony { border-left: 4px solid var(--inst-og); }
 
 /* ---------------------------------------------------------------- karta punktu */
 #karta {
@@ -431,7 +457,8 @@ main { position: relative; display: grid; grid-template-columns: 310px 1fr; min-
 .karta-tresc dt { color: var(--tekst2); font-size: var(--fs-male); padding-top: 1px; }
 .karta-tresc dd { margin: 0; }
 .karta-tresc code { font: 13px/1.3 ui-monospace, Consolas, monospace; background: var(--akcent-tlo); padding: 1px 5px; border-radius: 4px; }
-.karta-tresc .kopiuj { min-height: 30px; padding: 0 10px; font-size: var(--fs-male); margin-left: 6px; }
+.karta-akcje { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0 0; }
+.karta-akcje button { min-height: 44px; padding: 4px 6px; font-size: var(--fs-male); font-weight: 600; }
 .karta-tresc .ostrzezenie { margin: 12px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--ostrz-tlo); color: var(--ostrz); font-size: var(--fs-male); }
 
 #komunikat {
@@ -503,7 +530,7 @@ html.plik .tylko-plik { display: flex; }
     max-height: 60%;
   }
   /* pola dotyku co najmniej 44 px */
-  .male-przyciski button, .filtry button, .karta-tresc .kopiuj, .pkt, .zakladki button { min-height: 44px; }
+  .male-przyciski button, .filtry button, .pkt, .zakladki button { min-height: 44px; }
   .pkt { padding-right: 12px; }
   .k-baza .k-link { min-height: 44px; }
   summary { min-height: 44px; display: flex; align-items: center; }
