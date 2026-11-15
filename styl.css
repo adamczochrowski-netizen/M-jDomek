@@ -101,10 +101,12 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .wiar-potw { background: #e3f4e1; color: #1f6b1a; }
 .wiar-prawd { background: #fdf1d6; color: #7a5300; }
 .wiar-niezw { background: #ececec; color: #555; }
+.wiar-plan { background: #efe4fb; color: #5b2d91; border: 1px dashed #9b6ad6; }
 @media (prefers-color-scheme: dark) {
   .wiar-potw { background: #1d3a1c; color: #9fdc98; }
   .wiar-prawd { background: #3d2f10; color: #ffd27a; }
   .wiar-niezw { background: #2f343a; color: #c3c9cf; }
+  .wiar-plan { background: #2e2342; color: #d9c4ff; border-color: #7d55b3; }
 }
 
 /* ---------------------------------------------------------------- instalacje */

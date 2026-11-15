@@ -379,7 +379,9 @@ async function wczytajKarte(karta) {
 // POTWIERDZONA / PRAWDOPODOBNA / NIEZWERYFIKOWANA (rozdz. 12.2); dopisek w nawiasie = źródło
 function chipWiar(tekst) {
   const n = norm(tekst).trim();
-  const [klasa, etyk] = n.startsWith('potw') ? ['wiar-potw', 'potwierdzona'] : n.startsWith('prawd') ? ['wiar-prawd', 'prawdopodobna'] : ['wiar-niezw', 'niezweryfikowana'];
+  // PLANOWANE to nie stopień pewności, tylko stan (rozdz. 5) – osobny, fioletowy znaczek, żeby nie mylić z tym, co jest
+  const [klasa, etyk] = n.startsWith('potw') ? ['wiar-potw', 'potwierdzona'] : n.startsWith('prawd') ? ['wiar-prawd', 'prawdopodobna']
+    : n.startsWith('plan') ? ['wiar-plan', 'planowane'] : ['wiar-niezw', 'niezweryfikowana'];
   return `<span class="wiar ${klasa}" title="${esc(tekst || 'brak informacji o źródle')}">${etyk}</span>`;
 }
 function zrodloWiar(tekst) {
