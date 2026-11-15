@@ -2,6 +2,17 @@
  "_opis": "Mój domek – obwody elektryczne i trasy kabli. Format: README.txt, rozdział OBWODY. Współrzędne jak w dane_modelu.json: cm, x w prawo i y w dół od wewnętrznego lewego górnego narożnika domu, z = wysokość nad podłogą. Identyfikatory punktów (np. kuchnia-Z06) pokazuje karta punktu w aplikacji (przycisk kopiuj). Sekcja _przyklad jest tylko wzorem – aplikacja jej nie czyta.",
  "wersja": 1,
  "rozdzielnica": null,
+ "osprzet": {
+  "_opis": "Osprzęt wg typu punktu (Z gniazdko zwykłe, S do sprzętu, I indukcja, W włącznik) – pokazuje się w karcie punktu, tylko wewnątrz domu. Inny osprzęt dla jednego punktu: w sekcji punkty, np. \"kuchnia-Z06\": { \"osprzet\": \"…\" }.",
+  "Z": { "nazwa": "Legrand Niloe Step, białe", "link": "https://www.castorama.pl/gniazdo-pojedyncze-legrand-niloe-step-z-uziemieniem-biale/3414971834729_CAPL.prd" },
+  "S": { "nazwa": "Legrand Niloe Step, białe", "link": "https://www.castorama.pl/gniazdo-pojedyncze-legrand-niloe-step-z-uziemieniem-biale/3414971834729_CAPL.prd" },
+  "W": { "nazwa": "Legrand Niloe Step, białe" }
+ },
+ "ogrzewanie_podlogowe": {
+  "_opis": "Ogrzewanie podłogowe: \"pomieszczenia\" = \"wszystkie\" albo lista nazw jak na rzucie (np. [\"Łazienka\", \"Salon\"]). Pokazuje się jako warstwa w widoku 3D i ostrzeżenie w karcie punktu.",
+  "pomieszczenia": "wszystkie",
+  "uwagi": "W wylewce całego domu są rury ogrzewania podłogowego – nie wierć w posadzce (odbojniki, kotwy mebli itp.) bez sprawdzenia przebiegu rur."
+ },
  "punkty": {},
  "obwody": [],
  "trasy": [],

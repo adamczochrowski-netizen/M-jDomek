@@ -17,6 +17,7 @@ const WARSTWY_BUDYNKU = [
   { k: 'sciany', nazwa: 'Ściany', wl: true },
   { k: 'okna', nazwa: 'Okna i drzwi', wl: true },
   { k: 'podlogi', nazwa: 'Podłogi', wl: true },
+  { k: 'ogrzewanie', nazwa: 'Ogrzewanie podłogowe', wl: false },
   { k: 'sufity', nazwa: 'Sufity', wl: false },
   { k: 'belka', nazwa: 'Belka (kuchnia | salon)', wl: true },
   { k: 'meble', nazwa: 'Meble', wl: true },
@@ -223,13 +224,13 @@ function zaslonieteEtykiety() {
 function zwolnij(obj) {
   obj.traverse((o) => {
     if (o.geometry) o.geometry.dispose();
-    if (o.isPoints && o !== wyborPkt) { o.material.map?.dispose(); o.material.dispose(); }
+    if ((o.isPoints && o !== wyborPkt) || o.name === 'Ogrzewanie podłogowe') { o.material.map?.dispose(); o.material.dispose(); }
   });
 }
 function zbudujScene() {
   if (stan.korzen) { scene.remove(stan.korzen); zwolnij(stan.korzen); }
   const zs = stan.wysokoscScian != null ? Math.min(stan.wysokoscScian, stan.A.zCeil) : null;
-  const { warstwy, znaczniki } = zbudujDom(stan.M, stan.A, mat, { wysokoscScian: zs });
+  const { warstwy, znaczniki } = zbudujDom(stan.M, stan.A, mat, { wysokoscScian: zs, ogrzewanie: stan.obw?.ogrzewanie_podlogowe });
   stan.warstwy = warstwy;
   stan.znaczniki = znaczniki;
   stan.korzen = new THREE.Group();
@@ -305,6 +306,11 @@ function zbudujPanel() {
     if (w.k === 'sanitariaty') ile = String((M.sanitariaty || []).length);
     if (w.k === 'belka') { ile = String((M.belki || []).length); wylaczony = !(M.belki || []).length; }
     if (w.k === 'sufity') ile = `${A.ceilings.length} wys.`;
+    if (w.k === 'ogrzewanie') {
+      const og = stan.obw?.ogrzewanie_podlogowe;
+      if (!og) { wylaczony = true; ile = 'brak danych'; tytul = 'Wpisz w obwody.json sekcję ogrzewanie_podlogowe'; }
+      else { ile = og.pomieszczenia === 'wszystkie' ? 'cały dom' : `${(og.pomieszczenia || []).length} pom.`; tytul = og.uwagi || ''; }
+    }
     lb.append(wierszWarstwy(w.k, w.nazwa, { ile, wylaczony, tytul }));
     if (w.k === 'sciany') lb.append(suwakScian());
     if (w.k === 'meble' && wylaczony) {
@@ -375,7 +381,9 @@ function obwodPunktu(id) {
 }
 function pokazInfoObwodow(blad) {
   const el = $('#obwody-info');
-  if (blad) { el.innerHTML = `<span class="uwaga">${esc(blad)}</span>`; return; }
+  if (blad) { stan.bladObwodow = blad; el.innerHTML = `<span class="uwaga">${esc(blad)}</span>`; return; }
+  if (stan.bladObwodow) { el.innerHTML = `<span class="uwaga">${esc(stan.bladObwodow)}</span>`; return; }
+  if (!stan.A) return;                     // obwody.json bywa wczytany przed danymi domu – podsumowanie pokaże zastosujDane
   const obw = stan.obw || {};
   const n = (obw.obwody || []).length, t = (obw.trasy || []).length, p = Object.keys(obw.punkty || {}).length;
   const znane = new Set(stan.A.items.map((q) => q.id));
@@ -483,6 +491,11 @@ function pokazKarte(p) {
   if (p.pion && p.n > 1) wys += ' (środek dolnego gniazda)';
   if (p.naZewnatrz && A.teren) wys += ` · ${cm(p.z + A.teren)} nad terenem`;
   const opis = wpis.opis || p.opisDanych || p.opisAuto;
+  // osprzęt: własny wpis punktu albo domyślny dla typu (tylko wewnątrz domu) – z obwody.json
+  const osp = wpis.osprzet ? { nazwa: wpis.osprzet } : (!p.naZewnatrz && stan.obw?.osprzet?.[p.typ]) || null;
+  let ospHost = '';
+  try { if (osp?.link) ospHost = new URL(osp.link).hostname.replace(/^www\./, ''); } catch { /* zły link */ }
+  const osprzet = osp ? esc(osp.nazwa || '') + (ospHost ? ` <a class="opcja" href="${esc(osp.link)}" target="_blank" rel="noopener noreferrer">${esc(ospHost)}</a>` : '') : null;
   const gdzie = p.naZewnatrz ? `Na zewnątrz${s && s.za.typ === 'pokoj' ? ` – ściana ${s.za.pokoj?.nazwa ? 'pomieszczenia ' + s.za.pokoj.nazwa : ''}` : ''}` : (p.pokoj?.nazwa || '—');
   const wiersze = [
     ['Pomieszczenie', esc(gdzie)],
@@ -492,6 +505,7 @@ function pokazKarte(p) {
     ['W ramce', esc(ramka)],
     ['Wzdłuż ściany', esc(wzdluz)],
     ['Opis', esc(opis)],
+    ...(osprzet ? [['Osprzęt', osprzet]] : []),
     ['Obwód', obwod ? esc([obwod.id, obwod.nazwa].filter(Boolean).join(' – ')) : '<span class="male">jeszcze nieprzypisany</span>'],
     ['ID punktu', `<code>${esc(p.id)}</code><button type="button" class="kopiuj" data-kopiuj="${esc(p.id)}">kopiuj</button>`],
     ['Położenie', `<span class="male">na licu ściany: x = ${cm(p.ax === 'v' ? p.c : p.x)}, y = ${cm(p.ax === 'v' ? p.yd : p.c)} (od wewnętrznego lewego górnego narożnika domu)</span>`],
@@ -505,7 +519,7 @@ function pokazKarte(p) {
     </div>
     <div class="karta-tresc">
       <dl>${wiersze.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>
-      <p class="ostrzezenie">Część położeń pochodzi z rysunku i może odbiegać o ok. 10–15 cm. Przewody od puszki biegną zwykle w pionie lub poziomie – przed wierceniem w pobliżu sprawdź ścianę wykrywaczem.</p>
+      <p class="ostrzezenie">Część położeń pochodzi z rysunku i może odbiegać o ok. 10–15 cm. Przewody od puszki biegną zwykle w pionie lub poziomie – przed wierceniem w pobliżu sprawdź ścianę wykrywaczem.${stan.obw?.ogrzewanie_podlogowe ? `<br><b>Podłoga:</b> ${esc(stan.obw.ogrzewanie_podlogowe.uwagi || 'jest ogrzewanie podłogowe – nie wierć w posadzce.')}` : ''}</p>
     </div>`;
   k.hidden = false;
   k.scrollTop = 0;
@@ -544,14 +558,15 @@ async function wczytajObwody() {
   try {
     const r = await fetch(URL_OBWODOW, { cache: 'no-store' });
     stan.wersjaObwodow = r.headers.get('last-modified');
-    if (r.status === 404) { stan.obw = {}; pokazInfoObwodow(); return; }
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    stan.obw = JSON.parse(await r.text());
-    pokazInfoObwodow();
+    stan.bladObwodow = null;
+    if (r.status === 404) stan.obw = {};
+    else if (!r.ok) throw new Error('HTTP ' + r.status);
+    else stan.obw = JSON.parse(await r.text());
   } catch (e) {
     stan.obw = {};
-    pokazInfoObwodow('Nie udało się odczytać obwody.json: ' + e.message + ' (sprawdź przecinki i cudzysłowy).');
+    stan.bladObwodow = 'Nie udało się odczytać obwody.json: ' + e.message + ' (sprawdź przecinki i cudzysłowy).';
   }
+  pokazInfoObwodow();
 }
 
 function zastosujDane(M, wersja, pierwszy) {
@@ -630,6 +645,8 @@ async function sprawdzZmiany() {
     const ro = await fetch(URL_OBWODOW, { method: 'HEAD', cache: 'no-store' });
     if (ro.headers.get('last-modified') !== stan.wersjaObwodow) {
       await wczytajObwody();
+      zbudujScene();                       // np. zmiana ogrzewania podłogowego
+      zbudujPanel();
       if (stan.wybrany) pokazKarte(stan.wybrany);
       pokazKomunikat('Wczytano zmiany w obwody.json');
     }

@@ -110,7 +110,8 @@ Telefon: 1 palec – obrót, 2 palce – przybliżanie i przesuwanie. Panel: prz
                  (np. kuchnia z salonu, wiatrołap, pom. gospodarcze).
 
 Warstwy (zaznacz/odznacz): ściany (z suwakiem wysokości – można je „przyciąć”, żeby
-zajrzeć do środka), okna i drzwi, podłogi, sufity (każde pomieszczenie na swojej
+zajrzeć do środka), okna i drzwi, podłogi, ogrzewanie podłogowe (czerwone paski = rury
+w wylewce, w całym domu – nie wiercić w posadzce), sufity (każde pomieszczenie na swojej
 wysokości, niebieskie płaszczyzny), belka, meble, sanitariaty, teren (siatka co 1 m),
 nazwy pomieszczeń, a w części „Elektryka” każdy typ osobno i lampy zewnętrzne.
 Przy każdym typie jest liczba: ramki i gniazda (np. potrójne gniazdko = 1 ramka, 3 gniazda).
@@ -166,8 +167,16 @@ Budowa pliku (JSON – pilnuj cudzysłowów i przecinków; sekcja "_przyklad" to
 {
  "wersja": 1,
  "rozdzielnica": { "x": 600, "y": 900, "z": 150, "opis": "gdzie jest skrzynka" },   // albo null
+ "ogrzewanie_podlogowe": {                    // warstwa w widoku 3D + ostrzeżenie w karcie punktu
+   "pomieszczenia": "wszystkie",              //   albo lista, np. ["Łazienka", "Salon"]
+   "uwagi": "nie wierć w posadzce …" },
+ "osprzet": {                                 // osprzęt wg typu punktu, w karcie punktu (wewnątrz domu)
+   "Z": { "nazwa": "Legrand Niloe Step, białe", "link": "https://…" },
+   "W": { "nazwa": "Legrand Niloe Step, białe" }
+ },
  "punkty": {                                  // dopiski do punktów (klucz = identyfikator)
-   "kuchnia-Z06": { "opis": "potrójne przy rogu, nad blatem", "obwod": "K1" }
+   "kuchnia-Z06": { "opis": "potrójne przy rogu, nad blatem", "obwod": "K1" },
+   "kuchnia-I01": { "osprzet": "gniazdo siłowe …" }   // inny osprzęt niż domyślny
  },
  "obwody": [                                  // obwody z rozdzielnicy
    { "id": "K1",

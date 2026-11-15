@@ -83,6 +83,35 @@ function plaska(cells, z, nrmY = 1) {
   return S.geometria();
 }
 
+// pozioma powierzchnia z współrzędnymi tekstury liczonymi z położenia (wzór powtarza się co `okres` cm)
+function plaskaUV(cells, z, okres) {
+  const p = [], uv = [], idx = [];
+  for (const [x0, x1, y0, y1] of cells) {
+    const b = p.length / 3;
+    for (const [x, y] of [[x0, y0], [x0, y1], [x1, y1], [x1, y0]]) { p.push(x, z, y); uv.push(x / okres, y / okres); }
+    idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+function teksturaRur() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.strokeStyle = 'rgba(214, 64, 36, 0.95)';
+  x.lineWidth = 12;
+  x.lineCap = 'round';
+  for (const y of [32, 96]) { x.beginPath(); x.moveTo(0, y); x.lineTo(128, y); x.stroke(); }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 // prostopadłościan w układzie rzutu: środek (x, yd, z), wymiary (dx, dyd, dz), obrót wokół pionu
 function blok(x, yd, z, dx, dyd, dz, mat, obrot = 0) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(dx, dz, dyd), mat);
@@ -158,6 +187,23 @@ export function zbudujDom(M, A, mat, opcje = {}) {
     grupa('podlogi').add(m);
   }
   if (A.thresholds.length) grupa('podlogi').add(new THREE.Mesh(plaska(A.thresholds, POZIOM_PODLOGI), mat.plytki));
+
+  // ogrzewanie podłogowe: wzór rur (co ok. 15 cm) na podłogach wskazanych pomieszczeń
+  const og = opcje.ogrzewanie;
+  if (og) {
+    const wszystkie = og.pomieszczenia === 'wszystkie' || !Array.isArray(og.pomieszczenia);
+    const lista = wszystkie ? [] : og.pomieszczenia.map((s) => String(s).toLowerCase());
+    const cells = A.floors.filter((f) => wszystkie || f.nazwa.split(' + ').some((n) => lista.includes(n.toLowerCase()))).flatMap((f) => f.cells);
+    if (cells.length) {
+      const m = new THREE.Mesh(plaskaUV(cells, POZIOM_PODLOGI + 0.3, 30), new THREE.MeshBasicMaterial({
+        map: teksturaRur(), transparent: true, opacity: 0.55, depthWrite: false,
+        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+      }));
+      m.name = 'Ogrzewanie podłogowe';
+      m.renderOrder = 1;
+      grupa('ogrzewanie').add(m);
+    }
+  }
 
   // sufity – każde pomieszczenie (i strefa) na swojej wysokości
   for (const c of A.ceilings) {

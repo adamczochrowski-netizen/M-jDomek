@@ -135,20 +135,21 @@ function parsujWyposazenie(wiersze, pelne) {
   }
   return grupy.filter((gr) => gr.pozycje.length || gr.linki.length);
 }
+// „jest”, „są”, „mamy”, „kupione” na początku komórki (w dowolnej kolumnie) = już to mamy
+const MAMY = /^(jest|są|mamy|kupion[eya]?)(?=$|[\s\-–:,.(])/i;
 function dopisz(p, komorki, ciag) {
   komorki.forEach((c, i) => {
     if (!c) return;
     const k = rozbierzKomorke(c);
     p.linki.push(...k.linki);
-    if (i === 0 && !ciag) {                           // kolumna B: stan i uwagi
-      const pierwsza = k.teksty[0] || '';
-      if (/^(jest|są|sa|mamy|kupion)/i.test(pierwsza)) {
-        p.status = 'mamy';
-        const reszta = pierwsza.replace(/^(jest|są|sa|mamy|kupione|kupiony|kupiona)\s*[-–:,]?\s*/i, '');
-        if (reszta) p.uwagi.push(reszta);
-        p.uwagi.push(...k.teksty.slice(1));
-      } else p.uwagi.push(...k.teksty);
-    } else p.kandydaci.push(...k.teksty);
+    const pierwsza = k.teksty[0] || '';
+    if (MAMY.test(pierwsza)) {
+      p.status = 'mamy';
+      const reszta = pierwsza.replace(MAMY, '').replace(/^\s*[-–:,]?\s*/, '');
+      if (reszta) p.uwagi.push(reszta);
+      p.uwagi.push(...k.teksty.slice(1));
+    } else if (i === 0 && !ciag) p.uwagi.push(...k.teksty);   // kolumna B: uwagi
+    else p.kandydaci.push(...k.teksty);                         // dalsze kolumny: kandydaci
   });
 }
 
