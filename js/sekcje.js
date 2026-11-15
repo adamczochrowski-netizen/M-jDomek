@@ -222,13 +222,13 @@ function podobneZakupy(p, kupione) {
 const stanMamy = { dane: null, ladowanie: null, blad: null, ...czytaj(KLUCZ_WIDOKU, { zakladka: 'wyposazenie', filtr: 'wszystko' }) };
 function zapiszWidok() { zapisz(KLUCZ_WIDOKU, { zakladka: stanMamy.zakladka, filtr: stanMamy.filtr }); }
 
-async function wczytajArkusz({ wymus = false } = {}) {
+async function wczytajArkusz() {
   const a = arkusz();
   if (!a) return;
   const kopia = czytaj(KLUCZ_KOPII, null);
   if (kopia && kopia.id === a.id && !stanMamy.dane) { stanMamy.dane = kopia; rysujMamy(); }
+  // kopia pokazuje się od razu, a świeże dane z arkusza pobieramy przy każdym wejściu w zakładkę
   if (stanMamy.ladowanie) return stanMamy.ladowanie;
-  if (!wymus && kopia && kopia.id === a.id && Date.now() - kopia.t < 60e3) return;
   stanMamy.ladowanie = (async () => {
     try {
       const [wyp, kup] = await Promise.all([pobierzKarte(a.id, KARTY.wyposazenie), pobierzKarte(a.id, KARTY.kupione)]);
@@ -303,7 +303,7 @@ function rysujMamy() {
 function podepnijAkcje(el) {
   el.querySelectorAll('[data-zakladka]').forEach((b) => b.addEventListener('click', () => { stanMamy.zakladka = b.dataset.zakladka; zapiszWidok(); rysujMamy(); }));
   el.querySelectorAll('[data-filtr]').forEach((b) => b.addEventListener('click', () => { stanMamy.filtr = b.dataset.filtr; zapiszWidok(); rysujMamy(); }));
-  el.querySelectorAll('[data-akcja="odswiez"]').forEach((b) => b.addEventListener('click', () => { wczytajArkusz({ wymus: true }); rysujMamy(); }));
+  el.querySelectorAll('[data-akcja="odswiez"]').forEach((b) => b.addEventListener('click', () => { wczytajArkusz(); rysujMamy(); }));
 }
 
 const htmlLink = (l) => `<a class="opcja" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.opis ? `${l.opis} · ${host(l.url)}` : host(l.url))}</a>`;
