@@ -71,6 +71,17 @@ Zmiany w arkuszach widać w aplikacji po odświeżeniu (bez WYSLIJ_NA_GITHUB.bat
 „Domek Wirko” może być ustawiony na „Ograniczony dostęp” – „MójDomek” i tak go odczyta.
 
 
+KONTO I WSPÓLNA BAZA (Firebase) – wdrażane etapami
+---------------------------------------------------
+Przycisk „Zaloguj” w nagłówku: logowanie kontem Google (projekt Firebase mylittleproject-e91e3).
+Etap 1 (teraz): logowanie i sprawdzenie, czy konto ma dostęp do wspólnego domu. Dane jeszcze
+nie są w bazie – aplikacja działa jak dotąd. Bez logowania wszystko działa w trybie podglądu.
+Dostęp mają tylko konta wpisane w regułach bazy: plik Projekt\dokumentacja\firestore.rules
+(poza repozytorium; wkleja się go w konsoli Firebase: Firestore Database → Reguły → Opublikuj).
+Kolejne etapy (wspólny zapis, historia zmian, tryb lokalny/globalny, zdjęcia) – opis w
+Projekt\dokumentacja\Audyt ETAP 0 - Mój dom.md, rozdział 12b.
+
+
 SKĄD SĄ DANE I JAK DZIAŁA ODŚWIEŻANIE
 --------------------------------------
 Aplikacja nie ma własnej kopii wymiarów. Przy starcie czyta plik

@@ -154,6 +154,24 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .kurek.pusty b { background: #9c9c9c; }
 a.kurek:hover b { outline: 3px solid #fff; }
 
+/* konto (logowanie Google) w nagłówku */
+.pasek { position: relative; }
+.konto { margin-left: auto; margin-right: 10px; flex-shrink: 0; }   /* panel liczy się od nagłówka – nie wychodzi za ekran */
+.konto-przycisk { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 4px 12px; border-radius: 999px;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); color: var(--pasek-tekst); font-size: 13px; }
+.konto-przycisk:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.4); }
+.konto-przycisk .kropka { width: 9px; height: 9px; border-radius: 50%; background: #9aa3ad; }
+.konto-przycisk.k-ok .kropka { background: #4cc46b; }
+.konto-przycisk.k-uwaga .kropka { background: #f2b33d; }
+.konto-przycisk.k-blad .kropka { background: #e25b4a; }
+.konto-panel { position: absolute; right: 10px; top: calc(100% + 6px); width: min(320px, calc(100vw - 20px)); z-index: 40;
+  background: var(--panel); color: var(--tekst); border: 1px solid var(--linia); border-radius: 12px; box-shadow: var(--cien); padding: 12px 14px; font-size: 13.5px; }
+.konto-panel p { margin: 0 0 10px; }
+.konto-panel .k-przycisk { width: 100%; min-height: 40px; font-weight: 600; background: var(--akcent); color: #fff; border-color: var(--akcent); }
+.konto-panel .k-przycisk:hover { filter: brightness(1.08); }
+.konto-panel .k-przycisk.drugi { background: var(--panel); color: var(--tekst); border-color: var(--linia); font-weight: 500; }
+@media (max-width: 1100px) { #stan-danych { display: none; } }   /* miejsce na konto i menu w nagłówku */
+
 /* przyciski widoku na scenie 3D */
 .narzedzia-sceny { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; z-index: 4; }
 .narzedzia-sceny button { box-shadow: 0 1px 4px rgba(0,0,0,.18); }
