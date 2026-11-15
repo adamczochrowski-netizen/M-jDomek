@@ -506,19 +506,15 @@ function htmlElektryka() {
   const wyl = rozdz.map(([nr, opis, zasila, pokoje, punkty, uwagi, wiar]) => ({
     nr: String(nr || '').trim(), opis: String(opis || ''), zasila: String(zasila || ''), pokoje, punkty, uwagi, wiar,
   })).filter((w) => w.nr || w.opis);
-  const wiersze = wyl.map((w) => {
-    const ids = String(w.punkty || '').split(/[\s,;]+/).filter(Boolean);
-    return `<div class="zawor" id="wyl-${esc(w.nr.replace(/\W/g, '-'))}"><div class="zawor-gora"><b>${esc([w.nr, w.opis].filter(Boolean).join(' · ') || '—')}</b>${chipWiar(w.wiar)}</div>
-      ${w.zasila ? `<div>${esc(w.zasila)}</div>` : ''}
-      ${w.pokoje ? `<div class="male">Pomieszczenia: ${esc(w.pokoje)}</div>` : ''}
-      ${ids.length ? `<div class="pkt-lista" style="margin-top:6px">${ids.map((id) => htmlPunktId(id, A)).join('')}</div>` : ''}
-      ${w.uwagi ? `<div class="male">${esc(w.uwagi)}</div>` : ''}</div>`;
-  }).join('');
+  stanInst.wyl = wyl;
+  const wiersze = wyl.map((w) => `<div class="zawor" id="wyl-${esc(w.nr.replace(/\W/g, '-'))}">${htmlWylInfo(w, A)}</div>`).join('');
   return `
     <section class="karta-strony">
       <h3>Rozdzielnica (skrzynka z bezpiecznikami)</h3>
-      ${wyl.length ? htmlSzafa(wyl) : ''}
-      ${wiersze || `<p>Czeka na zdjęcie skrzynki z opisami wyłączników – przepiszę je do karty <b>Rozdzielnica</b>
+      ${wyl.length ? `${htmlSzafa(wyl)}
+        <div id="szafa-info" class="szafa-info"><p class="male">Dotknij wyłącznika na rysunku, żeby zobaczyć, co o nim wiadomo.</p></div>
+        <details style="margin-top:10px"><summary class="male">Lista wszystkich (${wyl.length})</summary>${wiersze}</details>`
+      : `<p>Czeka na zdjęcie skrzynki z opisami wyłączników – przepiszę je do karty <b>Rozdzielnica</b>
         (Nr | Wyłącznik | Co zasila | Pomieszczenia | Punkty | Uwagi). Wtedy tu będzie widać, który bezpiecznik
         wyłącza które gniazdka.</p>`}
       <details style="margin-top:10px"${wyl.length ? '' : ' open'}><summary class="male">Z zakupów – elementy rozdzielnicy</summary>
@@ -556,30 +552,135 @@ function rodzajWyl(w) {
   const pod = /^nieopisany/.test(norm(w.zasila)) ? '?' : w.zasila.replace(/\s*\(.*$/, '').slice(0, 14);
   return { klasa: 'w-mcb', skrot: prad ? (prad[1] + prad[2]).toUpperCase() : '?', pod };
 }
+function htmlWylInfo(w, A) {
+  const ids = String(w.punkty || '').split(/[\s,;]+/).filter(Boolean);
+  return `<div class="zawor-gora"><b>${esc([w.nr, w.opis].filter(Boolean).join(' · ') || '—')}</b>${chipWiar(w.wiar)}</div>
+    ${w.zasila ? `<div>${esc(w.zasila)}</div>` : ''}
+    ${w.pokoje ? `<div class="male">Pomieszczenia: ${esc(w.pokoje)}</div>` : ''}
+    ${ids.length ? `<div class="pkt-lista" style="margin-top:6px">${ids.map((id) => htmlPunktId(id, A)).join('')}</div>` : ''}
+    ${w.uwagi ? `<div class="male">${esc(w.uwagi)}</div>` : ''}`;
+}
+
+// ---------------------------------------------------------------- rysunek szafy (SVG) z danych arkusza
+// Szafa 3×12 modułów (z zakupów: „3x12 36M”); w każdym rzędzie wolne miejsce to zaślepki po lewej – jak u Was.
+const MOD = 30, MODULY = 12, MARG = 36, RZAD = 178, GORA = 22;
+const naklejka = (w) => {
+  const t = norm(w.zasila + ' ' + w.opis);
+  if (/ogranicznik|dehn/.test(t)) return null;            // ograniczniki mają opis L1–L3 na obudowie
+  if (/roznicow/.test(t)) return 'tarcza';
+  if (/glowny/.test(t)) return 'zasilanie';
+  if (/ganek/.test(t)) return 'ganek';
+  if (/silnik|pomp/.test(t)) return 'silnik';
+  if (/oswietl/.test(t)) return 'zarowka';
+  if (/gniazd/.test(t)) return 'gniazdko';
+  return 'pytajnik';
+};
+function svgNaklejka(rodzaj, cx, cy) {
+  switch (rodzaj) {
+    case 'gniazdko': return `<rect x="${cx - 12}" y="${cy - 12}" width="24" height="24" rx="4" fill="#d9cdc2" stroke="#4d3f33" stroke-width="1.5"/>
+      <circle cx="${cx}" cy="${cy}" r="8" fill="#fff" stroke="#4d3f33" stroke-width="1.2"/><circle cx="${cx - 3}" cy="${cy}" r="1.5" fill="#222"/><circle cx="${cx + 3}" cy="${cy}" r="1.5" fill="#222"/>`;
+    case 'zarowka': return `<circle cx="${cx}" cy="${cy - 3}" r="8.5" fill="#f2c200" stroke="#7a5c00" stroke-width="1.2"/><rect x="${cx - 4}" y="${cy + 5}" width="8" height="6" rx="1" fill="#666"/>`;
+    case 'silnik': return `<rect x="${cx - 12}" y="${cy - 8}" width="19" height="16" rx="2" fill="#2f6fd6" stroke="#173f80"/><rect x="${cx + 7}" y="${cy - 3}" width="6" height="6" fill="#2f6fd6" stroke="#173f80"/>
+      <line x1="${cx - 8}" y1="${cy - 4}" x2="${cx + 3}" y2="${cy - 4}" stroke="#cfe0ff"/><line x1="${cx - 8}" y1="${cy}" x2="${cx + 3}" y2="${cy}" stroke="#cfe0ff"/><line x1="${cx - 8}" y1="${cy + 4}" x2="${cx + 3}" y2="${cy + 4}" stroke="#cfe0ff"/>`;
+    case 'tarcza': return `<path d="M${cx - 11} ${cy - 12} H${cx + 11} V${cy} Q${cx + 11} ${cy + 9} ${cx} ${cy + 14} Q${cx - 11} ${cy + 9} ${cx - 11} ${cy} Z" fill="#1d2b3a"/>
+      <path d="M${cx + 2} ${cy - 9} L${cx - 5} ${cy + 2} H${cx} L${cx - 2} ${cy + 10} L${cx + 6} ${cy - 2} H${cx + 1} Z" fill="#3da5ff"/>`;
+    case 'zasilanie': return `<circle cx="${cx}" cy="${cy}" r="12" fill="#d9241c"/><path d="M${cx - 4.5} ${cy - 4} A6.2 6.2 0 1 0 ${cx + 4.5} ${cy - 4}" fill="none" stroke="#fff" stroke-width="2"/>
+      <line x1="${cx}" y1="${cy - 8}" x2="${cx}" y2="${cy}" stroke="#fff" stroke-width="2"/>`;
+    case 'ganek': return [...'GANEK'].map((l, i) => `<text x="${cx}" y="${cy - 13 + i * 8}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#e0533d">${l}</text>`).join('');
+    case 'pytajnik': return `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="12" fill="#b5b0a6">?</text>`;
+    default: return '';
+  }
+}
+function svgModul(w, x, y) {
+  const rd = rodzajWyl(w);
+  const bieg = w.bieguny, szer = bieg * MOD;
+  const nr = `<text x="${x + 5}" y="${y + 18}" font-size="7" fill="#8a867e">${esc(w.nr)}</text>`;
+  let s = '';
+  if (rd.klasa === 'w-spd') {
+    s = `<rect x="${x + 1}" y="${y}" width="${szer - 2}" height="92" rx="3" fill="#d8392b" stroke="#a52a1f"/>
+      <rect x="${x + 4}" y="${y + 5}" width="${szer - 8}" height="17" rx="2" fill="#fff"/>
+      <text x="${x + szer / 2}" y="${y + 17.5}" text-anchor="middle" font-size="10" font-weight="700" fill="#222">${esc(rd.pod || 'SPD')}</text>
+      <rect x="${x + 4}" y="${y + 27}" width="${szer - 8}" height="44" rx="2" fill="#fff"/>
+      <text x="${x + szer / 2}" y="${y + 40}" text-anchor="middle" font-size="5.5" font-weight="700" fill="#d8392b">DEHN</text>
+      <text x="${x + szer / 2}" y="${y + 52}" text-anchor="middle" font-size="5" fill="#333">DG MOD</text>
+      <text x="${x + szer / 2}" y="${y + 60}" text-anchor="middle" font-size="5" fill="#333">275</text>
+      <rect x="${x + 7}" y="${y + 76}" width="${szer - 14}" height="9" rx="1.5" fill="#3a9a4a"/>`;
+  } else {
+    const glowny = rd.klasa === 'w-glowny', rcd = rd.klasa === 'w-rcd';
+    s = `<rect x="${x + 1}" y="${y}" width="${szer - 2}" height="92" rx="3" fill="${rcd ? '#f4f8f2' : '#fbfbf9'}" stroke="#bdb9b1"/>
+      <rect x="${x + 3}" y="${y + 4}" width="${szer - 6}" height="18" rx="1.5" fill="#fff" stroke="#e2e0db"/>
+      <rect x="${x + (bieg > 1 ? szer * 0.45 : 14)}" y="${y + 7}" width="${bieg > 1 ? szer * 0.5 : szer - 18}" height="2.5" fill="#2fa34a"/>
+      ${nr}
+      <rect x="${x + 3}" y="${y + 26}" width="${(rcd ? 1 : bieg) * MOD - 6}" height="7" rx="3.5" fill="${glowny ? '#8f8f8f' : '#1c1c1c'}"/>
+      ${Array.from({ length: rcd ? 1 : bieg }, (_, i) => `<rect x="${x + i * MOD + 5}" y="${y + 36}" width="${MOD - 10}" height="30" rx="4" fill="#efeeea" stroke="#d4d1ca"/>
+        <rect x="${x + i * MOD + 8}" y="${y + 39}" width="${MOD - 16}" height="12" rx="2" fill="#fff" stroke="#b9b5ad"/>`).join('')}
+      ${rcd ? `<rect x="${x + MOD + 6}" y="${y + 30}" width="12" height="8" rx="1.5" fill="#fff" stroke="#999"/><text x="${x + MOD + 12}" y="${y + 36.5}" text-anchor="middle" font-size="6" fill="#555">T</text>
+        <text x="${x + MOD + 4}" y="${y + 58}" font-size="7" fill="#3a6e35">różnicowy</text>` : ''}
+      ${glowny ? `<text x="${x + szer - 6}" y="${y + 76}" text-anchor="end" font-size="6" fill="#555">SW · I.ON / O.OFF</text>` : ''}
+      <text x="${x + 5}" y="${y + 86}" font-size="11" font-weight="700" fill="#222">${esc(rcd ? ((/(\d+)\s*a\b/.exec(norm(w.opis)) || ['', '?'])[1] + 'A') : rd.skrot)}</text>
+      ${rcd ? `<text x="${x + 32}" y="${y + 86}" font-size="7" fill="#444">${esc(((/(\d+)\s*ma\b/.exec(norm(w.opis)) || ['', '?'])[1]) + ' mA')}</text>` : ''}`;
+  }
+  const nk = naklejka(w);
+  return `<g class="wyl-svg" data-wyl="${esc(w.nr)}" role="button" tabindex="0" aria-label="${esc(w.nr + ': ' + w.opis + ' – ' + w.zasila)}">
+    <title>${esc(w.nr + ' ' + w.opis + ' – ' + w.zasila)}</title>${s}
+    ${nk ? svgNaklejka(nk, x + szer / 2, y + 112) : ''}
+    <rect class="ramka" x="${x - 1}" y="${y - 3}" width="${szer + 2}" height="134" rx="5" fill="transparent"/></g>`;
+}
 function htmlSzafa(wyl) {
   const rzedy = new Map();
   for (const w of wyl) {
-    const r = (w.nr.split('.')[0] || '?');
+    const [r, p] = w.nr.split('.').map(Number);
+    w.bieguny = Number((/(\d)p\b/.exec(norm(w.opis)) || [0, 1])[1]) || 1;
+    w.poz = p || 0;
     if (!rzedy.has(r)) rzedy.set(r, []);
     rzedy.get(r).push(w);
   }
-  return `<div class="szafa">${[...rzedy].map(([r, lista]) => `<div class="szafa-rzad">
-    <div class="male">${esc(NAZWY_RZEDOW[r] || 'Rząd ' + r)}</div>
-    <div class="szyna">${lista.map((w) => {
-      const rd = rodzajWyl(w);
-      const bieguny = Number((/(\d)p\b/.exec(norm(w.opis)) || [0, 1])[1]) || 1;
-      return `<button type="button" class="wyl ${rd.klasa}" style="flex-grow:${bieguny}" data-wyl="wyl-${esc(w.nr.replace(/\W/g, '-'))}"
-        title="${esc(w.nr + ' ' + w.opis + ' – ' + w.zasila)}"><small>${esc(w.nr)}</small><b>${esc(rd.skrot)}</b><span>${esc(rd.pod)}</span></button>`;
-    }).join('')}</div></div>`).join('')}</div>`;
+  const numery = [...rzedy.keys()].sort((a, b) => a - b);
+  const maxMod = Math.max(MODULY, ...numery.map((r) => rzedy.get(r).reduce((s, w) => s + w.bieguny, 0)));
+  const W = maxMod * MOD + 2 * MARG, H = GORA + numery.length * RZAD + 14;
+  const panele = numery.map((r, i) => {
+    const y0 = GORA + i * RZAD, yM = y0 + 26;
+    const lista = rzedy.get(r).sort((a, b) => a.poz - b.poz);
+    const zajete = lista.reduce((s, w) => s + w.bieguny, 0);
+    let x = MARG + (maxMod - zajete) * MOD;              // zaślepki po lewej
+    const zaslepki = maxMod - zajete > 0 ? `<rect x="${MARG}" y="${yM}" width="${(maxMod - zajete) * MOD - 2}" height="92" rx="3" fill="#f4f3ef" stroke="#d8d5ce"/>
+      ${Array.from({ length: (maxMod - zajete) * 2 - 1 }, (_, k) => `<line x1="${MARG + (k + 1) * MOD / 2}" y1="${yM + 6}" x2="${MARG + (k + 1) * MOD / 2}" y2="${yM + 86}" stroke="#e2dfd8"/>`).join('')}` : '';
+    const moduly = lista.map((w) => { const g = svgModul(w, x, yM); x += w.bieguny * MOD; return g; }).join('');
+    const sruby = [[16, y0 + 18], [W - 16, y0 + 18], [16, y0 + RZAD - 22], [W - 16, y0 + RZAD - 22]]
+      .map(([sx, sy]) => `<circle cx="${sx}" cy="${sy}" r="4.5" fill="#d7d9dc" stroke="#9aa0a6"/><line x1="${sx - 3}" y1="${sy}" x2="${sx + 3}" y2="${sy}" stroke="#7d848b"/>`).join('');
+    return `<rect x="8" y="${y0}" width="${W - 16}" height="${RZAD - 6}" rx="4" fill="#f1f0ec" stroke="#d6d3cc"/>
+      <rect x="${MARG - 6}" y="${yM - 6}" width="${maxMod * MOD + 12}" height="104" rx="3" fill="#dcd9d2"/>
+      ${sruby}${zaslepki}${moduly}`;
+  }).join('');
+  return `<div class="szafa-rys"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Rysunek szafy z bezpiecznikami"
+    font-family="system-ui, Segoe UI, Arial, sans-serif">
+    <rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="10" fill="#fafaf8" stroke="#c4c1ba" stroke-width="2"/>
+    ${panele}</svg></div>`;
 }
-document.addEventListener('click', (e) => {          // dotknięcie wyłącznika na schemacie -> jego opis
-  const b = e.target.closest('[data-wyl]');
-  if (!b) return;
-  const el = document.getElementById(b.dataset.wyl);
-  if (!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  el.classList.add('mignij');
-  setTimeout(() => el.classList.remove('mignij'), 1600);
+function pokazWyl(nr) {
+  const w = (stanInst.wyl || []).find((q) => q.nr === nr);
+  const info = document.getElementById('szafa-info');
+  if (!w || !info) return;
+  document.querySelectorAll('.wyl-svg.wybrany').forEach((g) => g.classList.remove('wybrany'));
+  const g = document.querySelector(`.wyl-svg[data-wyl="${CSS.escape(nr)}"]`);
+  g?.classList.add('wybrany');
+  g?.scrollIntoView?.({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  const lista = stanInst.wyl, i = lista.indexOf(w);
+  info.innerHTML = `<div class="szafa-nawig">
+      <button type="button" data-wyl-krok="${esc(lista[i - 1]?.nr || '')}" ${i > 0 ? '' : 'disabled'} aria-label="Poprzedni wyłącznik">◀</button>
+      <span class="male">${i + 1} z ${lista.length}</span>
+      <button type="button" data-wyl-krok="${esc(lista[i + 1]?.nr || '')}" ${i < lista.length - 1 ? '' : 'disabled'} aria-label="Następny wyłącznik">▶</button>
+    </div><div class="zawor">${htmlWylInfo(w, window.mojDomek?.stan?.A)}</div>`;
+}
+document.addEventListener('click', (e) => {          // dotknięcie wyłącznika na rysunku -> jego opis pod rysunkiem
+  const g = e.target.closest?.('.wyl-svg');
+  if (g) { pokazWyl(g.dataset.wyl); return; }
+  const k = e.target.closest?.('[data-wyl-krok]');
+  if (k && k.dataset.wylKrok) pokazWyl(k.dataset.wylKrok);
+});
+document.addEventListener('keydown', (e) => {
+  const g = e.target.closest?.('.wyl-svg');
+  if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pokazWyl(g.dataset.wyl); }
 });
 
 function htmlPunktId(id, A) {
