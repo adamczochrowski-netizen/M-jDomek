@@ -1,6 +1,7 @@
 // Mój domek – konto: przycisk logowania w nagłówku i stan dostępu do wspólnego domu.
 // Biblioteka Firebase ładuje się osobno: gdy Google nie odpowiada, reszta aplikacji działa jak dotąd.
 import * as dane from './dane/elementy.js';
+import { podsumowanie, htmlSzczegoly } from './status.js';
 
 const el = document.getElementById('konto');
 const stan = { fb: null, user: null, dostep: null, blad: '', otwarte: false, lista: false };
@@ -15,6 +16,14 @@ const BLEDY_LOGOWANIA = {
 };
 
 function etykieta() {
+  const e = etykietaKonta();
+  // kropka pokazuje też stan danych (na telefonie nie ma osobnej plakietki): bez internetu / błąd = żółta / czerwona
+  const s = podsumowanie().klasa;
+  if (s === 'blad' && e.klasa !== 'k-wyl') e.klasa = 'k-blad';
+  else if (s === 'uwaga' && e.klasa === 'k-ok') e.klasa = 'k-uwaga';
+  return e;
+}
+function etykietaKonta() {
   if (!stan.fb && stan.blad) return { klasa: 'k-blad', tekst: 'Konto niedostępne' };
   if (!stan.user) return { klasa: 'k-wyl', tekst: 'Zaloguj' };
   const imie = (stan.user.displayName || stan.user.email || '').split(' ')[0];
@@ -100,10 +109,13 @@ function rysuj() {
   el.innerHTML = `<button type="button" class="konto-przycisk ${e.klasa}" data-konto="panel" aria-expanded="${stan.otwarte}"
       ${doZapisu ? `title="Rysunek ma ${doZapisu} ${odm(doZapisu, ['zmianę', 'zmiany', 'zmian'])} do przeniesienia do bazy"` : ''}>
       <span class="kropka" aria-hidden="true"></span>${esc(e.tekst)}${doZapisu ? `<span class="liczba-zmian">${doZapisu}</span>` : ''}</button>
-    ${stan.otwarte ? `<div class="konto-panel" role="dialog" aria-label="Konto">${opisStanu()}${htmlMotyw()}</div>` : ''}`;
+    ${stan.otwarte ? `<div class="konto-panel" role="dialog" aria-label="Konto">${opisStanu()}
+      <div class="k-baza"><h4>Stan danych</h4>${htmlSzczegoly()}
+        <button type="button" class="k-przycisk drugi" data-konto="odswiez">Odśwież dane</button></div>${htmlMotyw()}</div>` : ''}`;
 }
 
 async function akcja(a) {
+  if (a === 'odswiez') { window.dispatchEvent(new Event('mojdomek:odswiez')); return; }
   if (a.startsWith('motyw-')) { window.mojDomekMotyw?.ustaw(a.slice(6)); rysuj(); return; }
   if (a === 'panel') { stan.otwarte = !stan.otwarte; if (!stan.user && !stan.otwarte) stan.blad = ''; rysuj(); return; }
   if (a === 'zaloguj') {
@@ -128,6 +140,8 @@ document.addEventListener('click', (e) => {          // klik poza panelem zamyka
 });
 
 window.addEventListener('mojdomek:baza', rysuj);
+window.addEventListener('mojdomek:status', rysuj);
+window.addEventListener('mojdomek:otworz-konto', () => { stan.otwarte = true; rysuj(); });
 window.addEventListener('mojdomek:motyw', () => { if (stan.otwarte) rysuj(); });
 
 (async function start() {

@@ -159,6 +159,17 @@ w arkuszu” są w zwiniętym „ℹ Jak uzupełnić”, widocznym tylko po zalo
 przełącznik Rysunek / Lista (na telefonie domyślnie lista), rysunek powiększa się przyciskami
 +/− albo dwoma palcami. Gdy w karcie Rozdzielnica są wpisane Punkty, „pokaż te punkty na modelu”
 podświetla je w 3D (adres #punkty=id1,id2).
+Ekran startowy (#start; na telefonie otwiera się sam, na komputerze – kliknij „Mój domek”):
+kafelki „Nie ma prądu” → rozdzielnica, „Nie ma wody” → studnia i zawory, „Zimno w domu” → pompa
+i kurki, „Szukaj”, „Widok domu”, „Do uzupełnienia (N)”; po zalogowaniu – ostatnio zmienione
+elementy bazy. Kafelki prowadzą tylko do istniejących kart (bez własnych procedur awaryjnych).
+Model 3D buduje się dopiero po wejściu w „Widok” – start na słabym telefonie jest szybszy.
+Wyszukiwarka (lupa w nagłówku albo klawisz „/”): pomieszczenia, punkty po ID i opisie (kuchnia-Z06),
+wyłączniki („2.4”, „ganek” → #wyl=2.4), kurki, zawory, wyposażenie i zakupy; Enter otwiera pierwszy
+wynik, telefon pamięta ostatnie wyszukiwania.
+Stan danych: na komputerze (szerokim) plakietka w nagłówku („Zsynchronizowano 08:12”, „Bez internetu”,
+„Dane z …”), na telefonie kolor kropki przy koncie; szczegóły i „Odśwież dane” – w panelu konta.
+Przygotowane pod zapis globalny: „N zmian czeka”, „Błąd zapisu – ponów” (js/status.js).
 
 „Rzut z góry” – widok jak rysunek (bez perspektywy); przyciskiem obok wracasz do 3D.
 ⟲ – ustawia widok od nowa.

@@ -52,9 +52,10 @@
 <body>
 <header class="pasek">
   <div class="tytul">
-    <h1>Mój domek</h1>
-    <span id="stan-danych">wczytywanie danych…</span>
+    <h1><a href="#start" title="Ekran startowy">Mój domek</a></h1>
+    <button type="button" id="status" class="status-chip" hidden aria-label="Stan danych – szczegóły w panelu konta"></button>
   </div>
+  <button type="button" id="btn-szukaj" class="szukaj-przycisk" aria-label="Szukaj (skrót: /)" title="Szukaj (skrót: /)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke-width="2.4"/><path d="M15.5 15.5 21 21" fill="none" stroke-width="2.6" stroke-linecap="round"/></svg><span>Szukaj</span></button>
   <div id="konto" class="konto"></div>
   <div class="motyw-przelacznik" role="radiogroup" aria-label="Motyw">
     <button type="button" role="radio" data-motyw="ciemny" title="Ciemny" aria-label="Ciemny"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg></button>
@@ -68,6 +69,15 @@
     <a href="#mamy" data-sekcja="mamy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke-width="2.4" stroke-linecap="round"/></svg><span>Wyposażenie</span></a>
   </nav>
 </header>
+
+<div id="szukaj" class="szukaj-panel" role="dialog" aria-label="Szukaj" hidden>
+  <div class="szukaj-gora">
+    <input id="szukaj-pole" type="search" autocomplete="off" enterkeyhint="search"
+      placeholder="Pokój, kuchnia-Z06, 2.4, ganek, kurek, wanna…" aria-label="Czego szukasz">
+    <button type="button" class="zamknij" aria-label="Zamknij wyszukiwanie">✕</button>
+  </div>
+  <div id="szukaj-wyniki" aria-live="polite"></div>
+</div>
 
 <main id="sekcja-widok">
   <aside id="panel" aria-label="Warstwy i legenda">
@@ -114,7 +124,6 @@
       <div id="obwody-info" class="male">wczytywanie…</div>
     </section>
     <section class="stopka">
-      <button id="btn-odswiez" type="button">Odśwież dane</button>
       <p class="male tylko-lokalnie tylko-techniczny">Po uruchomieniu <b>ODSWIEZ.bat</b> nowe dane wczytują się same (sprawdzane co kilka sekund).</p>
       <p class="male tylko-github tylko-techniczny">Wersja w internecie: nowe dane pojawiają się po <b>WYSLIJ_NA_GITHUB.bat</b> (ok. 1–2 min) i odświeżeniu strony.</p>
     </section>
@@ -132,6 +141,25 @@
     <div id="komunikat" role="status" hidden></div>
   </div>
 </main>
+
+<section id="sekcja-start" class="strona" hidden>
+  <div class="strona-srodek">
+    <h2 class="strona-tytul">Mój domek</h2>
+    <nav class="kafelki" aria-label="Na skróty">
+      <a class="kafelek k-prad" href="#elektryka"><b>Nie ma prądu</b><span>Rozdzielnica: wyłączniki i co zasilają</span></a>
+      <a class="kafelek k-woda" href="#hydraulika"><b>Nie ma wody</b><span>Studnia, hydrofor, zawory</span></a>
+      <a class="kafelek k-cieplo" href="#ogrzewanie"><b>Zimno w domu</b><span>Pompa ciepła i kurki rozdzielacza</span></a>
+      <button type="button" class="kafelek k-szukaj" data-otworz-szukaj><b>Szukaj</b><span>Pokój, gniazdko, wyłącznik, kurek, wyposażenie</span></button>
+      <a class="kafelek k-model" href="#widok"><b>Widok domu</b><span>Model 3D i rzut z góry</span></a>
+      <a class="kafelek k-braki" href="#braki"><b>Do uzupełnienia <span id="start-braki" class="liczba"></span></b><span>Czego jeszcze brakuje w opisie domu</span></a>
+    </nav>
+    <section id="start-zmiany" class="karta-strony tylko-zalogowani">
+      <h3>Ostatnio zmienione</h3>
+      <div id="start-zmiany-lista" class="male">Brak zmian w bazie.</div>
+    </section>
+    <p id="start-stan" class="male"></p>
+  </div>
+</section>
 
 <section id="sekcja-instalacje" class="strona" hidden>
   <div class="strona-srodek">

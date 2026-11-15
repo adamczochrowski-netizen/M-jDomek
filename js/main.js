@@ -5,6 +5,7 @@ import { analizuj, TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
 import { zbudujDom, zbudujSciany, materialy, teksturaWyboru, teksturaZnacznika, ikonaTypu, POZIOM_PODLOGI, KOLOR_RUR } from './budowa3d.js';
 import * as dane from './dane/elementy.js';
 import { WIAR_OPIS } from './ikony.js';
+import { ustawDane, ustawPunkty } from './status.js';
 
 // dane_modelu.json tworzy ODSWIEZ.bat (skrypty/generuj.py):
 //  - na komputerze (serwer.py) czytamy świeży plik ../skrypty/dane_modelu.json,
@@ -354,7 +355,10 @@ function zwolnij(obj) {
     else if (o.userData?.wlasnyMaterial) { o.material.map?.dispose(); o.material.dispose(); }
   });
 }
+const widokWidoczny = () => document.body.dataset.sekcja === 'widok';
 function zbudujScene() {
+  if (!widokWidoczny()) { stan.scenaCzeka = true; return; }
+  stan.scenaCzeka = false;
   if (stan.korzen) { scene.remove(stan.korzen); zwolnij(stan.korzen); }
   const zs = stan.wysokoscScian != null ? Math.min(stan.wysokoscScian, stan.A.zCeil) : null;
   const { warstwy, znaczniki } = zbudujDom(stan.M, stan.A, mat, { wysokoscScian: zs, ogrzewanie: stan.obw?.ogrzewanie_podlogowe });
@@ -779,10 +783,10 @@ function zastosujDane(M, wersja, pierwszy) {
   zbudujScene();
   zbudujPanel();
   pokazInfoObwodow();
-  $('#stan-danych').textContent = opisWersji(wersja?.lm) + (zBazy ? ' · punkty z bazy' : '');
-  $('#stan-danych').title = (NA_GITHUB ? 'Kopia danych wysłana na GitHub (WYSLIJ_NA_GITHUB.bat)'
-    : stan.urlDanych === ZRODLA_DANYCH[0] ? 'Plik: Projekt\\skrypty\\dane_modelu.json' : 'Kopia: aplikacja\\dane_modelu.json')
-    + (zBazy ? `\nPunkty elektryczne: wspólna baza (${zBazy.length})` : '');
+  // pasek stanu: skąd i z kiedy są dane, skąd punkty
+  const lm = wersja?.lm ? new Date(wersja.lm) : null;
+  ustawDane({ czas: lm && !isNaN(lm) ? lm : null, zrodlo: NA_GITHUB ? 'github' : stan.urlDanych === ZRODLA_DANYCH[0] ? 'plik' : 'kopia' });
+  ustawPunkty(zBazy ? 'baza' : 'plik');
   if (pierwszy) stan.dopasowano = false;
   rozmiar();
   const p = wybranyId && A.items.find((q) => q.id === wybranyId);
@@ -928,7 +932,7 @@ async function wczytaj({ pierwszy = false, cicho = false } = {}) {
     if (stan.A) { pokazKomunikat('Nie udało się odświeżyć danych: ' + e.message); return; }
     $('#blad-tekst').textContent = e.message + (NA_GITHUB ? ' – odśwież stronę za chwilę.' : '');
     $('#blad').hidden = false;
-    $('#stan-danych').textContent = 'brak danych';
+    ustawDane({ blad: e.message });
   }
 }
 
@@ -976,7 +980,7 @@ $('#plik-danych').addEventListener('change', async (e) => {
 $('#btn-gora').addEventListener('click', () => (stan.tryb === 'gora' ? widokUkos() : widokGora()));
 $('#btn-reset').addEventListener('click', () => (stan.tryb === 'gora' ? widokGora() : widokUkos()));
 $('#btn-panel').addEventListener('click', () => document.body.classList.toggle('panel-otwarty'));
-$('#btn-odswiez').addEventListener('click', () => wczytaj());
+window.addEventListener('mojdomek:odswiez', () => wczytaj());    // przycisk „Odśwież dane” w panelu konta
 document.querySelectorAll('[data-widok]').forEach((b) => b.addEventListener('click', () => {
   (b.dataset.widok === 'gora' ? widokGora : widokUkos)();
   document.body.classList.remove('panel-otwarty');
@@ -1005,6 +1009,10 @@ window.addEventListener('mojdomek:motyw', () => {
 $('#podpowiedz').textContent = dotyk
   ? '1 palec – obrót · 2 palce – przybliżanie i przesuwanie · dotknij kółko, by zobaczyć szczegóły'
   : 'Lewy przycisk – obrót · prawy – przesuwanie · kółko – przybliżanie · kliknij kółko punktu, by zobaczyć szczegóły';
+
+window.addEventListener('mojdomek:sekcja', () => {
+  if (widokWidoczny() && stan.scenaCzeka && stan.A) { zbudujScene(); rozmiar(); obsluzAdres(); }
+});
 
 // ---------------------------------------------------------------- tryby widoku i grupy panelu
 function ustawTryb(k) {

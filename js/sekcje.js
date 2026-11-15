@@ -1,5 +1,7 @@
 import { TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
 import { ikonaTypu } from './ikony.js';
+import { stanBazy } from './dane/elementy.js';
+import { podsumowanie } from './status.js';
 // Mój domek – menu (Widok / Instalacje / Ogrzewanie / Wyposażenie) i sekcje czytane z publicznego Arkusza Google „MójDomek”.
 // „MójDomek” sam pobiera (IMPORTRANGE) potrzebne kolumny z prywatnego arkusza „Domek Wirko”:
 // Wyposażenie w całości, Kupione bez kwot i bez „kto płacił”. Pompę, pętle, rozdzielnicę, zawory i studnię
@@ -27,21 +29,30 @@ const czytaj = (k, dom) => { try { return JSON.parse(localStorage.getItem(k) || 
 const zapisz = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* tryb prywatny */ } };
 
 // ====================================================================== menu
-const SEKCJE = ['widok', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
+const SEKCJE = ['start', 'widok', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
+const KLUCZ_SEKCJI = 'mojDomek.sekcja.v1';
+const naTelefonie = () => matchMedia('(max-width: 760px)').matches;
+const jakAplikacja = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 // stare i skrócone adresy: #pompa → Ogrzewanie, #elektryka / #hydraulika / #kanalizacja → Instalacje z podzakładką
 const ALIASY = { pompa: 'ogrzewanie', wyposazenie: 'mamy', elektryka: 'instalacje', hydraulika: 'instalacje', kanalizacja: 'instalacje' };
 const PODZAKLADKI = ['elektryka', 'hydraulika', 'kanalizacja'];
 function sekcjaZAdresu() {
   const h = location.hash.replace(/^#/, '');
   if (PODZAKLADKI.includes(h)) stanInst.zakladka = h;
+  if (h.startsWith('wyl=')) { stanInst.zakladka = 'elektryka'; return 'instalacje'; }   // wyłącznik z wyszukiwarki
+  // pusty adres: aplikacja z ekranu głównego – ostatnio używana sekcja; telefon – lekki ekran startowy; komputer – widok domu
+  if (!h) return (jakAplikacja() && czytaj(KLUCZ_SEKCJI, null)) || (naTelefonie() ? 'start' : 'widok');
   const s = ALIASY[h] || h;
-  return SEKCJE.includes(s) ? s : 'widok';      // #punkt=…, #pokoj=…, #ogrzewanie=… i pusty adres = widok domu
+  return SEKCJE.includes(s) ? s : 'widok';      // #punkt=…, #pokoj=…, #ogrzewanie=… = widok domu
 }
 function pokazSekcje() {
   const s = sekcjaZAdresu();
   for (const k of SEKCJE) $('#sekcja-' + k).hidden = s !== k;
   document.querySelectorAll('.menu a').forEach((a) => a.classList.toggle('aktywny', a.dataset.sekcja === s));
   document.body.dataset.sekcja = s;
+  zapisz(KLUCZ_SEKCJI, s);
+  window.dispatchEvent(new CustomEvent('mojdomek:sekcja', { detail: s }));   // np. model 3D buduje się dopiero w „Widoku”
+  if (s === 'start') otworzStart();
   if (s === 'mamy') otworzMamy();
   if (s === 'ogrzewanie') otworzPompe();
   if (s === 'instalacje') otworzInstalacje();
@@ -550,6 +561,8 @@ function rysujInstalacje() {
   el.innerHTML = stanInst.zakladka === 'hydraulika' ? htmlHydraulika() : stanInst.zakladka === 'kanalizacja' ? htmlKanalizacja() : htmlElektryka();
   ustawSkaleSzafy(stanInst.skala || 1);
   zwinDlugie(el);
+  const mw = /wyl=([^&]+)/.exec(location.hash);
+  if (mw && stanInst.zakladka === 'elektryka' && kartyCache.rozdzielnica) zaznaczWylacznik(decodeURIComponent(mw[1]));
   const s = $('#zawory-szukaj');
   if (s) {
     s.value = stanInst.szukaj;
@@ -782,6 +795,15 @@ document.addEventListener('click', (e) => {          // rozdzielnica: rysunek/li
     if (d) d.hidden = !otw;
   }
 });
+function zaznaczWylacznik(nr) {
+  const w = document.querySelector(`.wyl-wiersz[data-wyl-lista="${CSS.escape(nr)}"]`);
+  if (w) {
+    if (w.getAttribute('aria-expanded') !== 'true') w.click();
+    w.scrollIntoView({ block: 'center' });
+    return;
+  }
+  if (document.querySelector(`.wyl-svg[data-wyl="${CSS.escape(nr)}"]`)) { pokazWyl(nr); document.getElementById('szafa-info')?.scrollIntoView({ block: 'center' }); }
+}
 function ustawSkaleSzafy(s) {
   stanInst.skala = Math.max(1, Math.min(3.5, s));
   const r = document.querySelector('.szafa-rys');
@@ -965,6 +987,147 @@ function szkielet(n = 2, wTresci = false) {
   return wTresci ? `<div class="szkielet" aria-label="Wczytywanie">${k}</div>`
     : Array.from({ length: n }, () => `<div class="karta-strony szkielet" aria-label="Wczytywanie"><div class="szkielet-linia tytul"></div>${k}</div>`).join('');
 }
+
+// ====================================================================== ekran startowy (plan GUI, pkt 9)
+// Kafelki prowadzą tylko do istniejących kart (bez własnych procedur awaryjnych – te dopiero z instrukcji producentów).
+async function otworzStart() {
+  const p = podsumowanie();
+  const stanEl = $('#start-stan');
+  if (stanEl) stanEl.textContent = p.tekst;
+  rysujZmiany();
+  const n = $('#start-braki');
+  if (n && !n.textContent) {
+    try { const ile = await liczbaBrakow(); n.textContent = `(${ile})`; } catch { /* bez liczby */ }
+  }
+}
+// ostatnio zmienione elementy wspólnej bazy (tylko po zalogowaniu; odczyt, bez zapisu)
+function rysujZmiany() {
+  const el = $('#start-zmiany-lista');
+  const b = stanBazy();
+  if (!el || !b.elementy) return;
+  const lista = [...b.elementy.values()].filter((e) => e.zmieniono?.toDate)
+    .sort((x, y) => y.zmieniono.toMillis() - x.zmieniono.toMillis()).slice(0, 5);
+  el.innerHTML = lista.length ? `<ul>${lista.map((e) => `<li><a href="#punkt=${encodeURIComponent(e.id)}">${esc(e.id)}</a>
+    – ${esc(e.zmienilNazwa || '')}, ${e.zmieniono.toDate().toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}${e.usuniety ? ' (usunięty)' : ''}</li>`).join('')}</ul>`
+    : 'Brak zmian w bazie.';
+}
+window.addEventListener('mojdomek:baza', () => { if (document.body.dataset.sekcja === 'start') rysujZmiany(); });
+window.addEventListener('mojdomek:status', () => { if (document.body.dataset.sekcja === 'start') { const s = $('#start-stan'); if (s) s.textContent = podsumowanie().tekst; } });
+
+// ====================================================================== wyszukiwarka (plan GUI, pkt 10)
+// Szuka w pomieszczeniach, punktach (po ID i opisie), wyłącznikach, kurkach, zaworach, wyposażeniu i zakupach.
+const KLUCZ_SZUKANYCH = 'mojDomek.szukane.v1';
+const szukajPanel = $('#szukaj'), szukajPole = $('#szukaj-pole'), szukajWyniki = $('#szukaj-wyniki');
+let indeks = [], wynikiTeraz = [], wczytujeIndeks = false;
+const enc = encodeURIComponent;
+function zbudujIndeks() {
+  const A = window.mojDomek?.stan?.A;
+  const w = [];
+  if (A) {
+    for (const r of A.rooms) w.push({ rodzaj: 'Pomieszczenie', znak: 'P', tytul: r.nazwa, opis: `sufit ${String(r.sufit).replace('.', ',')} cm`, hash: '#pokoj=' + enc(r.nazwa), szukaj: r.nazwa + ' pokój pomieszczenie' });
+    for (const p of A.items) {
+      const T = TYPY[p.typ] || { nazwa: p.typ };
+      const pok = p.naZewnatrz ? 'na zewnątrz' : (p.pokoj?.nazwa || '');
+      w.push({ rodzaj: T.nazwa, ikona: ikonaTypu(p.typ, p.wiar), tytul: p.id, opis: [T.nazwa, pok, p.opisDanych].filter(Boolean).join(' · '),
+        hash: '#punkt=' + enc(p.id), szukaj: [p.id, T.nazwa, pok, p.opisDanych, p.opisAuto].join(' ') });
+    }
+  }
+  for (const x of wylZArkusza()) {
+    const ids = String(x.punkty || '').split(/[\s,;]+/).filter(Boolean);
+    w.push({ rodzaj: 'Wyłącznik', znak: '⚡', tytul: `${x.nr} · ${rodzajWyl(x).skrot}`, opis: nieopisany(x) ? 'nieopisany' : x.zasila,
+      hash: '#wyl=' + enc(x.nr), naModelu: ids.length ? '#punkty=' + ids.map(enc).join(',') : null,
+      szukaj: [x.nr, x.opis, x.zasila, x.pokoje, 'wyłącznik bezpiecznik rozdzielnica'].join(' ') });
+  }
+  for (const p of petleZArkusza()) w.push({ rodzaj: 'Kurek ogrzewania', znak: p.nr, tytul: `Kurek ${p.nr}`, opis: p.pokoj || 'nieopisany',
+    hash: '#ogrzewanie', naModelu: p.pokoj ? '#ogrzewanie=' + enc(p.pokoj) : null, szukaj: ['kurek pętla ogrzewanie rozdzielacz', p.nr, p.pokoj, p.uwagi].join(' ') });
+  for (const z of kartyCache.zawory?.wiersze || []) w.push({ rodzaj: 'Zawór', znak: 'Z', tytul: String(z[0] || 'zawór'), opis: [z[3], z[1]].filter(Boolean).join(' · '),
+    hash: '#hydraulika', naModelu: z[1] ? '#pokoj=' + enc(z[1]) : null, szukaj: ['zawór kurek woda', ...z].join(' ') });
+  const d = stanMamy.dane;
+  if (d) {
+    for (const g of d.wyposazenie) for (const p of g.pozycje) w.push({ rodzaj: 'Wyposażenie', znak: '▤', tytul: p.nazwa, opis: [g.nazwa, STATUS[p.status]?.nazwa].filter(Boolean).join(' · '),
+      mamy: { zakladka: 'wyposazenie', q: p.nazwa }, szukaj: [p.nazwa, g.nazwa, ...p.uwagi, ...p.kandydaci].join(' ') });
+    for (const k of d.kupione) w.push({ rodzaj: 'Kupione', znak: '✓', tytul: k.nazwa, opis: [k.gdzie, k.kiedy].filter(Boolean).join(' · '),
+      mamy: { zakladka: 'kupione', q: k.nazwa }, szukaj: [k.nazwa, k.gdzie, 'kupione'].join(' ') });
+  }
+  for (const x of w) { x.n = norm(x.szukaj); x.nt = norm(x.tytul); }
+  return w;
+}
+function szukajTeraz() {
+  const q = norm(szukajPole.value).trim();
+  const t = q.split(/\s+/).filter(Boolean);
+  if (!t.length) {
+    const ost = czytaj(KLUCZ_SZUKANYCH, []);
+    szukajWyniki.innerHTML = (ost.length ? `<div class="szukaj-info">Ostatnio szukane:</div><div class="szukaj-ostatnie">${ost.map((o) => `<button type="button" data-ostatnie="${esc(o)}">${esc(o)}</button>`).join('')}</div>` : '')
+      + '<div class="szukaj-info">Wpisz np. „kuchnia”, „kuchnia-Z06”, „2.4”, „ganek”, „kurek 3”, „wanna”.</div>';
+    wynikiTeraz = [];
+    return;
+  }
+  wynikiTeraz = indeks.filter((x) => t.every((s) => x.n.includes(s)))
+    .map((x) => ({ x, r: x.nt === q ? 0 : x.nt.startsWith(q) ? 1 : x.nt.includes(q) ? 2 : 3 }))
+    .sort((a, b) => a.r - b.r).slice(0, 40).map((a) => a.x);
+  szukajWyniki.innerHTML = wynikiTeraz.length
+    ? `<ul>${wynikiTeraz.map((x, i) => `<li>
+        <a class="wynik${i === 0 ? ' pierwszy' : ''}" href="${x.hash || '#mamy'}" data-wynik="${i}">
+          ${x.ikona ? `<img src="${x.ikona}" alt="">` : `<span class="ik-zast" aria-hidden="true">${esc(x.znak || '•')}</span>`}
+          <b>${esc(x.tytul)}</b><span class="male">${esc(x.rodzaj)}${x.opis && x.opis !== x.rodzaj ? ' · ' + esc(x.opis.replace(x.rodzaj + ' · ', '')) : ''}</span></a>
+        ${x.naModelu ? `<a class="link-model wynik-model" href="${x.naModelu}" data-wynik="${i}">na modelu</a>` : ''}</li>`).join('')}</ul>`
+    : `<div class="szukaj-info">Nic nie znaleziono${wczytujeIndeks ? ' (jeszcze wczytuję dane z arkusza…)' : ''}.</div>`;
+}
+async function otworzSzukaj() {
+  szukajPanel.hidden = false;
+  document.body.classList.add('szukanie');
+  indeks = zbudujIndeks();
+  szukajTeraz();
+  szukajPole.focus();
+  wczytujeIndeks = true;
+  try { await Promise.all([wczytajDoBrakow(), stanMamy.dane ? null : wczytajArkusz()]); } catch { /* część danych */ }
+  wczytujeIndeks = false;
+  indeks = zbudujIndeks();
+  if (!szukajPanel.hidden) szukajTeraz();
+}
+function zamknijSzukaj() { szukajPanel.hidden = true; document.body.classList.remove('szukanie'); }
+function zapamietajSzukane() {
+  const q = szukajPole.value.trim();
+  if (!q) return;
+  zapisz(KLUCZ_SZUKANYCH, [q, ...czytaj(KLUCZ_SZUKANYCH, []).filter((o) => o !== q)].slice(0, 6));
+}
+function otworzWynik(x, naModelu) {
+  zapamietajSzukane();
+  zamknijSzukaj();
+  if (x.mamy && !naModelu) {
+    stanMamy.zakladka = x.mamy.zakladka; stanMamy.filtr = 'wszystko'; stanMamy.szukaj = x.mamy.q;
+    const s = $('#mamy-szukaj'); if (s) s.value = x.mamy.q;
+    if (location.hash === '#mamy') rysujMamy(); else location.hash = '#mamy';
+  }
+}
+$('#btn-szukaj')?.addEventListener('click', (e) => { e.stopPropagation(); szukajPanel.hidden ? otworzSzukaj() : zamknijSzukaj(); });
+document.addEventListener('click', (e) => {
+  if (e.target.closest?.('[data-otworz-szukaj]')) { e.stopPropagation(); otworzSzukaj(); return; }
+  if (!szukajPanel.hidden && !szukajPanel.contains(e.target) && !e.target.closest('#btn-szukaj')) zamknijSzukaj();
+});
+szukajPanel?.querySelector('.zamknij').addEventListener('click', zamknijSzukaj);
+szukajPole?.addEventListener('input', szukajTeraz);
+szukajWyniki?.addEventListener('click', (e) => {
+  const o = e.target.closest('[data-ostatnie]');
+  if (o) { szukajPole.value = o.dataset.ostatnie; szukajTeraz(); szukajPole.focus(); return; }
+  const a = e.target.closest('[data-wynik]');
+  if (!a) return;
+  const x = wynikiTeraz[Number(a.dataset.wynik)];
+  if (x) otworzWynik(x, a.classList.contains('wynik-model'));     // link (hash) robi resztę: karta punktu, pokój, wyłącznik…
+});
+szukajPole?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && wynikiTeraz[0]) {
+    e.preventDefault();
+    const x = wynikiTeraz[0];
+    otworzWynik(x, false);
+    if (x.hash) location.hash = x.hash;
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !szukajPanel.hidden) { zamknijSzukaj(); return; }
+  const pisze = /input|textarea|select/i.test(document.activeElement?.tagName || '') || document.activeElement?.isContentEditable;
+  if (!pisze && (e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'))) { e.preventDefault(); otworzSzukaj(); }
+});
 
 // ====================================================================== start
 window.addEventListener('hashchange', pokazSekcje);
