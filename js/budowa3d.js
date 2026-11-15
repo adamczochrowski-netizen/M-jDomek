@@ -88,6 +88,7 @@ function plaska(cells, z, nrmY = 1) {
 // W dużym prostokącie rury idą „ślimakiem”: pętle co ROZSTAW od ścian do środka, w środku zawijas w kształcie S.
 // W wąskim pasie (korytarz, przejście) – proste rury wzdłuż pasa, jak wiązka zasilająca pokoje.
 const ROZSTAW = 15, OD_SCIANY = 8, GRUBOSC_RURY = 2.2;
+export const KOLOR_RUR = 0xd9452b;
 
 function prostokatyZKomorek(cells, A) {
   const nx = A.xs.length - 1, ny = A.ys.length - 1;
@@ -259,17 +260,16 @@ export function zbudujDom(M, A, mat, opcje = {}) {
   if (og) {
     const wszystkie = og.pomieszczenia === 'wszystkie' || !Array.isArray(og.pomieszczenia);
     const lista = wszystkie ? [] : og.pomieszczenia.map((s) => String(s).toLowerCase());
-    const linie = [];
-    for (const c of A.ceilings) {
+    for (const c of A.ceilings) {                    // osobna siatka na pomieszczenie – można podświetlić jedno
       if (!wszystkie && !lista.includes(c.nazwa.toLowerCase())) continue;
-      for (const pr of prostokatyZKomorek(c.cells, A)) linie.push(...trasyRur(pr));
-    }
-    if (linie.length) {
+      const linie = prostokatyZKomorek(c.cells, A).flatMap(trasyRur);
+      if (!linie.length) continue;
       const m = new THREE.Mesh(wstazki(linie, POZIOM_PODLOGI + 0.3, GRUBOSC_RURY), new THREE.MeshBasicMaterial({
-        color: 0xd9452b, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide,
+        color: KOLOR_RUR, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide,
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
       }));
-      m.name = 'Ogrzewanie podłogowe';
+      m.name = 'Ogrzewanie – ' + c.nazwa;
+      m.userData = { pokoj: c.nazwa, wlasnyMaterial: true };
       m.renderOrder = 1;
       grupa('ogrzewanie').add(m);
     }

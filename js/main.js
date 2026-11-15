@@ -224,7 +224,7 @@ function zaslonieteEtykiety() {
 function zwolnij(obj) {
   obj.traverse((o) => {
     if (o.geometry) o.geometry.dispose();
-    if ((o.isPoints && o !== wyborPkt) || o.name === 'Ogrzewanie podłogowe') { o.material.map?.dispose(); o.material.dispose(); }
+    if ((o.isPoints && o !== wyborPkt) || o.userData?.wlasnyMaterial) { o.material.map?.dispose(); o.material.dispose(); }
   });
 }
 function zbudujScene() {
