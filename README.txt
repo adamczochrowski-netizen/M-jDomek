@@ -39,24 +39,34 @@ w folderze lib – internet nie jest potrzebny.
 
 MENU
 ----
+(na telefonie menu jest dolnym paskiem)
 Widok          – model 3D domu z elektryką (opis niżej).
-Co mamy, co dokupić
+Instalacje     – Elektryka: rozdzielnica (karta „Rozdzielnica”; do czasu zdjęcia skrzynki – prawdopodobny
+                 skład z listy zakupów), gniazdka i włączniki w każdym pomieszczeniu (dotknij, żeby
+                 otworzyć kartę punktu na modelu), osprzęt, lista tego, co jeszcze udokumentować.
+                 Hydraulika: studnia i zasilanie domu (karta „Studnia” + zakupy), zawory/kurki z wyszukiwarką
+                 (karta „Zawory”), lista „do ustalenia”. Kanalizacja: co zebrać.
+                 Przy wpisach znaczek wiarygodności: potwierdzona / prawdopodobna / niezweryfikowana.
+Ogrzewanie     – pompa ciepła (karta „Pompa ciepła”) i rozdzielacz podłogówki: kurki z karty „Pętle”;
+                 dotknięcie kurka pokazuje rury tego pomieszczenia na modelu (reszta przygaszona).
+Linki „pokaż na modelu” otwierają rzut z góry przybliżony do pomieszczenia
+(adresy …#pokoj=Kuchnia, …#ogrzewanie=Kuchnia).
+Wyposażenie (dawniej „Co mamy, co dokupić”)
                – „Wyposażenie domu”: rzeczy po pomieszczeniach ze stanem mamy / wybieramy
                  (są linki do kandydatów) / do kupienia, uwagami i linkami do sklepów; podpowiedź,
                  gdy coś podobnego jest już w zakupach.
                – „Kupione”: wszystko z „Poniesionych kosztów”, w kategoriach (elektryka, narzędzia,
                  budowa i wykończenie, woda, łazienka, ogród…), bez kwot.
                – wyszukiwarka (np. „wkrętarka”, „Legrand”, „wanna”).
-Pompa ciepła   – karty z arkusza (urządzenie, ustawienia, serwis, błędy, kontakty…).
-
 Skąd te dane – dwa Arkusze Google:
   „Domek Wirko”  – Wasz główny, prywatny arkusz. Tu dopisujecie i poprawiacie wyposażenie
                    i zakupy (np. marki i modele). Aplikacja nie zna jego adresu.
   „MójDomek”     – PUBLICZNY arkusz dla aplikacji:
                    https://docs.google.com/spreadsheets/d/1zcDhbn7p6nb2LXemT0zHsZ6MLTl0SBVtr6OWUkGAEHo
                    Karty Wyposażenie i Kupione same pobierają dane z „Domek Wirko” (IMPORTRANGE;
-                   z kosztów tylko rok, miesiąc, nazwa, sklep). Kartę „Pompa ciepła” (Temat | Treść |
-                   Link) wypełnia się bezpośrednio tutaj. Nie zmieniaj nazw kart – aplikacja ich szuka.
+                   z kosztów tylko rok, miesiąc, nazwa, sklep). Karty „Pompa ciepła”, „Pętle”,
+                   „Rozdzielnica”, „Zawory” i „Studnia” wypełnia się bezpośrednio tutaj (opis kolumn
+                   w karcie „Info”). Nie zmieniaj nazw kart ani pierwszego wiersza – aplikacja ich szuka.
 Zmiany w arkuszach widać w aplikacji po odświeżeniu (bez WYSLIJ_NA_GITHUB.bat).
 „Domek Wirko” może być ustawiony na „Ograniczony dostęp” – „MójDomek” i tak go odczyta.
 
@@ -222,7 +232,7 @@ styl.css         – wygląd
 js\analiza.js    – liczenie pomieszczeń, ścian, odległości, identyfikatorów
 js\budowa3d.js   – budowa modelu 3D (ta sama logika co skrypty\buduj_3d.py w Blenderze)
 js\main.js       – widoki, warstwy, legenda, karta punktu, odświeżanie
-js\sekcje.js     – menu oraz sekcje „Co mamy, co dokupić” i „Pompa ciepła” (z arkusza „MójDomek”)
+js\sekcje.js     – menu oraz sekcje Instalacje, Ogrzewanie i Wyposażenie (z arkusza „MójDomek”)
 lib\             – Three.js 0.170 (licencja MIT, lib\LICENSE-three.txt)
 obwody.json      – obwody i trasy kabli (na razie puste, z przykładem)
 .gitignore, .nojekyll – ustawienia dla Gita i GitHub Pages (pliki ukryte)

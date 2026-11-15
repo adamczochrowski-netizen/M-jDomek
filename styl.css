@@ -93,6 +93,50 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .menu a:hover { background: rgba(255,255,255,.12); opacity: 1; }
 .menu a.aktywny { background: #f3f1ec; color: #20303f; opacity: 1; font-weight: 650; }
 .menu a:focus-visible { outline: 2px solid #f3f1ec; outline-offset: 2px; }
+.menu a { display: inline-flex; align-items: center; gap: 6px; }
+.menu svg { width: 18px; height: 18px; fill: currentColor; stroke: currentColor; stroke-width: 0; flex-shrink: 0; }
+
+/* ---------------------------------------------------------------- wiarygodność (rozdz. 12.2) */
+.wiar { display: inline-block; font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 999px; white-space: nowrap; vertical-align: middle; }
+.wiar-potw { background: #e3f4e1; color: #1f6b1a; }
+.wiar-prawd { background: #fdf1d6; color: #7a5300; }
+.wiar-niezw { background: #ececec; color: #555; }
+@media (prefers-color-scheme: dark) {
+  .wiar-potw { background: #1d3a1c; color: #9fdc98; }
+  .wiar-prawd { background: #3d2f10; color: #ffd27a; }
+  .wiar-niezw { background: #2f343a; color: #c3c9cf; }
+}
+
+/* ---------------------------------------------------------------- instalacje */
+#instalacje-zakladki { margin-bottom: 14px; }
+.karta-strony h3 .male { font-weight: 400; }
+.wiersz-fakt { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 8px 0; border-top: 1px solid var(--linia); }
+.wiersz-fakt:first-of-type { border-top: 0; }
+.wiersz-fakt .tresc { min-width: 0; }
+.wiersz-fakt .tresc div { white-space: pre-line; }
+.pokoj-punkty { padding: 8px 0; border-top: 1px solid var(--linia); }
+.pokoj-punkty:first-of-type { border-top: 0; }
+.pokoj-punkty h4 { margin: 0 0 6px; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.pkt-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+.pkt { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px 3px 4px; border-radius: 999px; background: var(--akcent-tlo); color: var(--tekst); text-decoration: none; font-size: 12.5px; min-height: 28px; }
+.pkt:hover { outline: 1px solid var(--akcent); }
+.pkt i { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-weight: 700; font-size: 10.5px; }
+.link-model { font-size: 12.5px; color: var(--akcent); text-decoration: none; white-space: nowrap; }
+.link-model:hover { text-decoration: underline; }
+.checklista { padding-left: 20px; margin: 6px 0; }
+.checklista li { margin: 3px 0; }
+.zawor { padding: 10px 0; border-top: 1px solid var(--linia); }
+.zawor:first-of-type { border-top: 0; }
+.zawor-gora { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+
+/* rozdzielacz ogrzewania podłogowego: rząd kurków */
+.rozdzielacz { overflow-x: auto; padding: 6px 2px 2px; }
+.rozdz-belka { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: linear-gradient(#e9cf8a, #c9a24e); min-width: max-content; }
+.kurek { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 74px; text-decoration: none; color: #2a2100; }
+.kurek b { width: 38px; height: 38px; border-radius: 50%; background: #d9452b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.2); }
+.kurek span { font-size: 11.5px; text-align: center; line-height: 1.2; min-height: 2.4em; }
+.kurek.pusty b { background: #9c9c9c; }
+a.kurek:hover b { outline: 3px solid #fff; }
 
 /* przyciski widoku na scenie 3D */
 .narzedzia-sceny { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; z-index: 4; }
@@ -300,9 +344,17 @@ html.plik .tylko-plik { display: flex; }
   main { grid-template-columns: 1fr; }
   #stan-danych { display: none; }
   .tytul h1 { font-size: 16px; }
-  .menu { gap: 2px; }
-  .menu a { padding: 6px 9px; font-size: 14px; }
-  .dluzej { display: none; }
+  /* menu jako dolny pasek (obsługa jedną ręką) */
+  body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+  .menu {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: flex; justify-content: space-around; gap: 2px;
+    background: var(--pasek); border-top: 1px solid rgba(255,255,255,.08);
+    padding: 4px 4px max(4px, env(safe-area-inset-bottom));
+  }
+  .menu a { flex: 1; flex-direction: column; gap: 2px; font-size: 11px; padding: 6px 2px; border-radius: 10px; min-height: 50px; justify-content: center; }
+  .menu svg { width: 22px; height: 22px; }
+  .menu a.aktywny { background: rgba(255,255,255,.16); color: #fff; }
   #komunikat { top: 56px; }
   .pasek { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
   .pasek button { padding: 6px 10px; }

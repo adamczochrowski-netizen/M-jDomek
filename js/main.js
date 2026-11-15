@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../lib/OrbitControls.js';
 import { analizuj, TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
-import { zbudujDom, zbudujSciany, materialy, teksturaWyboru, ikonaTypu, POZIOM_PODLOGI } from './budowa3d.js';
+import { zbudujDom, zbudujSciany, materialy, teksturaWyboru, ikonaTypu, POZIOM_PODLOGI, KOLOR_RUR } from './budowa3d.js';
 
 // dane_modelu.json tworzy ODSWIEZ.bat (skrypty/generuj.py):
 //  - na komputerze (serwer.py) czytamy świeży plik ../skrypty/dane_modelu.json,
@@ -240,6 +240,7 @@ function zbudujScene() {
   ustawCiecie();
   zbudujEtykiety();
   zastosujWidocznosc();
+  if (stan.podswietlonePetle) podswietlOgrzewanie(stan.podswietlonePetle);
 }
 // okna i drzwi przycinamy razem ze ścianami (płaszczyzna cięcia na wysokości ścian)
 const ciecie = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
@@ -583,7 +584,65 @@ function zastosujDane(M, wersja, pierwszy) {
   rozmiar();
   const p = wybranyId && A.items.find((q) => q.id === wybranyId);
   if (p) wybierz(p); else zamknijKarte();
-  if (pierwszy) punktZAdresu();
+  if (pierwszy) obsluzAdres();
+  window.dispatchEvent(new Event('mojdomek:dane'));      // dla modułów (np. Elektryka: punkty w pomieszczeniach)
+}
+
+// adresy: #punkt=ID (karta punktu), #pokoj=Nazwa (pomieszczenie na rzucie), #ogrzewanie=Nazwa (rury tego pomieszczenia)
+function obsluzAdres() {
+  const h = location.hash;
+  if (!/ogrzewanie=/.test(h)) podswietlOgrzewanie(null);
+  punktZAdresu();
+  const m = /(pokoj|ogrzewanie)=([^&]+)/.exec(h);
+  if (m && stan.A) pokazPokoj(decodeURIComponent(m[2]), m[1] === 'ogrzewanie');
+}
+
+// nazwa z arkusza („Magda biuro”, „Pom. gospodarcze”, „hol”) -> pomieszczenie modelu
+const SYNONIMY_POKOI = { hol: 'salon', korytarz: 'salon', przedpokoj: 'salon', kotlownia: 'gospodarcze' };
+const slowaNazwy = (s) => String(s).toLowerCase().replace(/ł/g, 'l').normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && w !== 'pom' && w !== 'pomieszczenie').map((w) => SYNONIMY_POKOI[w] || w);
+function dopasujPokoj(nazwa) {
+  const q = slowaNazwy(nazwa);
+  if (!q.length || !stan.A) return null;
+  return stan.A.ceilings.find((c) => { const w = slowaNazwy(c.nazwa); return q.every((x) => w.includes(x)); })
+    || stan.A.ceilings.find((c) => { const w = slowaNazwy(c.nazwa); return w.length && w.every((x) => q.includes(x)); }) || null;
+}
+function pokazPokoj(nazwa, ogrzewanie) {
+  const c = dopasujPokoj(nazwa);
+  if (!c) { pokazKomunikat(`Nie znalazłem pomieszczenia „${nazwa}” na modelu`); return; }
+  if (ogrzewanie) {
+    stan.wid.ogrzewanie = true;
+    const i = document.querySelector('#lista-budynek input[data-k="ogrzewanie"]');
+    if (i) i.checked = true;
+    zastosujWidocznosc();
+    podswietlOgrzewanie(c.nazwa);
+  }
+  // rzut z góry przybliżony do pomieszczenia
+  const x0 = Math.min(...c.cells.map((k) => k[0])), x1 = Math.max(...c.cells.map((k) => k[1]));
+  const y0 = Math.min(...c.cells.map((k) => k[2])), y1 = Math.max(...c.cells.map((k) => k[3]));
+  widokGora();
+  const cx = (x0 + x1) / 2, cz = (y0 + y1) / 2;
+  sterGora.target.set(cx, 0, cz);
+  kameraGora.position.set(cx, 3000, cz);
+  const szer = kameraGora.right - kameraGora.left, wys = kameraGora.top - kameraGora.bottom;
+  kameraGora.zoom = Math.max(0.3, Math.min(szer / (x1 - x0 + 160), wys / (y1 - y0 + 160)));
+  kameraGora.updateProjectionMatrix();
+  kameraGora.lookAt(cx, 0, cz);
+  sterGora.update();
+  render();
+  pokazKomunikat(ogrzewanie ? `Ogrzewanie podłogowe: ${c.nazwa}` : c.nazwa);
+}
+// rury jednego pomieszczenia wyraźne, pozostałe przygaszone (null = wszystkie normalnie)
+function podswietlOgrzewanie(nazwa) {
+  stan.podswietlonePetle = nazwa;
+  const g = stan.warstwy?.ogrzewanie;
+  if (!g) return;
+  for (const m of g.children) {
+    const ten = !nazwa || m.userData.pokoj === nazwa;
+    m.material.color.set(nazwa && ten ? 0xff2a00 : nazwa ? 0x9a9a9a : KOLOR_RUR);
+    m.material.opacity = nazwa && !ten ? 0.22 : 0.85;
+  }
+  render();
 }
 
 // link do punktu: …/#punkt=kuchnia-Z06
@@ -597,7 +656,7 @@ function punktZAdresu() {
   zastosujWidocznosc();
   wybierz(p);
 }
-window.addEventListener('hashchange', punktZAdresu);
+window.addEventListener('hashchange', obsluzAdres);
 
 async function pobierzDane() {
   let blad = null;

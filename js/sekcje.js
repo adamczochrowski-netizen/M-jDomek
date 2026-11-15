@@ -1,6 +1,8 @@
-// Mój domek – menu (Widok / Co mamy / Pompa ciepła) i sekcje czytane z publicznego Arkusza Google „MójDomek”.
+import { TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
+// Mój domek – menu (Widok / Instalacje / Ogrzewanie / Wyposażenie) i sekcje czytane z publicznego Arkusza Google „MójDomek”.
 // „MójDomek” sam pobiera (IMPORTRANGE) potrzebne kolumny z prywatnego arkusza „Domek Wirko”:
-// Wyposażenie w całości, Kupione bez kwot i bez „kto płacił”. Pompę ciepła wpisuje się wprost w „MójDomek”.
+// Wyposażenie w całości, Kupione bez kwot i bez „kto płacił”. Pompę, pętle, rozdzielnicę, zawory i studnię
+// wpisuje się wprost w „MójDomek”. (Docelowo wszystko przejdzie do wspólnej bazy – audyt ETAP 0.)
 
 const ARKUSZ_ID = '1zcDhbn7p6nb2LXemT0zHsZ6MLTl0SBVtr6OWUkGAEHo';
 const KLUCZ_KOPII = 'mojDomek.arkusz.kopia.v2';
@@ -10,6 +12,10 @@ const KARTY = {
   wyposazenie: { nazwa: 'Wyposażenie', gid: '0' },
   kupione: { nazwa: 'Kupione', gid: '1001' },
   pompa: { nazwa: 'Pompa ciepła', gid: '1002' },
+  petle: { nazwa: 'Pętle', gid: '1004', naglowek: 'nr' },
+  rozdzielnica: { nazwa: 'Rozdzielnica', gid: '1005', naglowek: 'nr' },
+  zawory: { nazwa: 'Zawory', gid: '1006', naglowek: 'id' },
+  studnia: { nazwa: 'Studnia', gid: '1007', naglowek: 'temat' },
 };
 const linkArkusza = (gid) => `https://docs.google.com/spreadsheets/d/${ARKUSZ_ID}/edit#gid=${gid}`;
 
@@ -20,20 +26,24 @@ const czytaj = (k, dom) => { try { return JSON.parse(localStorage.getItem(k) || 
 const zapisz = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* tryb prywatny */ } };
 
 // ====================================================================== menu
-const SEKCJE = ['widok', 'mamy', 'pompa'];
+const SEKCJE = ['widok', 'instalacje', 'ogrzewanie', 'mamy'];
+// stare i skrócone adresy: #pompa → Ogrzewanie, #elektryka / #hydraulika / #kanalizacja → Instalacje z podzakładką
+const ALIASY = { pompa: 'ogrzewanie', wyposazenie: 'mamy', elektryka: 'instalacje', hydraulika: 'instalacje', kanalizacja: 'instalacje' };
+const PODZAKLADKI = ['elektryka', 'hydraulika', 'kanalizacja'];
 function sekcjaZAdresu() {
   const h = location.hash.replace(/^#/, '');
-  return SEKCJE.includes(h) ? h : 'widok';      // #punkt=… i pusty adres = widok domu
+  if (PODZAKLADKI.includes(h)) stanInst.zakladka = h;
+  const s = ALIASY[h] || h;
+  return SEKCJE.includes(s) ? s : 'widok';      // #punkt=…, #pokoj=…, #ogrzewanie=… i pusty adres = widok domu
 }
 function pokazSekcje() {
   const s = sekcjaZAdresu();
-  $('#sekcja-widok').hidden = s !== 'widok';
-  $('#sekcja-mamy').hidden = s !== 'mamy';
-  $('#sekcja-pompa').hidden = s !== 'pompa';
+  for (const k of SEKCJE) $('#sekcja-' + k).hidden = s !== k;
   document.querySelectorAll('.menu a').forEach((a) => a.classList.toggle('aktywny', a.dataset.sekcja === s));
   document.body.dataset.sekcja = s;
   if (s === 'mamy') otworzMamy();
-  if (s === 'pompa') otworzPompe();
+  if (s === 'ogrzewanie') otworzPompe();
+  if (s === 'instalacje') otworzInstalacje();
 }
 
 // ====================================================================== arkusz: pobieranie, CSV
@@ -358,19 +368,50 @@ function htmlKupione(d, q) {
   }).join('');
 }
 
-// ====================================================================== sekcja „Pompa ciepła”
-// karta „Pompa ciepła” w arkuszu: kolumny Temat | Treść | Link (pierwszy wiersz = nagłówki)
+// ====================================================================== wspólne: karty z nagłówkiem, wiarygodność, pomieszczenia
+// wiersze danych spod nagłówka; brak = karty nie ma (Google oddaje wtedy inną kartę)
+async function wczytajKarte(karta) {
+  const { wiersze } = await pobierzKarte(ARKUSZ_ID, karta);
+  const nag = (wiersze[0] || []).map((c) => norm(c).trim());
+  if (karta.naglowek && nag[0] !== karta.naglowek) return { wiersze: [], brak: true };
+  return { wiersze: wiersze.slice(1).filter((w) => w.some((c) => String(c ?? '').trim())), brak: false };
+}
+// POTWIERDZONA / PRAWDOPODOBNA / NIEZWERYFIKOWANA (rozdz. 12.2); dopisek w nawiasie = źródło
+function chipWiar(tekst) {
+  const n = norm(tekst).trim();
+  const [klasa, etyk] = n.startsWith('potw') ? ['wiar-potw', 'potwierdzona'] : n.startsWith('prawd') ? ['wiar-prawd', 'prawdopodobna'] : ['wiar-niezw', 'niezweryfikowana'];
+  return `<span class="wiar ${klasa}" title="${esc(tekst || 'brak informacji o źródle')}">${etyk}</span>`;
+}
+function zrodloWiar(tekst) {
+  const m = /\(([^)]+)\)/.exec(tekst || '');
+  return m ? `<div class="male">źródło: ${esc(m[1])}</div>` : '';
+}
+const linkPokoju = (nazwa, opis = 'pokaż na modelu') => nazwa ? `<a class="link-model" href="#pokoj=${encodeURIComponent(nazwa)}">${esc(opis)}</a>` : '';
+function zakupy() { return stanMamy.dane?.kupione || []; }
+function zakupyPasujace(wzor) {
+  return zakupy().filter((k) => wzor.test(norm(k.nazwa))).sort((a, b) => b.sort - a.sort);
+}
+function htmlZakupy(lista, pusto) {
+  if (!lista.length) return `<p class="male">${pusto}</p>`;
+  return lista.map((k) => `<div class="wiersz-fakt"><div class="tresc"><div>${esc(k.nazwa)}</div>
+    <div class="male">${esc([k.gdzie, k.kiedy].filter(Boolean).join(' · '))}</div></div>${chipWiar('prawdopodobna (z listy zakupów)')}</div>`).join('');
+}
+const kartyCache = {};
+async function kartaDanych(klucz) {
+  try { kartyCache[klucz] = { ...(await wczytajKarte(KARTY[klucz])), blad: null }; }
+  catch (e) { kartyCache[klucz] = { wiersze: kartyCache[klucz]?.wiersze || [], blad: e.message }; }
+  return kartyCache[klucz];
+}
+
+// ====================================================================== sekcja „Ogrzewanie” (pompa ciepła + pętle podłogówki)
+// karta „Pompa ciepła”: Temat | Treść | Link;  karta „Pętle”: Nr | Pomieszczenie | Uwagi
 const stanPompy = { wiersze: null, brak: false, blad: null };
 async function otworzPompe() {
   rysujPompe();
-  const a = arkusz();
-  if (!a) return;
   try {
-    const { wiersze } = await pobierzKarte(a.id, KARTY.pompa);
-    const naglowek = (wiersze[0] || []).map((c) => norm(c).trim());
-    if (naglowek[0] !== 'temat') { stanPompy.brak = true; stanPompy.wiersze = null; }   // brak karty – Google oddał inną
-    else { stanPompy.brak = false; stanPompy.wiersze = wiersze.slice(1).filter((w) => w.some((c) => String(c).trim())); }
-    stanPompy.blad = null;
+    const [p] = await Promise.all([kartaDanych('pompa'), kartaDanych('petle')]);
+    stanPompy.wiersze = p.brak ? null : p.wiersze;
+    stanPompy.blad = p.blad;
   } catch (e) { stanPompy.blad = e.message; }
   rysujPompe();
 }
@@ -379,9 +420,31 @@ const TEMATY_POMPY = [
   ['Ustawienia', 'temperatury, krzywa grzewcza, ciepła woda (CWU), tryby pracy'],
   ['Codzienna obsługa', 'co zrobić, gdy jest za zimno, wyjazd, tryb urlopowy'],
   ['Przeglądy i serwis', 'daty, co sprawdzano, filtry do czyszczenia'],
-  ['Komunikaty i błędy', 'kody z wyświetlacza i co oznaczają'],
+  ['Komunikaty i błędy', 'kody z wyświetlacza i co oznaczają (tylko z instrukcji producenta)'],
   ['Kontakty', 'instalator, serwis, gwarancja, instrukcje (PDF)'],
 ];
+function htmlPetle() {
+  const w = kartyCache.petle?.wiersze || [];
+  const petle = w.map(([nr, pokoj, uwagi]) => ({ nr: String(nr || '').trim(), pokoj: String(pokoj || '').trim(), uwagi: String(uwagi || '').trim() }))
+    .filter((p) => p.nr);
+  const wgPokoju = new Map();
+  for (const p of petle) if (p.pokoj) { if (!wgPokoju.has(p.pokoj)) wgPokoju.set(p.pokoj, []); wgPokoju.get(p.pokoj).push(p.nr); }
+  const opisane = petle.filter((p) => p.pokoj).length;
+  return `<section class="karta-strony">
+    <h3>Rozdzielacz ogrzewania podłogowego – kurki <span class="male">${petle.length ? `${opisane} z ${petle.length} opisanych` : ''}</span></h3>
+    <p class="male">Każdy kurek to jedna pętla rur w podłodze. Kolejność od lewej, jak na rozdzielaczu.
+      ${opisane ? 'Dotknij kurka, żeby zobaczyć rury tego pomieszczenia na modelu.' : ''}</p>
+    ${petle.length ? `<div class="rozdzielacz"><div class="rozdz-belka">${petle.map((p) => p.pokoj
+      ? `<a class="kurek" href="#ogrzewanie=${encodeURIComponent(p.pokoj)}" title="${esc(p.uwagi || p.pokoj)}"><b>${esc(p.nr)}</b><span>${esc(p.pokoj)}</span></a>`
+      : `<div class="kurek pusty" title="pomieszczenie do uzupełnienia"><b>${esc(p.nr)}</b><span>?</span></div>`).join('')}</div></div>` : ''}
+    ${wgPokoju.size ? `<div style="margin-top:10px">${[...wgPokoju].map(([pokoj, nry]) => `<div class="wiersz-fakt"><div class="tresc">
+      <b>${esc(pokoj)}</b> – ${nry.length > 1 ? 'kurki' : 'kurek'} ${nry.map(esc).join(', ')}</div>
+      <a class="link-model" href="#ogrzewanie=${encodeURIComponent(pokoj)}">pokaż rury</a></div>`).join('')}</div>` : ''}
+    <p class="male">${opisane < petle.length || !petle.length ? 'Do uzupełnienia: który kurek grzeje które pomieszczenie (arkusz „MójDomek”, karta <b>Pętle</b>, kolumna Pomieszczenie – nazwa jak w aplikacji, np. Kuchnia, Salon, Biuro - Adam). Gdzie stoi rozdzielacz – też warto dopisać. ' : ''}
+      <a href="${linkArkusza(KARTY.petle.gid)}" target="_blank" rel="noopener">Otwórz kartę Pętle</a>.</p>
+    <p class="male">Rury na modelu to schemat (jak na zdjęciach z budowy), nie dokładny przebieg. ${chipWiar('niezweryfikowana')}</p>
+  </section>`;
+}
 function rysujPompe() {
   const el = $('#pompa-tresc');
   if (!el) return;
@@ -391,20 +454,192 @@ function rysujPompe() {
     const t = rozbierzKomorke(tresc || '');
     const linki = [...t.linki, ...k.linki];
     return `<section class="karta-strony"><h3>${esc(temat || '—')}</h3>
-      ${t.teksty.length ? `<p>${t.teksty.map((x) => /DO POTWIERDZENIA/i.test(x) ? `<span class="uwaga">${esc(x)}</span>` : esc(x)).join('<br>')}</p>` : ''}
+      ${t.teksty.length ? `<p>${t.teksty.map((x) => /DO POTWIERDZENIA|DO UZUPEŁNIENIA/i.test(x) ? `<span class="uwaga">${esc(x)}</span>` : esc(x)).join('<br>')}</p>` : ''}
       ${linki.length ? `<div class="opcje">${linki.map(htmlLink).join('')}</div>` : ''}</section>`;
   }).join('');
   const sa = new Set(w.map((r) => norm(r[0]).trim()));
   const brakuje = TEMATY_POMPY.filter(([t]) => !sa.has(norm(t)));
-  el.innerHTML = `${karty}
+  el.innerHTML = `${karty}${htmlPetle()}
     <div class="karta-strony">
       <h3>${w.length ? 'Co jeszcze warto dopisać' : 'Tu będzie obsługa pompy ciepła'}</h3>
-      ${w.length ? '' : '<p>Najważniejsze rzeczy o pompie – pod ręką, także w telefonie przy urządzeniu.</p>'}
       ${brakuje.length ? `<ul class="lista-pomyslow">${brakuje.map(([t, o]) => `<li><b>${esc(t)}</b> – ${esc(o)}</li>`).join('')}</ul>` : ''}
       <p class="male">Wpisujcie w arkuszu „MójDomek”, karta <b>Pompa ciepła</b>: kolumny <b>Temat | Treść | Link</b>,
         każdy wiersz to osobna karta tutaj. <a href="${linkArkusza(KARTY.pompa.gid)}" target="_blank" rel="noopener">Otwórz kartę w arkuszu</a>.</p>
       ${stanPompy.blad ? `<p class="uwaga">Nie udało się wczytać arkusza: ${esc(stanPompy.blad)}</p>` : ''}
     </div>`;
+}
+
+// ====================================================================== sekcja „Instalacje”: Elektryka, Hydraulika, Kanalizacja
+const stanInst = { zakladka: czytaj('mojDomek.instalacje.v1', 'elektryka'), szukaj: '' };
+async function otworzInstalacje() {
+  rysujInstalacje();
+  const potrzebne = stanInst.zakladka === 'elektryka' ? ['rozdzielnica'] : stanInst.zakladka === 'hydraulika' ? ['zawory', 'studnia'] : [];
+  await Promise.all([...potrzebne.map(kartaDanych), stanMamy.dane ? null : wczytajArkusz()]);
+  rysujInstalacje();
+}
+document.querySelectorAll('[data-inst]').forEach((b) => b.addEventListener('click', () => {
+  stanInst.zakladka = b.dataset.inst;
+  zapisz('mojDomek.instalacje.v1', stanInst.zakladka);
+  otworzInstalacje();
+}));
+window.addEventListener('mojdomek:dane', () => { if (document.body.dataset.sekcja === 'instalacje') rysujInstalacje(); });
+
+function rysujInstalacje() {
+  document.querySelectorAll('[data-inst]').forEach((b) => b.classList.toggle('aktywny', b.dataset.inst === stanInst.zakladka));
+  const el = $('#instalacje-tresc');
+  if (!el) return;
+  el.innerHTML = stanInst.zakladka === 'hydraulika' ? htmlHydraulika() : stanInst.zakladka === 'kanalizacja' ? htmlKanalizacja() : htmlElektryka();
+  const s = $('#zawory-szukaj');
+  if (s) {
+    s.value = stanInst.szukaj;
+    s.addEventListener('input', () => { stanInst.szukaj = s.value; $('#zawory-lista').innerHTML = htmlListaZaworow(); });
+  }
+}
+
+// ---------------------------------------------------------------- Elektryka
+const ROZDZIELNICA_ZAKUPY = /rozdzielnic|nadprad|roznicowo|rozlacznik|bezpiecznik|szyna|ogranicznik|uziemiajac/;
+function htmlElektryka() {
+  const rozdz = kartyCache.rozdzielnica?.wiersze || [];
+  const st = window.mojDomek?.stan;
+  const A = st?.A;
+  const osp = st?.obw?.osprzet;
+  const wiersze = rozdz.map(([nr, wyl, zasila, pokoje, punkty, uwagi]) => {
+    const ids = String(punkty || '').split(/[\s,;]+/).filter(Boolean);
+    return `<div class="zawor"><div class="zawor-gora"><b>${esc([nr, wyl].filter(Boolean).join(' · ') || '—')}</b></div>
+      ${zasila ? `<div>${esc(zasila)}</div>` : ''}
+      ${pokoje ? `<div class="male">Pomieszczenia: ${esc(pokoje)}</div>` : ''}
+      ${ids.length ? `<div class="pkt-lista" style="margin-top:6px">${ids.map((id) => htmlPunktId(id, A)).join('')}</div>` : ''}
+      ${uwagi ? `<div class="male">${esc(uwagi)}</div>` : ''}</div>`;
+  }).join('');
+  return `
+    <section class="karta-strony">
+      <h3>Rozdzielnica (skrzynka z bezpiecznikami)</h3>
+      ${wiersze || `<p>Czeka na zdjęcie skrzynki z opisami wyłączników – przepiszę je do karty <b>Rozdzielnica</b>
+        (Nr | Wyłącznik | Co zasila | Pomieszczenia | Punkty | Uwagi). Wtedy tu będzie widać, który bezpiecznik
+        wyłącza które gniazdka.</p>`}
+      <h4 style="margin:12px 0 4px">Z zakupów – prawdopodobny skład rozdzielnicy</h4>
+      ${htmlZakupy(zakupyPasujace(ROZDZIELNICA_ZAKUPY), stanMamy.dane ? 'Brak pasujących zakupów.' : 'Wczytywanie listy zakupów…')}
+      <p class="male">Do potwierdzenia na zdjęciu skrzynki. <a href="${linkArkusza(KARTY.rozdzielnica.gid)}" target="_blank" rel="noopener">Otwórz kartę Rozdzielnica</a>.</p>
+    </section>
+    <section class="karta-strony">
+      <h3>Gniazdka i włączniki w pomieszczeniach</h3>
+      ${A ? htmlPunktyPokoi(A) : '<p class="male">Wczytywanie modelu domu…</p>'}
+    </section>
+    ${osp ? `<section class="karta-strony"><h3>Osprzęt</h3>
+      ${['Z', 'S', 'W'].filter((t) => osp[t]).map((t) => `<div class="wiersz-fakt"><div class="tresc"><div>${esc(TYPY[t].nazwa)} (wewnątrz domu): <b>${esc(osp[t].nazwa)}</b></div>
+        ${osp[t].link ? `<div class="opcje">${htmlLink({ url: osp[t].link, opis: '' })}</div>` : ''}</div>${chipWiar('potwierdzona (Adam, 15.11.2026)')}</div>`).join('')}</section>` : ''}
+    <section class="karta-strony">
+      <h3>Co jeszcze udokumentować</h3>
+      <ul class="checklista">
+        <li><b>Rozdzielnica</b> – zdjęcie z opisami przy każdym wyłączniku.</li>
+        <li><b>Trasy przewodów</b> – zdjęcia ścian przed tynkiem są w folderze „Położenie kabli” na komputerze (kuchnia, salon, sypialnia, biura); naniesiemy je na model jako osobną warstwę.</li>
+        <li><b>Puszki</b> rozgałęźne – gdzie są i co się w nich łączy.</li>
+        <li><b>Który włącznik</b> steruje którą lampą.</li>
+        <li><b>Uziemienie</b>, szyna wyrównawcza, ogranicznik przepięć (jeśli jest).</li>
+      </ul>
+      <p class="male">Położenia części gniazdek pochodzą z rysunku (±10–15 cm). Przed wierceniem sprawdź ścianę wykrywaczem.</p>
+    </section>`;
+}
+function htmlPunktId(id, A) {
+  const p = A?.items.find((q) => q.id === id);
+  const T = p ? TYPY[p.typ] : null;
+  return `<a class="pkt" href="#punkt=${encodeURIComponent(id)}">${T ? `<i style="background:${T.kolor};color:${T.tekst}">${p.typ}</i>` : '<i>?</i>'}${esc(id)}</a>`;
+}
+function htmlPunktyPokoi(A) {
+  const grupy = new Map();
+  for (const p of A.items) {
+    const k = p.naZewnatrz ? 'Na zewnątrz' : (p.pokoj?.nazwa || '—');
+    if (!grupy.has(k)) grupy.set(k, []);
+    grupy.get(k).push(p);
+  }
+  const kolej = [...A.rooms.map((r) => r.nazwa).filter((n) => grupy.has(n)), ...[...grupy.keys()].filter((n) => !A.rooms.some((r) => r.nazwa === n))];
+  return kolej.map((nazwa) => {
+    const l = grupy.get(nazwa).sort((a, b) => KOLEJNOSC_TYPOW.indexOf(a.typ) - KOLEJNOSC_TYPOW.indexOf(b.typ) || a.id.localeCompare(b.id));
+    const ile = KOLEJNOSC_TYPOW.map((t) => [t, l.filter((p) => p.typ === t).reduce((s, p) => s + p.n, 0)]).filter(([, n]) => n)
+      .map(([t, n]) => `${n}× ${TYPY[t].nazwa.toLowerCase()}`).join(', ');
+    return `<div class="pokoj-punkty"><h4><span>${esc(nazwa)} <span class="male">${esc(ile)}</span></span>${nazwa !== 'Na zewnątrz' ? linkPokoju(nazwa) : ''}</h4>
+      <div class="pkt-lista">${l.map((p) => `<a class="pkt" href="#punkt=${encodeURIComponent(p.id)}" title="${esc(TYPY[p.typ].nazwa)}, ${Math.round(p.z)} cm"><i style="background:${TYPY[p.typ].kolor};color:${TYPY[p.typ].tekst}">${p.typ}</i>${esc(p.id.replace(/^.*-/, ''))} · ${Math.round(p.z)} cm</a>`).join('')}</div></div>`;
+  }).join('');
+}
+
+// ---------------------------------------------------------------- Hydraulika
+const STUDNIA_ZAKUPY = /studni|hydrofor|rura wod|filtr wod|zawor/;
+const PEX_ZAKUPY = /pex|trojnik|kolank/;          // woda albo podłogówka – nie wiadomo, więc osobno
+function htmlHydraulika() {
+  const st = kartyCache.studnia?.wiersze || [];
+  const fakty = st.map(([temat, tresc, wiar, link]) => {
+    const l = rozbierzKomorke(link || '').linki;
+    return `<div class="wiersz-fakt"><div class="tresc"><b>${esc(temat || '—')}</b><div>${esc(tresc || '')}</div>${zrodloWiar(wiar)}
+      ${l.length ? `<div class="opcje">${l.map(htmlLink).join('')}</div>` : ''}</div>${chipWiar(wiar)}</div>`;
+  }).join('');
+  return `
+    <section class="karta-strony">
+      <h3>Studnia i zasilanie domu w wodę</h3>
+      ${fakty || '<p class="male">Brak wpisów.</p>'}
+      <h4 style="margin:12px 0 4px">Z zakupów – prawdopodobnie studnia i instalacja wodna</h4>
+      ${htmlZakupy(zakupyPasujace(STUDNIA_ZAKUPY), stanMamy.dane ? 'Brak pasujących zakupów.' : 'Wczytywanie listy zakupów…')}
+      ${zakupyPasujace(PEX_ZAKUPY).length ? `<details style="margin-top:8px"><summary class="male">Rury i złączki PEX z zakupów (${zakupyPasujace(PEX_ZAKUPY).length}) – woda albo ogrzewanie, do ustalenia</summary>
+        ${htmlZakupy(zakupyPasujace(PEX_ZAKUPY), '')}</details>` : ''}
+      <h4 style="margin:12px 0 4px">Do ustalenia</h4>
+      <ul class="checklista">
+        <li>Model pompy w studni – zdjęcie tabliczki znamionowej.</li>
+        <li>Gdzie stoi hydrofor (w zakupach jest „Hydrofor”, 05.2025), wyłącznik ciśnieniowy i manometr.</li>
+        <li>Filtry wody – rodzaj i gdzie są.</li>
+        <li>Którędy rura ze studni wchodzi do domu i gdzie jest główny zawór wody.</li>
+        <li>Który bezpiecznik w rozdzielnicy zasila pompę.</li>
+        <li>Odległość studni od dwóch narożników domu – zaznaczę ją na mapie działki.</li>
+      </ul>
+      <p class="male">„Co zrobić, gdy nie ma wody” – procedurę przygotuję dopiero po poznaniu modelu pompy i układu (z instrukcji producenta), żeby nie zgadywać.
+        <a href="${linkArkusza(KARTY.studnia.gid)}" target="_blank" rel="noopener">Otwórz kartę Studnia</a>.</p>
+    </section>
+    <section class="karta-strony">
+      <h3>Zawory (kurki) wody</h3>
+      <input id="zawory-szukaj" type="search" placeholder="Szukaj zaworu, np. pralka, zlew, główny…" autocomplete="off" style="width:100%;min-height:40px;padding:8px 12px;border:1px solid var(--linia);border-radius:10px;background:var(--panel);font-size:15px">
+      <div id="zawory-lista">${htmlListaZaworow()}</div>
+    </section>
+    <section class="karta-strony">
+      <h3>Rury zimnej i ciepłej wody</h3>
+      <p class="male">Na modelu pojawią się jako warstwy (zimna – niebieska, ciepła – czerwona) po opisaniu zaworów i przypisaniu zdjęć ścian
+        (np. „Kuchnia” i „Hydraulika – łazienka” z budowy). Do tego czasu nie rysuję tras, żeby nie wprowadzać w błąd.</p>
+    </section>`;
+}
+function htmlListaZaworow() {
+  const w = kartyCache.zawory?.wiersze || [];
+  const q = norm(stanInst.szukaj).trim();
+  const zawory = w.map(([id, pokoj, gdzie, co, rodzaj, wiar, uwagi]) => ({ id, pokoj, gdzie, co, rodzaj, wiar, uwagi }))
+    .filter((z) => !q || norm(Object.values(z).join(' ')).includes(q));
+  if (!w.length) {
+    return `<p>Jeszcze żaden zawór nie jest opisany. Dopisuj je w arkuszu „MójDomek”, karta <b>Zawory</b>
+      (ID | Pomieszczenie | Gdzie dokładnie | Co odcina | Rodzaj | Wiarygodność | Uwagi) – najlepiej od razu ze zdjęciem.</p>
+      <p class="male">Gdzie zwykle są zawory – sprawdź i dopisz te, które są u Was:</p>
+      <ul class="checklista">
+        <li><b>Pomieszczenie gospodarcze</b>: zawór główny (wejście wody ze studni), przy hydroforze i filtrach, przy zasobniku/bojlerze ciepłej wody (wejście zimnej, wyjście ciepłej).</li>
+        <li><b>Łazienka</b>: pod umywalką (zimna i ciepła), przy stelażu WC (zwykle za przyciskiem spłukiwania), przy baterii wannowej, przy pralce.</li>
+        <li><b>Kuchnia</b>: pod zlewem (zimna i ciepła), zasilanie zmywarki.</li>
+      </ul>
+      <p class="male"><a href="${linkArkusza(KARTY.zawory.gid)}" target="_blank" rel="noopener">Otwórz kartę Zawory</a>${kartyCache.zawory?.blad ? ` · <span class="uwaga">${esc(kartyCache.zawory.blad)}</span>` : ''}</p>`;
+  }
+  if (!zawory.length) return '<p class="pusto">Nic nie pasuje.</p>';
+  return zawory.map((z) => `<div class="zawor"><div class="zawor-gora"><b>${esc(z.id || 'zawór')}</b>${chipWiar(z.wiar)}</div>
+    <div><b>${esc(z.co || 'co odcina – do uzupełnienia')}</b></div>
+    <div class="male">${esc([z.pokoj, z.gdzie, z.rodzaj].filter(Boolean).join(' · '))} ${z.pokoj ? ' · ' + linkPokoju(z.pokoj) : ''}</div>
+    ${z.uwagi ? `<div class="male">${esc(z.uwagi)}</div>` : ''}${zrodloWiar(z.wiar)}</div>`).join('')
+    + `<p class="male"><a href="${linkArkusza(KARTY.zawory.gid)}" target="_blank" rel="noopener">Otwórz kartę Zawory</a></p>`;
+}
+
+// ---------------------------------------------------------------- Kanalizacja
+function htmlKanalizacja() {
+  return `<section class="karta-strony">
+    <h3>Kanalizacja</h3>
+    <p>Jeszcze nieudokumentowana. Co warto zebrać (zdjęcia przed zabudową są najcenniejsze):</p>
+    <ul class="checklista">
+      <li>Odpływy: zlew, zmywarka, umywalka, wanna, WC, pralka – gdzie wchodzą w ścianę lub podłogę.</li>
+      <li>Piony i rewizje (otwory kontrolne) – gdzie są i jak się do nich dostać.</li>
+      <li>Wyjście kanalizacji z budynku i dokąd prowadzi (szambo / oczyszczalnia / sieć).</li>
+      <li>Na zdjęciach z budowy widać szare rury w kuchni i łazience – przypiszemy je do ścian.</li>
+    </ul>
+    <p class="male">Na modelu kanalizacja będzie szarą warstwą. Nic nie rysuję bez danych.</p>
+  </section>`;
 }
 
 // ====================================================================== start
