@@ -150,6 +150,15 @@ położenie potwierdzone pomiarem; szara ikona z „?” – niezweryfikowane. P
 nachodzą na siebie, łączą się w bańkę z liczbą – dotknięcie przybliża. Karta punktu ma przyciski
 „Pokaż na rzucie”, „Kopiuj ID” i „Udostępnij link”. Etykiety pomieszczeń pokazują wysokość
 sufitu dopiero po przybliżeniu.
+Panel „Warstwy”: na górze tryby Standard / Instalacje / Techniczny (gotowe zestawy warstw; teksty
+o plikach – wymiary.ini, obwody.json – tylko w trybie Technicznym), niżej zwijane grupy Budynek,
+Elektryka, Ogrzewanie. Na telefonie uchwyt panelu przełącza pół ekranu / cały ekran.
+Instalacje i Ogrzewanie: braki to plakietka „Do uzupełnienia: N” w nagłówku karty i zwinięta lista
+na jej końcu; wszystkie razem – strona #braki („Do uzupełnienia”). Instrukcje „jak wpisywać
+w arkuszu” są w zwiniętym „ℹ Jak uzupełnić”, widocznym tylko po zalogowaniu. Rozdzielnica:
+przełącznik Rysunek / Lista (na telefonie domyślnie lista), rysunek powiększa się przyciskami
++/− albo dwoma palcami. Gdy w karcie Rozdzielnica są wpisane Punkty, „pokaż te punkty na modelu”
+podświetla je w 3D (adres #punkty=id1,id2).
 
 „Rzut z góry” – widok jak rysunek (bez perspektywy); przyciskiem obok wracasz do 3D.
 ⟲ – ustawia widok od nowa.

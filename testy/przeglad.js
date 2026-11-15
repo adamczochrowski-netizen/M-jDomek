@@ -11,7 +11,7 @@ window.przegladMojegoDomku = async function () {
   location.hash = '#punkt=kuchnia-Z06'; await czekaj(900);
   w.karta = !document.getElementById('karta').hidden ? document.querySelector('#karta h3')?.innerText : 'BRAK';
   location.hash = '#elektryka'; await czekaj(2500);
-  w.wylaczniki = document.querySelectorAll('.wyl-svg').length;
+  w.wylaczniki = document.querySelectorAll('.wyl-svg').length || document.querySelectorAll('.wyl-wiersz').length;
   location.hash = '#ogrzewanie'; await czekaj(2000);
   w.kurki = document.querySelectorAll('.kurek').length;
   location.hash = '#mamy'; await czekaj(2500);

@@ -208,7 +208,20 @@ a { color: var(--akcent); }
 .zawor-gora { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 
 /* rysunek szafy z bezpiecznikami (SVG z danych arkusza) – urządzenie w prawdziwych kolorach, w ciemnym motywie lekko przygaszone */
-.szafa-rys svg { width: 100%; height: auto; max-width: 560px; display: block; margin: 6px auto 8px; filter: var(--szafa-filtr); }
+.szafa-rys { --skala: 1; overflow: auto; touch-action: pan-x pan-y; }
+.szafa-rys svg { width: calc(100% * var(--skala)); height: auto; max-width: calc(560px * var(--skala)); display: block; margin: 6px auto 8px; filter: var(--szafa-filtr); }
+.szafa-zoom { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.szafa-zoom button { min-width: var(--dotyk); font-size: 20px; line-height: 1; padding: 0 10px; }
+.przelacznik-widoku { display: inline-flex; gap: 0; margin: 2px 0 8px; border: 1px solid var(--linia); border-radius: 10px; overflow: hidden; }
+.przelacznik-widoku button { border: 0; border-radius: 0; min-width: 96px; }
+.przelacznik-widoku button + button { border-left: 1px solid var(--linia); }
+/* rozdzielnica jako lista */
+.wyl-lista { display: grid; gap: 4px; }
+.wyl-wiersz { display: grid; grid-template-columns: 3.2em 4.2em 1fr; align-items: center; gap: 8px; text-align: left; width: 100%; min-height: 48px; padding: 6px 12px; }
+.wyl-wiersz b { font-size: 17px; }
+.wyl-wiersz .wyl-typ { color: var(--tekst2); font-weight: 600; }
+.wyl-wiersz[aria-expanded="true"] { border-color: var(--akcent); background: var(--akcent-tlo); }
+.wyl-szczegoly { padding: 8px 12px 12px; }
 .wyl-svg { cursor: pointer; }
 .wyl-svg:focus { outline: none; }
 .wyl-svg:hover .ramka, .wyl-svg:focus .ramka { stroke: var(--szafa-wybor); stroke-width: 2; }
@@ -217,8 +230,7 @@ a { color: var(--akcent); }
 .szafa-nawig { display: flex; gap: 8px; align-items: center; margin: 2px 0 6px; }
 .szafa-nawig button { min-height: 44px; min-width: 48px; }
 @media (max-width: 760px) {
-  .szafa-rys { overflow-x: auto; margin: 0 -8px; padding: 0 8px; }
-  .szafa-rys svg { min-width: 470px; }            /* wyłącznik ok. 33 px – wygodny dla palca; przewijanie w bok */
+  .szafa-rys { margin: 0 -8px; padding: 0 8px; }
 }
 .zawor.mignij { animation: mignij 1.6s ease; }
 @keyframes mignij { 0%, 60% { background: var(--akcent-tlo); } 100% { background: transparent; } }
@@ -324,6 +336,28 @@ summary { min-height: 32px; }
 .opcja:hover { text-decoration: underline; }
 .podobne { margin-top: 6px; font-size: var(--fs-male); padding: 5px 8px; border-radius: 8px; background: var(--plan-tlo); color: var(--plan); }
 
+/* porządek w treści: instrukcje tylko dla zalogowanych, braki jako plakietka i lista na końcu karty */
+.tylko-zalogowani { display: none; }
+body.zalogowany .tylko-zalogowani { display: block; }
+.jak-uzupelnic { margin-top: 10px; border-top: 1px dashed var(--linia); padding-top: 6px; }
+.jak-uzupelnic summary, details.braki summary { cursor: pointer; color: var(--tekst2); font-size: var(--fs-male); }
+.jak-uzupelnic > div { margin-top: 6px; }
+.do-uzup { display: inline-block; vertical-align: middle; margin-left: 6px; font-size: var(--fs-plak); font-weight: 650; padding: 2px 8px;
+  border-radius: 999px; background: var(--prawd-tlo); color: var(--prawd); white-space: nowrap; }
+details.braki { margin-top: 10px; }
+details.braki ul { margin: 6px 0; }
+.brak-linia { border-left: 3px solid var(--prawd); padding-left: 8px; }
+.karta-strony.zwinieta { max-height: 360px; overflow: hidden; position: relative; }
+.karta-strony.zwinieta::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 90px;
+  background: linear-gradient(transparent, var(--panel) 75%); pointer-events: none; }
+.karta-strony .wiecej { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 1; min-width: 140px; font-weight: 600; }
+/* szare „szkielety” w miejsce napisów „Wczytywanie…” */
+.szkielet-linia { height: 12px; border-radius: 6px; margin: 10px 0; background: linear-gradient(90deg, var(--linia), var(--akcent-tlo), var(--linia));
+  background-size: 200% 100%; animation: szkielet 1.4s ease infinite; }
+.szkielet-linia.krotka { width: 60%; }
+.szkielet-linia.tytul { height: 18px; width: 40%; }
+@keyframes szkielet { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
 /* ---------------------------------------------------------------- układ */
 main { position: relative; display: grid; grid-template-columns: 310px 1fr; min-height: 0; }
 #panel {
@@ -337,6 +371,18 @@ main { position: relative; display: grid; grid-template-columns: 310px 1fr; min-
 #panel section:last-child { border-bottom: 0; }
 #panel h2 { margin: 2px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--tekst2); font-weight: 650; }
 #panel h2 .male { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.tryby { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.tryby button { padding: 4px 4px; font-size: var(--fs-male); }
+#opis-trybu { margin: 6px 0 0; }
+.grupa-warstw { padding: 6px 16px 10px; border-bottom: 1px solid var(--linia); }
+.grupa-warstw > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; min-height: var(--dotyk); }
+.grupa-warstw > summary::-webkit-details-marker { display: none; }
+.grupa-warstw > summary::before { content: '▸'; color: var(--tekst2); transition: transform .15s; }
+.grupa-warstw[open] > summary::before { transform: rotate(90deg); }
+.grupa-warstw > summary h2 { margin: 0 !important; }
+.tylko-techniczny { display: none; }
+body.tryb-techniczny .tylko-techniczny { display: block; }
+body.tryb-techniczny .podwiersz.tylko-techniczny { display: block; }
 .male { font-size: var(--fs-male); color: var(--tekst2); }
 .przyciski { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
 .przyciski button { flex: 1; }
@@ -522,7 +568,10 @@ html.plik .tylko-plik { display: flex; }
     padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
   body.panel-otwarty #panel { transform: none; }
-  .uchwyt { display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--linia); margin: 6px auto 2px; }
+  body.panel-pelny #panel { max-height: calc(100% - 8px); }
+  /* uchwyt: duże pole dotyku, w środku kreska */
+  .uchwyt { display: block; width: 100%; height: 26px; min-height: 26px; padding: 0; margin: 0; border: 0; background: none; position: relative; }
+  .uchwyt::after { content: ''; position: absolute; left: 50%; top: 10px; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: var(--linia); }
   #karta {
     left: 8px; right: 8px; top: auto;
     bottom: max(8px, env(safe-area-inset-bottom));

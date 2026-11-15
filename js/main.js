@@ -28,6 +28,13 @@ const WARSTWY_BUDYNKU = [
   { k: 'nazwy', nazwa: 'Nazwy pomieszczeń', wl: true },
 ];
 const NAZWA_WARSTWY_EL = { L: 'Lampy zewnętrzne' };
+// tryby widoku (rozdz. 4.2): gotowe zestawy warstw włączane jednym dotknięciem
+const TRYBY = {
+  standard: { opis: 'Dom z gniazdkami i włącznikami – bez rur i sufitów.', wid: { ogrzewanie: false, sufity: false, meble: false } },
+  instalacje: { opis: 'Elektryka i rury ogrzewania podłogowego (schemat).', wid: { ogrzewanie: true, sufity: false, meble: false } },
+  techniczny: { opis: 'Wszystkie warstwy oraz informacje o plikach (wymiary.ini, obwody.json).', wid: { ogrzewanie: true, sufity: true, meble: true } },
+};
+const PODSTAWA_TRYBU = { sciany: true, okna: true, podlogi: true, belka: true, sanitariaty: true, teren: true, nazwy: true };
 
 const $ = (s) => document.querySelector(s);
 const dotyk = matchMedia('(pointer: coarse)').matches;
@@ -46,9 +53,11 @@ try {
   const zap = JSON.parse(localStorage.getItem(KLUCZ_USTAWIEN) || 'null');
   if (zap && zap.wid) Object.assign(stan.wid, zap.wid);
   if (zap && typeof zap.wysokoscScian === 'number') stan.wysokoscScian = zap.wysokoscScian;
+  if (zap && zap.trybWarstw) stan.trybWarstw = zap.trybWarstw;
+  if (!zap) stan.trybWarstw = 'standard';             // pierwsze uruchomienie: domyślne warstwy = tryb Standard
 } catch { /* bez zapisanych ustawień */ }
 function zapiszUstawienia() {
-  try { localStorage.setItem(KLUCZ_USTAWIEN, JSON.stringify({ wid: stan.wid, wysokoscScian: stan.wysokoscScian })); } catch { /* np. tryb prywatny */ }
+  try { localStorage.setItem(KLUCZ_USTAWIEN, JSON.stringify({ wid: stan.wid, wysokoscScian: stan.wysokoscScian, trybWarstw: stan.trybWarstw || null })); } catch { /* np. tryb prywatny */ }
 }
 
 // ---------------------------------------------------------------- renderer, światło, kamery
@@ -407,7 +416,7 @@ function wierszWarstwy(k, nazwa, { ikona, ile, wylaczony, tytul } = {}) {
   i.checked = !!stan.wid[k] && !wylaczony;
   i.disabled = !!wylaczony;
   i.dataset.k = k;
-  i.addEventListener('change', () => { stan.wid[k] = i.checked; zapiszUstawienia(); zastosujWidocznosc(); });
+  i.addEventListener('change', () => { stan.wid[k] = i.checked; ustawTryb(null); zapiszUstawienia(); zastosujWidocznosc(); });
   l.append(i);
   if (ikona) { const im = document.createElement('img'); im.className = 'ikona'; im.alt = ''; im.src = ikona; l.append(im); }
   const n = document.createElement('span'); n.className = 'nazwa'; n.textContent = nazwa; l.append(n);
@@ -419,6 +428,7 @@ function zbudujPanel() {
   const A = stan.A, M = stan.M;
   const lb = $('#lista-budynek');
   lb.textContent = '';
+  $('#lista-ogrzewanie').textContent = '';
   for (const w of WARSTWY_BUDYNKU) {
     let ile = '', wylaczony = false, tytul = '';
     if (w.k === 'meble') {
@@ -433,10 +443,10 @@ function zbudujPanel() {
       if (!og) { wylaczony = true; ile = 'brak danych'; tytul = 'Wpisz w obwody.json sekcję ogrzewanie_podlogowe'; }
       else { ile = og.pomieszczenia === 'wszystkie' ? 'cały dom' : `${(og.pomieszczenia || []).length} pom.`; tytul = og.uwagi || ''; }
     }
-    lb.append(wierszWarstwy(w.k, w.nazwa, { ile, wylaczony, tytul }));
+    (w.k === 'ogrzewanie' ? $('#lista-ogrzewanie') : lb).append(wierszWarstwy(w.k, w.nazwa, { ile, wylaczony, tytul }));
     if (w.k === 'sciany') lb.append(suwakScian());
-    if (w.k === 'meble' && wylaczony) {
-      const p = document.createElement('div'); p.className = 'podwiersz'; p.textContent = 'Włączysz je w wymiary.ini: [Meble] pokaż = tak.'; lb.append(p);
+    if (w.k === 'meble' && wylaczony) {       // podpowiedź techniczna – tylko w trybie „Techniczny”
+      const p = document.createElement('div'); p.className = 'podwiersz tylko-techniczny'; p.textContent = 'Włączysz je w wymiary.ini: [Meble] pokaż = tak.'; lb.append(p);
     }
   }
 
@@ -796,6 +806,7 @@ window.addEventListener('mojdomek:baza', () => {
 function obsluzAdres() {
   const h = location.hash;
   if (!/ogrzewanie=/.test(h)) podswietlOgrzewanie(null);
+  punktyZAdresu();
   punktZAdresu();
   const m = /(pokoj|ogrzewanie)=([^&]+)/.exec(h);
   if (m && stan.A) pokazPokoj(decodeURIComponent(m[2]), m[1] === 'ogrzewanie');
@@ -846,6 +857,35 @@ function podswietlOgrzewanie(nazwa) {
     m.material.color.set(nazwa && ten ? 0xff2a00 : nazwa ? 0x9a9a9a : KOLOR_RUR);
     m.material.opacity = nazwa && !ten ? 0.22 : 0.85;
   }
+  render();
+}
+
+// kilka punktów naraz: …/#punkty=kuchnia-Z06,kuchnia-Z07 – świecą, reszta przygasa, rzut z góry na nie
+const podswietlenie = new THREE.Group();
+podswietlenie.renderOrder = 22;
+scene.add(podswietlenie);
+function punktyZAdresu() {
+  podswietlenie.children.slice().forEach((o) => { podswietlenie.remove(o); o.geometry.dispose(); o.material.dispose(); });
+  const m = /punkty=([^&]+)/.exec(location.hash);
+  if (!m || !stan.A) { if (!stan.wybrany) przygasZnaczniki(false); render(); return; }
+  const ids = new Set(decodeURIComponent(m[1]).split(','));
+  const lista = stan.A.items.filter((p) => ids.has(p.id) && p.znacznik);
+  if (!lista.length) { pokazKomunikat('Nie znalazłem tych punktów na modelu'); return; }
+  const wg = new Map();
+  for (const p of lista) { const k = p.typ + p.wiar; if (!wg.has(k)) wg.set(k, []); wg.get(k).push(p); }
+  for (const [k, l] of wg) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(l.flatMap((p) => [p.znacznik.x, p.znacznik.y, p.znacznik.z]), 3));
+    for (const [map, skala] of [[wyborPkt.material.map, 1.7], [teksturaZnacznika(k[0], k[1]), 1]]) {
+      const pts = new THREE.Points(g, new THREE.PointsMaterial({ size: ROZMIAR_ZNACZNIKA * skala, sizeAttenuation: false, map, transparent: true, depthTest: false, alphaTest: 0.2 }));
+      pts.renderOrder = 22;
+      podswietlenie.add(pts);
+    }
+  }
+  przygasZnaczniki(true);
+  for (const t of new Set(lista.map((p) => p.typ))) stan.wid['el_' + t] = true;
+  zastosujWidocznosc();
+  pokazKomunikat(`Podświetlone punkty: ${lista.length}`);
   render();
 }
 
@@ -947,6 +987,7 @@ $('#kamery').addEventListener('change', (e) => {
 });
 document.querySelectorAll('[data-el]').forEach((b) => b.addEventListener('click', () => {
   const wl = b.dataset.el === 'wszystkie';
+  ustawTryb(null);
   for (const t of KOLEJNOSC_TYPOW) stan.wid['el_' + t] = wl;
   document.querySelectorAll('#lista-elektryka input').forEach((i) => { if (!i.disabled) i.checked = wl; });
   zapiszUstawienia();
@@ -964,6 +1005,38 @@ window.addEventListener('mojdomek:motyw', () => {
 $('#podpowiedz').textContent = dotyk
   ? '1 palec – obrót · 2 palce – przybliżanie i przesuwanie · dotknij kółko, by zobaczyć szczegóły'
   : 'Lewy przycisk – obrót · prawy – przesuwanie · kółko – przybliżanie · kliknij kółko punktu, by zobaczyć szczegóły';
+
+// ---------------------------------------------------------------- tryby widoku i grupy panelu
+function ustawTryb(k) {
+  stan.trybWarstw = k;
+  document.querySelectorAll('[data-tryb]').forEach((b) => { b.classList.toggle('aktywny', b.dataset.tryb === k); b.setAttribute('aria-pressed', String(b.dataset.tryb === k)); });
+  document.body.classList.toggle('tryb-techniczny', k === 'techniczny');
+  $('#opis-trybu').textContent = k ? TRYBY[k].opis : 'Własny zestaw warstw.';
+}
+function zastosujTryb(k) {
+  Object.assign(stan.wid, PODSTAWA_TRYBU, TRYBY[k].wid);
+  for (const t of KOLEJNOSC_TYPOW) stan.wid['el_' + t] = true;
+  if (k !== 'techniczny') stan.wysokoscScian = null;
+  ustawTryb(k);
+  zapiszUstawienia();
+  document.querySelectorAll('#panel input[data-k]').forEach((i) => { if (!i.disabled) i.checked = !!stan.wid[i.dataset.k]; });
+  if (stan.A) { przebudujSciany(); zbudujPanel(); }
+  zastosujWidocznosc();
+}
+document.querySelectorAll('[data-tryb]').forEach((b) => b.addEventListener('click', () => zastosujTryb(b.dataset.tryb)));
+ustawTryb(stan.trybWarstw ?? null);
+// zwijane grupy panelu – aplikacja pamięta, które są otwarte
+{
+  const KLUCZ = 'mojDomek.grupy.v1';
+  let otwarte = {};
+  try { otwarte = JSON.parse(localStorage.getItem(KLUCZ) || '{}'); } catch { /* domyślnie */ }
+  document.querySelectorAll('details[data-grupa]').forEach((d) => {
+    if (d.dataset.grupa in otwarte) d.open = !!otwarte[d.dataset.grupa];
+    d.addEventListener('toggle', () => { otwarte[d.dataset.grupa] = d.open; try { localStorage.setItem(KLUCZ, JSON.stringify(otwarte)); } catch { /* trudno */ } });
+  });
+}
+// telefon: uchwyt panelu przełącza połowę ekranu / cały ekran
+$('.uchwyt')?.addEventListener('click', () => document.body.classList.toggle('panel-pelny'));
 
 // ---------------------------------------------------------------- start
 window.mojDomek = { stan, kamera, zaslaniajace, zasloniety, THREE };   // do podglądu w konsoli przeglądarki (F12)

@@ -139,6 +139,8 @@ window.addEventListener('mojdomek:motyw', () => { if (stan.otwarte) rysuj(); });
     stan.dostep = null;
     rysuj();
     if (u) { stan.dostep = await stan.fb.sprawdzDostep(); rysuj(); }
+    // instrukcje „jak uzupełnić” (arkusz, kolumny) widzą tylko domownicy
+    document.body.classList.toggle('zalogowany', !!u && ['czlonek', 'offline'].includes(stan.dostep?.stan));
     dane.ustawKonto(u, stan.dostep);
     window.dispatchEvent(new CustomEvent('mojdomek:konto', { detail: { user: u, dostep: stan.dostep } }));
   });

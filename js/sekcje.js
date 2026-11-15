@@ -27,7 +27,7 @@ const czytaj = (k, dom) => { try { return JSON.parse(localStorage.getItem(k) || 
 const zapisz = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* tryb prywatny */ } };
 
 // ====================================================================== menu
-const SEKCJE = ['widok', 'instalacje', 'ogrzewanie', 'mamy'];
+const SEKCJE = ['widok', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
 // stare i skrócone adresy: #pompa → Ogrzewanie, #elektryka / #hydraulika / #kanalizacja → Instalacje z podzakładką
 const ALIASY = { pompa: 'ogrzewanie', wyposazenie: 'mamy', elektryka: 'instalacje', hydraulika: 'instalacje', kanalizacja: 'instalacje' };
 const PODZAKLADKI = ['elektryka', 'hydraulika', 'kanalizacja'];
@@ -45,6 +45,7 @@ function pokazSekcje() {
   if (s === 'mamy') otworzMamy();
   if (s === 'ogrzewanie') otworzPompe();
   if (s === 'instalacje') otworzInstalacje();
+  if (s === 'braki') otworzBraki();
 }
 
 // ====================================================================== arkusz: pobieranie, CSV
@@ -274,7 +275,7 @@ function rysujMamy() {
       ? `<div class="karta-strony"><p class="uwaga">Nie udało się wczytać arkusza: ${esc(stanMamy.blad)}</p>
          <p class="male">Sprawdź internet i to, czy arkusz „MójDomek” jest udostępniony „każdy, kto ma link”.</p>
          <button type="button" data-akcja="odswiez">Spróbuj ponownie</button></div>`
-      : '<div class="karta-strony"><p>Wczytywanie arkusza…</p></div>';
+      : szkielet(3);
     podepnijAkcje(el);
     return;
   }
@@ -296,9 +297,8 @@ function rysujMamy() {
       </div>` : ''}
     </div>
     <div id="mamy-lista">${stanMamy.zakladka === 'kupione' ? htmlKupione(d, q) : htmlWyposazenie(d, q)}</div>
+    ${jakUzupelnic('Lista pochodzi z arkusza „Domek Wirko” (karty Wyposażenie i Poniesione koszty) – tam dopisujcie i poprawiajcie, np. marki i modele. Tu pojawia się po odświeżeniu (przez publiczny arkusz „MójDomek”, bez kwot).')}
     <p class="zrodlo male">
-      Lista pochodzi z arkusza „Domek Wirko” (karty Wyposażenie i Poniesione koszty) – tam dopisujcie i poprawiajcie,
-      np. marki i modele. Tu pojawia się po odświeżeniu (przez publiczny arkusz „MójDomek”, bez kwot).<br>
       Wczytano ${new Date(d.t).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
       ${stanMamy.ladowanie ? ' · odświeżanie…' : ''}${stanMamy.blad ? ` · <span class="uwaga">nie udało się odświeżyć (${esc(stanMamy.blad)})</span>` : ''}
       · <button type="button" class="link" data-akcja="odswiez">odśwież</button>
@@ -389,6 +389,33 @@ function zrodloWiar(tekst) {
   const m = /\(([^)]+)\)/.exec(tekst || '');
   return m ? `<div class="male">źródło: ${esc(m[1])}</div>` : '';
 }
+// porządek w treści (plan GUI, pkt 6): najpierw informacja; instrukcje „jak wpisywać” zwinięte i tylko po zalogowaniu
+// (Adam, Magda); braki – jedna plakietka w nagłówku karty i lista na jej końcu, a wszystkie razem na stronie #braki
+const jakUzupelnic = (html) => `<details class="jak-uzupelnic tylko-zalogowani"><summary>ℹ Jak uzupełnić</summary><div class="male">${html}</div></details>`;
+const plakietkaBrakow = (lista) => (lista.length ? `<span class="do-uzup">Do uzupełnienia: ${lista.length}</span>` : '');
+function htmlBraki(lista) {
+  if (!lista.length) return '';
+  return `<details class="braki"><summary>Do uzupełnienia (${lista.length})</summary>
+    <ul class="checklista">${lista.map((b) => `<li>${b.html}</li>`).join('')}</ul>
+    <a class="link-model" href="#braki">Wszystko, co jest do uzupełnienia w domu →</a></details>`;
+}
+const RE_BRAK = /\b(do potwierdzenia|do uzupełnienia)\b/i;
+const RE_BRAK_POCZ = /^\s*(do potwierdzenia|do uzupełnienia)\s*[:–-]?\s*/i;
+// „DO POTWIERDZENIA: model…” → „do potwierdzenia: model…” (słowo z arkusza zostaje, bez krzyku wielkimi literami)
+const zdanieBraku = (x) => x.replace(RE_BRAK_POCZ, (m, g) => g.toLowerCase() + ': ');
+// na telefonie długie karty zwinięte do początku; „Więcej” rozwija (pamiętane do przeładowania strony)
+const rozwiniete = new Set();
+function zwinDlugie(el) {
+  if (!el || !matchMedia('(max-width: 760px)').matches) return;
+  el.querySelectorAll('.karta-strony[data-zwijana]').forEach((k) => {
+    if (rozwiniete.has(k.dataset.zwijana) || k.scrollHeight < 480) return;
+    k.classList.add('zwinieta');
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'wiecej'; b.textContent = 'Więcej';
+    b.addEventListener('click', () => { rozwiniete.add(k.dataset.zwijana); k.classList.remove('zwinieta'); b.remove(); });
+    k.append(b);
+  });
+}
 const linkPokoju = (nazwa, opis = 'pokaż na modelu') => nazwa ? `<a class="link-model" href="#pokoj=${encodeURIComponent(nazwa)}">${esc(opis)}</a>` : '';
 function zakupy() { return stanMamy.dane?.kupione || []; }
 function zakupyPasujace(wzor) {
@@ -408,13 +435,14 @@ async function kartaDanych(klucz) {
 
 // ====================================================================== sekcja „Ogrzewanie” (pompa ciepła + pętle podłogówki)
 // karta „Pompa ciepła”: Temat | Treść | Link;  karta „Pętle”: Nr | Pomieszczenie | Uwagi
-const stanPompy = { wiersze: null, brak: false, blad: null };
+const stanPompy = { wiersze: null, brak: false, blad: null, wczytano: false };
 async function otworzPompe() {
   rysujPompe();
   try {
     const [p] = await Promise.all([kartaDanych('pompa'), kartaDanych('petle')]);
     stanPompy.wiersze = p.brak ? null : p.wiersze;
     stanPompy.blad = p.blad;
+    stanPompy.wczytano = true;
   } catch (e) { stanPompy.blad = e.message; }
   rysujPompe();
 }
@@ -426,54 +454,81 @@ const TEMATY_POMPY = [
   ['Komunikaty i błędy', 'kody z wyświetlacza i co oznaczają (tylko z instrukcji producenta)'],
   ['Kontakty', 'instalator, serwis, gwarancja, instrukcje (PDF)'],
 ];
-function htmlPetle() {
-  const w = kartyCache.petle?.wiersze || [];
-  const petle = w.map(([nr, pokoj, uwagi]) => ({ nr: String(nr || '').trim(), pokoj: String(pokoj || '').trim(), uwagi: String(uwagi || '').trim() }))
+function petleZArkusza() {
+  return (kartyCache.petle?.wiersze || []).map(([nr, pokoj, uwagi]) => ({ nr: String(nr || '').trim(), pokoj: String(pokoj || '').trim(), uwagi: String(uwagi || '').trim() }))
     .filter((p) => p.nr);
+}
+function brakiPetli() {
+  if (!kartyCache.petle) return [];
+  const petle = petleZArkusza(), bez = petle.filter((p) => !p.pokoj).map((p) => p.nr);
+  if (!petle.length) return [{ html: '<b>Rozdzielacz</b> – lista pętli (kurków) i gdzie stoi rozdzielacz.' }];
+  return bez.length ? [{ html: `<b>Rozdzielacz</b> – które pomieszczenie grzeje kurek ${esc(bez.join(', '))}; gdzie stoi rozdzielacz.` }] : [];
+}
+function brakiPompy() {
+  if (!stanPompy.wczytano) return [];
+  const w = stanPompy.wiersze || [];
+  const b = [];
+  for (const [temat, tresc] of w) for (const linia of rozbierzKomorke(tresc || '').teksty)
+    if (RE_BRAK.test(linia)) b.push({ html: `<b>${esc(temat || 'Pompa ciepła')}</b> – ${esc(zdanieBraku(linia))}` });
+  const sa = new Set(w.map((r) => norm(r[0]).trim()));
+  for (const [t, o] of TEMATY_POMPY) if (!sa.has(norm(t))) b.push({ html: `<b>Pompa ciepła: ${esc(t)}</b> – ${esc(o)}.` });
+  return b;
+}
+function htmlPetle() {
+  const petle = petleZArkusza();
   const wgPokoju = new Map();
   for (const p of petle) if (p.pokoj) { if (!wgPokoju.has(p.pokoj)) wgPokoju.set(p.pokoj, []); wgPokoju.get(p.pokoj).push(p.nr); }
   const opisane = petle.filter((p) => p.pokoj).length;
+  const braki = brakiPetli();
   return `<section class="karta-strony">
-    <h3>Rozdzielacz ogrzewania podłogowego – kurki <span class="male">${petle.length ? `${opisane} z ${petle.length} opisanych` : ''}</span></h3>
+    <h3>Rozdzielacz ogrzewania podłogowego – kurki ${plakietkaBrakow(braki)}</h3>
     <p class="male">Każdy kurek to jedna pętla rur w podłodze. Kolejność od lewej, jak na rozdzielaczu.
-      ${opisane ? 'Dotknij kurka, żeby zobaczyć rury tego pomieszczenia na modelu.' : ''}</p>
+      ${opisane ? 'Dotknij kurka, żeby zobaczyć rury tego pomieszczenia na modelu.' : ''}${petle.length ? ` Opisane: ${opisane} z ${petle.length}.` : ''}</p>
     ${petle.length ? `<div class="rozdzielacz"><div class="rozdz-belka">${petle.map((p) => p.pokoj
       ? `<a class="kurek" href="#ogrzewanie=${encodeURIComponent(p.pokoj)}" title="${esc(p.uwagi || p.pokoj)}"><b>${esc(p.nr)}</b><span>${esc(p.pokoj)}</span></a>`
-      : `<div class="kurek pusty" title="pomieszczenie do uzupełnienia"><b>${esc(p.nr)}</b><span>?</span></div>`).join('')}</div></div>` : ''}
+      : `<div class="kurek pusty" title="pomieszczenie jeszcze nieopisane"><b>${esc(p.nr)}</b><span>nieopisany</span></div>`).join('')}</div></div>` : ''}
     ${wgPokoju.size ? `<div style="margin-top:10px">${[...wgPokoju].map(([pokoj, nry]) => `<div class="wiersz-fakt"><div class="tresc">
       <b>${esc(pokoj)}</b> – ${nry.length > 1 ? 'kurki' : 'kurek'} ${nry.map(esc).join(', ')}</div>
       <a class="link-model" href="#ogrzewanie=${encodeURIComponent(pokoj)}">pokaż rury</a></div>`).join('')}</div>` : ''}
-    <p class="male">${opisane < petle.length || !petle.length ? 'Do uzupełnienia: który kurek grzeje które pomieszczenie (arkusz „MójDomek”, karta <b>Pętle</b>, kolumna Pomieszczenie – nazwa jak w aplikacji, np. Kuchnia, Salon, Biuro - Adam). Gdzie stoi rozdzielacz – też warto dopisać. ' : ''}
-      <a href="${linkArkusza(KARTY.petle.gid)}" target="_blank" rel="noopener">Otwórz kartę Pętle</a>.</p>
     <p class="male">Rury na modelu to schemat (jak na zdjęciach z budowy), nie dokładny przebieg. ${chipWiar('niezweryfikowana')}</p>
+    ${htmlBraki(braki)}
+    ${jakUzupelnic(`Arkusz „MójDomek”, karta <b>Pętle</b>: kolumna Pomieszczenie – nazwa jak w aplikacji (np. Kuchnia, Salon, Biuro - Adam).
+      <a href="${linkArkusza(KARTY.petle.gid)}" target="_blank" rel="noopener">Otwórz kartę Pętle</a>.`)}
   </section>`;
 }
 function rysujPompe() {
   const el = $('#pompa-tresc');
   if (!el) return;
+  if (!stanPompy.wczytano && !stanPompy.blad) { el.innerHTML = szkielet(3); return; }
   const w = stanPompy.wiersze || [];
-  const karty = w.map(([temat, tresc, link]) => {
+  const karty = w.map(([temat, tresc, link], i) => {
     const k = rozbierzKomorke(link || '');
     const t = rozbierzKomorke(tresc || '');
     const linki = [...t.linki, ...k.linki];
-    return `<section class="karta-strony"><h3>${esc(temat || '—')}</h3>
-      ${t.teksty.length ? `<p>${t.teksty.map((x) => /DO POTWIERDZENIA|DO UZUPEŁNIENIA/i.test(x) ? `<span class="uwaga">${esc(x)}</span>` : esc(x)).join('<br>')}</p>` : ''}
-      ${linki.length ? `<div class="opcje">${linki.map(htmlLink).join('')}</div>` : ''}</section>`;
+    const tekst = t.teksty.filter((x) => !RE_BRAK.test(x));
+    const braki = t.teksty.filter((x) => RE_BRAK.test(x)).map((x) => ({ html: esc(zdanieBraku(x)) }));
+    return `<section class="karta-strony" data-zwijana="pompa-${i}"><h3>${esc(temat || '—')} ${plakietkaBrakow(braki)}</h3>
+      ${tekst.length ? `<p>${tekst.map(esc).join('<br>')}</p>` : ''}
+      ${linki.length ? `<div class="opcje">${linki.map(htmlLink).join('')}</div>` : ''}
+      ${braki.map((b) => `<p class="male brak-linia">${b.html.charAt(0).toUpperCase() + b.html.slice(1)}</p>`).join('')}</section>`;
   }).join('');
   const sa = new Set(w.map((r) => norm(r[0]).trim()));
-  const brakuje = TEMATY_POMPY.filter(([t]) => !sa.has(norm(t)));
+  const brakuje = TEMATY_POMPY.filter(([t]) => !sa.has(norm(t))).map(([t, o]) => ({ html: `<b>${esc(t)}</b> – ${esc(o)}` }));
   el.innerHTML = `${karty}${htmlPetle()}
     <div class="karta-strony">
-      <h3>${w.length ? 'Co jeszcze warto dopisać' : 'Tu będzie obsługa pompy ciepła'}</h3>
-      ${brakuje.length ? `<ul class="lista-pomyslow">${brakuje.map(([t, o]) => `<li><b>${esc(t)}</b> – ${esc(o)}</li>`).join('')}</ul>` : ''}
-      <p class="male">Wpisujcie w arkuszu „MójDomek”, karta <b>Pompa ciepła</b>: kolumny <b>Temat | Treść | Link</b>,
-        każdy wiersz to osobna karta tutaj. <a href="${linkArkusza(KARTY.pompa.gid)}" target="_blank" rel="noopener">Otwórz kartę w arkuszu</a>.</p>
-      ${stanPompy.blad ? `<p class="uwaga">Nie udało się wczytać arkusza: ${esc(stanPompy.blad)}</p>` : ''}
+      <h3>${w.length ? 'Pompa ciepła – co jeszcze opisać' : 'Tu będzie obsługa pompy ciepła'} ${plakietkaBrakow(brakuje)}</h3>
+      ${htmlBraki(brakuje)}
+      ${stanPompy.blad ? `<p class="uwaga">Nie udało się wczytać arkusza: ${esc(stanPompy.blad)}</p>
+        <button type="button" data-ponow="pompa">Spróbuj ponownie</button>` : ''}
+      ${jakUzupelnic(`Arkusz „MójDomek”, karta <b>Pompa ciepła</b>: kolumny <b>Temat | Treść | Link</b> – każdy wiersz to osobna karta tutaj.
+        Zdania zaczynające się od „DO POTWIERDZENIA” trafiają do listy braków. <a href="${linkArkusza(KARTY.pompa.gid)}" target="_blank" rel="noopener">Otwórz kartę w arkuszu</a>.`)}
     </div>`;
+  el.querySelector('[data-ponow="pompa"]')?.addEventListener('click', () => { stanPompy.blad = null; otworzPompe(); });
+  zwinDlugie(el);
 }
 
 // ====================================================================== sekcja „Instalacje”: Elektryka, Hydraulika, Kanalizacja
-const stanInst = { zakladka: czytaj('mojDomek.instalacje.v1', 'elektryka'), szukaj: '' };
+const stanInst = { zakladka: czytaj('mojDomek.instalacje.v1', 'elektryka'), szukaj: '', widokSzafy: czytaj('mojDomek.szafa.v1', null), skala: 1 };
 async function otworzInstalacje() {
   rysujInstalacje();
   const potrzebne = stanInst.zakladka === 'elektryka' ? ['rozdzielnica'] : stanInst.zakladka === 'hydraulika' ? ['zawory', 'studnia'] : [];
@@ -493,6 +548,8 @@ function rysujInstalacje() {
   if (!el) return;
   el.dataset.inst = stanInst.zakladka;
   el.innerHTML = stanInst.zakladka === 'hydraulika' ? htmlHydraulika() : stanInst.zakladka === 'kanalizacja' ? htmlKanalizacja() : htmlElektryka();
+  ustawSkaleSzafy(stanInst.skala || 1);
+  zwinDlugie(el);
   const s = $('#zawory-szukaj');
   if (s) {
     s.value = stanInst.szukaj;
@@ -502,48 +559,83 @@ function rysujInstalacje() {
 
 // ---------------------------------------------------------------- Elektryka
 const ROZDZIELNICA_ZAKUPY = /rozdzielnic|nadprad|roznicowo|rozlacznik|bezpiecznik|szyna|ogranicznik|uziemiajac/;
+function wylZArkusza() {
+  return (kartyCache.rozdzielnica?.wiersze || []).map(([nr, opis, zasila, pokoje, punkty, uwagi, wiar]) => ({
+    nr: String(nr || '').trim(), opis: String(opis || ''), zasila: String(zasila || ''), pokoje, punkty, uwagi, wiar,
+  })).filter((w) => w.nr || w.opis);
+}
+const nieopisany = (w) => !w.zasila.trim() || /^nieopisany/.test(norm(w.zasila));
+// braki liczone z danych arkusza (nie z pamięci): nieopisane wyłączniki, gniazdkowe bez pomieszczeń
+function brakiRozdzielnicy() {
+  if (!kartyCache.rozdzielnica) return [];
+  const wyl = wylZArkusza();
+  if (!wyl.length) return [{ html: '<b>Rozdzielnica</b> – opisy wyłączników (ze zdjęcia skrzynki).' }];
+  const b = [];
+  const nieop = wyl.filter((w) => nieopisany(w) && !/ogranicznik|dehn|roznicow|rozlacznik|glowny/.test(norm(w.opis + ' ' + w.zasila))).map((w) => w.nr);
+  if (nieop.length) b.push({ html: `<b>Rozdzielnica</b> – co zasilają nieopisane wyłączniki: ${esc(nieop.join(', '))} (najlepiej ustalić z elektrykiem).` });
+  const gn = wyl.filter((w) => /gniazd/.test(norm(w.zasila)) && !String(w.pokoje || '').trim()).map((w) => w.nr);
+  if (gn.length) b.push({ html: `<b>Rozdzielnica</b> – które pomieszczenia są na wyłącznikach gniazdek ${esc(gn.join(', '))}.` });
+  b.push({ html: '<b>Rozdzielnica</b> – w którym pomieszczeniu wisi szafa.' });
+  return b;
+}
+const BRAKI_PUNKTOW = [
+  { html: '<b>Trasy przewodów</b> – ze zdjęć ścian przed tynkiem (folder „Położenie kabli”: kuchnia, salon, sypialnia, biura); będą osobną warstwą modelu.' },
+  { html: '<b>Puszki</b> rozgałęźne – gdzie są i co się w nich łączy.' },
+  { html: '<b>Włączniki i lampy</b> – który włącznik steruje którą lampą.' },
+  { html: '<b>Uziemienie</b> i szyna wyrównawcza – gdzie są.' },
+];
+const telefon = () => matchMedia('(max-width: 760px)').matches;
 function htmlElektryka() {
-  const rozdz = kartyCache.rozdzielnica?.wiersze || [];
   const st = window.mojDomek?.stan;
   const A = st?.A;
   const osp = st?.obw?.osprzet;
-  const wyl = rozdz.map(([nr, opis, zasila, pokoje, punkty, uwagi, wiar]) => ({
-    nr: String(nr || '').trim(), opis: String(opis || ''), zasila: String(zasila || ''), pokoje, punkty, uwagi, wiar,
-  })).filter((w) => w.nr || w.opis);
+  const wyl = wylZArkusza();
   stanInst.wyl = wyl;
-  const wiersze = wyl.map((w) => `<div class="zawor" id="wyl-${esc(w.nr.replace(/\W/g, '-'))}">${htmlWylInfo(w, A)}</div>`).join('');
+  const widok = stanInst.widokSzafy || (telefon() ? 'lista' : 'rysunek');
+  const braki = brakiRozdzielnicy();
+  const przelacznik = `<div class="przelacznik-widoku" role="group" aria-label="Widok rozdzielnicy">
+      <button type="button" data-szafa="rysunek" class="${widok === 'rysunek' ? 'aktywny' : ''}" aria-pressed="${widok === 'rysunek'}">Rysunek</button>
+      <button type="button" data-szafa="lista" class="${widok === 'lista' ? 'aktywny' : ''}" aria-pressed="${widok === 'lista'}">Lista</button></div>`;
   return `
     <section class="karta-strony">
-      <h3>Rozdzielnica (skrzynka z bezpiecznikami)</h3>
-      ${wyl.length ? `${htmlSzafa(wyl)}
-        <div id="szafa-info" class="szafa-info"><p class="male">Dotknij wyłącznika na rysunku, żeby zobaczyć, co o nim wiadomo.</p></div>
-        <details style="margin-top:10px"><summary class="male">Lista wszystkich (${wyl.length})</summary>${wiersze}</details>`
-      : `<p>Czeka na zdjęcie skrzynki z opisami wyłączników – przepiszę je do karty <b>Rozdzielnica</b>
-        (Nr | Wyłącznik | Co zasila | Pomieszczenia | Punkty | Uwagi). Wtedy tu będzie widać, który bezpiecznik
-        wyłącza które gniazdka.</p>`}
-      <details style="margin-top:10px"${wyl.length ? '' : ' open'}><summary class="male">Z zakupów – elementy rozdzielnicy</summary>
+      <h3>Rozdzielnica (skrzynka z bezpiecznikami) ${plakietkaBrakow(braki)}</h3>
+      ${!kartyCache.rozdzielnica ? szkielet(1, true) : wyl.length ? `${przelacznik}
+        ${widok === 'lista' ? htmlListaWylacznikow(wyl, A) : `<div class="szafa-zoom">
+          <button type="button" data-szafa-zoom="-1" aria-label="Pomniejsz rysunek">−</button>
+          <button type="button" data-szafa-zoom="1" aria-label="Powiększ rysunek">+</button>
+          <span class="male">albo rozsuń dwoma palcami</span></div>
+        ${htmlSzafa(wyl)}
+        <div id="szafa-info" class="szafa-info"><p class="male">Dotknij wyłącznika na rysunku, żeby zobaczyć, co o nim wiadomo.</p></div>`}`
+      : '<p>Opisów wyłączników jeszcze nie ma.</p>'}
+      <details style="margin-top:10px"><summary class="male">Z zakupów – elementy rozdzielnicy</summary>
         ${htmlZakupy(zakupyPasujace(ROZDZIELNICA_ZAKUPY), stanMamy.dane ? 'Brak pasujących zakupów.' : 'Wczytywanie listy zakupów…')}</details>
-      <p class="male">Typ i prąd każdego wyłącznika odczytane ze zdjęcia szafy; przeznaczenie – tylko tam, gdzie jest naklejka.
-        Co zasilają nieopisane wyłączniki, najlepiej ustalić z elektrykiem. <a href="${linkArkusza(KARTY.rozdzielnica.gid)}" target="_blank" rel="noopener">Otwórz kartę Rozdzielnica</a>.</p>
+      <p class="male">Typ i prąd każdego wyłącznika – ze zdjęcia szafy; przeznaczenie – tylko tam, gdzie jest naklejka.</p>
+      ${htmlBraki(braki)}
+      ${jakUzupelnic(`Arkusz „MójDomek”, karta <b>Rozdzielnica</b>: Nr | Wyłącznik | Co zasila | Pomieszczenia | Punkty | Uwagi | Wiarygodność.
+        W kolumnie Punkty – identyfikatory gniazdek z kart punktów (np. kuchnia-Z06), wtedy przycisk „pokaż na modelu” podświetli je w 3D.
+        <a href="${linkArkusza(KARTY.rozdzielnica.gid)}" target="_blank" rel="noopener">Otwórz kartę Rozdzielnica</a>.`)}
     </section>
-    <section class="karta-strony">
-      <h3>Gniazdka i włączniki w pomieszczeniach</h3>
-      ${A ? htmlPunktyPokoi(A) : '<p class="male">Wczytywanie modelu domu…</p>'}
+    <section class="karta-strony" data-zwijana="punkty-pokoi">
+      <h3>Gniazdka i włączniki w pomieszczeniach ${plakietkaBrakow(BRAKI_PUNKTOW)}</h3>
+      ${A ? htmlPunktyPokoi(A) : szkielet(1, true)}
+      <p class="male">Położenia części gniazdek pochodzą z rysunku (±10–15 cm). Przed wierceniem sprawdź ścianę wykrywaczem.</p>
+      ${htmlBraki(BRAKI_PUNKTOW)}
     </section>
     ${osp ? `<section class="karta-strony"><h3>Osprzęt</h3>
       ${['Z', 'S', 'W'].filter((t) => osp[t]).map((t) => `<div class="wiersz-fakt"><div class="tresc"><div>${esc(TYPY[t].nazwa)} (wewnątrz domu): <b>${esc(osp[t].nazwa)}</b></div>
-        ${osp[t].link ? `<div class="opcje">${htmlLink({ url: osp[t].link, opis: '' })}</div>` : ''}</div>${chipWiar('potwierdzona (Adam, 15.11.2026)')}</div>`).join('')}</section>` : ''}
-    <section class="karta-strony">
-      <h3>Co jeszcze udokumentować</h3>
-      <ul class="checklista">
-        <li><b>Rozdzielnica</b> – co zasilają nieopisane wyłączniki (1.1, 1.2, 2.3, 2.5, 2.7–2.10), które pomieszczenia są na „gniazdkowych” 2.1 i 2.6, i w którym pomieszczeniu wisi szafa.</li>
-        <li><b>Trasy przewodów</b> – zdjęcia ścian przed tynkiem są w folderze „Położenie kabli” na komputerze (kuchnia, salon, sypialnia, biura); naniesiemy je na model jako osobną warstwę.</li>
-        <li><b>Puszki</b> rozgałęźne – gdzie są i co się w nich łączy.</li>
-        <li><b>Który włącznik</b> steruje którą lampą.</li>
-        <li><b>Uziemienie</b>, szyna wyrównawcza, ogranicznik przepięć (jeśli jest).</li>
-      </ul>
-      <p class="male">Położenia części gniazdek pochodzą z rysunku (±10–15 cm). Przed wierceniem sprawdź ścianę wykrywaczem.</p>
-    </section>`;
+        ${osp[t].link ? `<div class="opcje">${htmlLink({ url: osp[t].link, opis: '' })}</div>` : ''}</div>${chipWiar('potwierdzona (Adam, 15.11.2026)')}</div>`).join('')}</section>` : ''}`;
+}
+// rozdzielnica jako lista dużych wierszy: „2.4 · B10 · Ganek”; nieopisane – jedna szara plakietka
+function htmlListaWylacznikow(wyl, A) {
+  return `<div class="wyl-lista">${wyl.map((w) => {
+    const r = rodzajWyl(w);
+    const opis = nieopisany(w) ? '' : w.zasila.replace(/\s*\(.*$/, '');
+    const id = 'wl-' + w.nr.replace(/\W/g, '-');
+    return `<button type="button" class="wyl-wiersz" data-wyl-lista="${esc(w.nr)}" aria-expanded="false" aria-controls="${id}">
+        <b>${esc(w.nr)}</b><span class="wyl-typ">${esc(r.skrot && r.skrot !== '?' ? r.skrot : (w.opis || '').split(/\s+/)[0])}</span>
+        <span class="wyl-opis">${opis ? esc(opis) : '<span class="wiar wiar-niezw">nieopisany</span>'}</span></button>
+      <div class="wyl-szczegoly zawor" id="${id}" hidden>${htmlWylInfo(w, A)}</div>`;
+  }).join('')}</div>`;
 }
 // schemat szafy: rzędy jak na szynach (Nr „rząd.pozycja”), szerokość = liczba biegunów, kolor = rodzaj
 const NAZWY_RZEDOW = { 1: 'Rząd górny', 2: 'Rząd środkowy', 3: 'Rząd dolny' };
@@ -561,7 +653,8 @@ function htmlWylInfo(w, A) {
   return `<div class="zawor-gora"><b>${esc([w.nr, w.opis].filter(Boolean).join(' · ') || '—')}</b>${chipWiar(w.wiar)}</div>
     ${w.zasila ? `<div>${esc(w.zasila)}</div>` : ''}
     ${w.pokoje ? `<div class="male">Pomieszczenia: ${esc(w.pokoje)}</div>` : ''}
-    ${ids.length ? `<div class="pkt-lista" style="margin-top:6px">${ids.map((id) => htmlPunktId(id, A)).join('')}</div>` : ''}
+    ${ids.length ? `<div class="pkt-lista" style="margin-top:6px">${ids.map((id) => htmlPunktId(id, A)).join('')}</div>
+      <a class="link-model" href="#punkty=${ids.map(encodeURIComponent).join(',')}">pokaż te punkty na modelu</a>` : ''}
     ${w.uwagi ? `<div class="male">${esc(w.uwagi)}</div>` : ''}`;
 }
 
@@ -577,7 +670,7 @@ const naklejka = (w) => {
   if (/silnik|pomp/.test(t)) return 'silnik';
   if (/oswietl/.test(t)) return 'zarowka';
   if (/gniazd/.test(t)) return 'gniazdko';
-  return 'pytajnik';
+  return null;                                             // bez naklejki – jak w rzeczywistości (lista pokazuje „nieopisany”)
 };
 function svgNaklejka(rodzaj, cx, cy) {
   switch (rodzaj) {
@@ -676,6 +769,42 @@ function pokazWyl(nr) {
       <button type="button" data-wyl-krok="${esc(lista[i + 1]?.nr || '')}" ${i < lista.length - 1 ? '' : 'disabled'} aria-label="Następny wyłącznik">▶</button>
     </div><div class="zawor">${htmlWylInfo(w, window.mojDomek?.stan?.A)}</div>`;
 }
+document.addEventListener('click', (e) => {          // rozdzielnica: rysunek/lista, powiększanie, wiersze listy
+  const sz = e.target.closest?.('[data-szafa]');
+  if (sz) { stanInst.widokSzafy = sz.dataset.szafa; zapisz('mojDomek.szafa.v1', stanInst.widokSzafy); rysujInstalacje(); return; }
+  const zm = e.target.closest?.('[data-szafa-zoom]');
+  if (zm) { ustawSkaleSzafy((stanInst.skala || 1) * (zm.dataset.szafaZoom > 0 ? 1.4 : 1 / 1.4)); return; }
+  const wl = e.target.closest?.('[data-wyl-lista]');
+  if (wl) {
+    const d = document.getElementById(wl.getAttribute('aria-controls'));
+    const otw = wl.getAttribute('aria-expanded') !== 'true';
+    wl.setAttribute('aria-expanded', String(otw));
+    if (d) d.hidden = !otw;
+  }
+});
+function ustawSkaleSzafy(s) {
+  stanInst.skala = Math.max(1, Math.min(3.5, s));
+  const r = document.querySelector('.szafa-rys');
+  if (r) r.style.setProperty('--skala', stanInst.skala);
+}
+// rozsuwanie dwoma palcami na rysunku szafy (zamiast przewijania w bok)
+{
+  const palce = new Map();
+  let start = null;
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest?.('.szafa-rys') || e.pointerType !== 'touch') return;
+    palce.set(e.pointerId, e);
+    if (palce.size === 2) { const [a, b] = [...palce.values()]; start = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), s: stanInst.skala || 1 }; }
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!palce.has(e.pointerId)) return;
+    palce.set(e.pointerId, e);
+    if (palce.size === 2 && start) { const [a, b] = [...palce.values()]; ustawSkaleSzafy(start.s * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / start.d); }
+  });
+  const koniec = (e) => { palce.delete(e.pointerId); if (palce.size < 2) start = null; };
+  document.addEventListener('pointerup', koniec);
+  document.addEventListener('pointercancel', koniec);
+}
 document.addEventListener('click', (e) => {          // dotknięcie wyłącznika na rysunku -> jego opis pod rysunkiem
   const g = e.target.closest?.('.wyl-svg');
   if (g) { pokazWyl(g.dataset.wyl); return; }
@@ -712,6 +841,18 @@ function htmlPunktyPokoi(A) {
 // ---------------------------------------------------------------- Hydraulika
 const STUDNIA_ZAKUPY = /studni|hydrofor|rura wod|filtr wod|zawor/;
 const PEX_ZAKUPY = /pex|trojnik|kolank/;          // woda albo podłogówka – nie wiadomo, więc osobno
+const BRAKI_STUDNI = [
+  { html: '<b>Pompa w studni</b> – model (zdjęcie tabliczki znamionowej).' },
+  { html: '<b>Hydrofor</b> – gdzie stoi (w zakupach jest „Hydrofor”, 05.2025), wyłącznik ciśnieniowy i manometr.' },
+  { html: '<b>Filtry wody</b> – rodzaj i gdzie są.' },
+  { html: '<b>Rura ze studni</b> – którędy wchodzi do domu i gdzie jest główny zawór wody.' },
+  { html: '<b>Zasilanie pompy</b> – który bezpiecznik w rozdzielnicy (2.11 ma naklejkę „silnik” – do potwierdzenia).' },
+  { html: '<b>Położenie studni</b> – odległość od dwóch narożników domu (do mapy działki).' },
+];
+function brakiZaworow() {
+  return kartyCache.zawory && !(kartyCache.zawory.wiersze || []).length
+    ? [{ html: '<b>Zawory</b> – kurki w pomieszczeniu gospodarczym, łazience i kuchni: gdzie są i co odcinają (najlepiej ze zdjęciem).' }] : [];
+}
 function htmlHydraulika() {
   const st = kartyCache.studnia?.wiersze || [];
   const fakty = st.map(([temat, tresc, wiar, link]) => {
@@ -719,30 +860,25 @@ function htmlHydraulika() {
     return `<div class="wiersz-fakt"><div class="tresc"><b>${esc(temat || '—')}</b><div>${esc(tresc || '')}</div>${zrodloWiar(wiar)}
       ${l.length ? `<div class="opcje">${l.map(htmlLink).join('')}</div>` : ''}</div>${chipWiar(wiar)}</div>`;
   }).join('');
+  const bz = brakiZaworow();
   return `
-    <section class="karta-strony">
-      <h3>Studnia i zasilanie domu w wodę</h3>
-      ${fakty || '<p class="male">Brak wpisów.</p>'}
+    <section class="karta-strony" data-zwijana="studnia">
+      <h3>Studnia i zasilanie domu w wodę ${plakietkaBrakow(BRAKI_STUDNI)}</h3>
+      ${!kartyCache.studnia ? szkielet(2, true) : fakty || '<p class="male">Brak wpisów.</p>'}
       <h4 style="margin:12px 0 4px">Z zakupów – prawdopodobnie studnia i instalacja wodna</h4>
       ${htmlZakupy(zakupyPasujace(STUDNIA_ZAKUPY), stanMamy.dane ? 'Brak pasujących zakupów.' : 'Wczytywanie listy zakupów…')}
       ${zakupyPasujace(PEX_ZAKUPY).length ? `<details style="margin-top:8px"><summary class="male">Rury i złączki PEX z zakupów (${zakupyPasujace(PEX_ZAKUPY).length}) – woda albo ogrzewanie, do ustalenia</summary>
         ${htmlZakupy(zakupyPasujace(PEX_ZAKUPY), '')}</details>` : ''}
-      <h4 style="margin:12px 0 4px">Do ustalenia</h4>
-      <ul class="checklista">
-        <li>Model pompy w studni – zdjęcie tabliczki znamionowej.</li>
-        <li>Gdzie stoi hydrofor (w zakupach jest „Hydrofor”, 05.2025), wyłącznik ciśnieniowy i manometr.</li>
-        <li>Filtry wody – rodzaj i gdzie są.</li>
-        <li>Którędy rura ze studni wchodzi do domu i gdzie jest główny zawór wody.</li>
-        <li>Który bezpiecznik w rozdzielnicy zasila pompę.</li>
-        <li>Odległość studni od dwóch narożników domu – zaznaczę ją na mapie działki.</li>
-      </ul>
-      <p class="male">„Co zrobić, gdy nie ma wody” – procedurę przygotuję dopiero po poznaniu modelu pompy i układu (z instrukcji producenta), żeby nie zgadywać.
-        <a href="${linkArkusza(KARTY.studnia.gid)}" target="_blank" rel="noopener">Otwórz kartę Studnia</a>.</p>
+      <p class="male">„Co zrobić, gdy nie ma wody” – dopiero po poznaniu modelu pompy i układu (z instrukcji producenta), żeby nie zgadywać.</p>
+      ${htmlBraki(BRAKI_STUDNI)}
+      ${jakUzupelnic(`Arkusz „MójDomek”, karta <b>Studnia</b>: Temat | Treść | Wiarygodność | Link.
+        <a href="${linkArkusza(KARTY.studnia.gid)}" target="_blank" rel="noopener">Otwórz kartę Studnia</a>.`)}
     </section>
     <section class="karta-strony">
-      <h3>Zawory (kurki) wody</h3>
-      <input id="zawory-szukaj" type="search" placeholder="Szukaj zaworu, np. pralka, zlew, główny…" autocomplete="off" class="pole-szukaj">
+      <h3>Zawory (kurki) wody ${plakietkaBrakow(bz)}</h3>
+      <input id="zawory-szukaj" type="search" placeholder="Szukaj zaworu, np. pralka, zlew, główny…" autocomplete="off" class="pole-szukaj" aria-label="Szukaj zaworu">
       <div id="zawory-lista">${htmlListaZaworow()}</div>
+      ${htmlBraki(bz)}
     </section>
     <section class="karta-strony">
       <h3>Rury zimnej i ciepłej wody</h3>
@@ -756,37 +892,78 @@ function htmlListaZaworow() {
   const zawory = w.map(([id, pokoj, gdzie, co, rodzaj, wiar, uwagi]) => ({ id, pokoj, gdzie, co, rodzaj, wiar, uwagi }))
     .filter((z) => !q || norm(Object.values(z).join(' ')).includes(q));
   if (!w.length) {
-    return `<p>Jeszcze żaden zawór nie jest opisany. Dopisuj je w arkuszu „MójDomek”, karta <b>Zawory</b>
-      (ID | Pomieszczenie | Gdzie dokładnie | Co odcina | Rodzaj | Wiarygodność | Uwagi) – najlepiej od razu ze zdjęciem.</p>
-      <p class="male">Gdzie zwykle są zawory – sprawdź i dopisz te, które są u Was:</p>
-      <ul class="checklista">
-        <li><b>Pomieszczenie gospodarcze</b>: zawór główny (wejście wody ze studni), przy hydroforze i filtrach, przy zasobniku/bojlerze ciepłej wody (wejście zimnej, wyjście ciepłej).</li>
-        <li><b>Łazienka</b>: pod umywalką (zimna i ciepła), przy stelażu WC (zwykle za przyciskiem spłukiwania), przy baterii wannowej, przy pralce.</li>
-        <li><b>Kuchnia</b>: pod zlewem (zimna i ciepła), zasilanie zmywarki.</li>
-      </ul>
-      <p class="male"><a href="${linkArkusza(KARTY.zawory.gid)}" target="_blank" rel="noopener">Otwórz kartę Zawory</a>${kartyCache.zawory?.blad ? ` · <span class="uwaga">${esc(kartyCache.zawory.blad)}</span>` : ''}</p>`;
+    if (!kartyCache.zawory) return szkielet(1, true);
+    return `<p>Jeszcze żaden zawór nie jest opisany.</p>
+      ${kartyCache.zawory?.blad ? `<p class="uwaga">${esc(kartyCache.zawory.blad)}</p>` : ''}
+      ${jakUzupelnic(`Arkusz „MójDomek”, karta <b>Zawory</b>: ID | Pomieszczenie | Gdzie dokładnie | Co odcina | Rodzaj | Wiarygodność | Uwagi – najlepiej od razu ze zdjęciem.
+        Gdzie zwykle bywają zawory (sprawdź, które są u Was): pomieszczenie gospodarcze – zawór główny (wejście wody ze studni), przy hydroforze i filtrach,
+        przy zasobniku ciepłej wody; łazienka – pod umywalką, przy stelażu WC, przy baterii wannowej, przy pralce; kuchnia – pod zlewem, zasilanie zmywarki.
+        <a href="${linkArkusza(KARTY.zawory.gid)}" target="_blank" rel="noopener">Otwórz kartę Zawory</a>.`)}`;
   }
   if (!zawory.length) return '<p class="pusto">Nic nie pasuje.</p>';
   return zawory.map((z) => `<div class="zawor"><div class="zawor-gora"><b>${esc(z.id || 'zawór')}</b>${chipWiar(z.wiar)}</div>
     <div><b>${esc(z.co || 'co odcina – do uzupełnienia')}</b></div>
     <div class="male">${esc([z.pokoj, z.gdzie, z.rodzaj].filter(Boolean).join(' · '))} ${z.pokoj ? ' · ' + linkPokoju(z.pokoj) : ''}</div>
     ${z.uwagi ? `<div class="male">${esc(z.uwagi)}</div>` : ''}${zrodloWiar(z.wiar)}</div>`).join('')
-    + `<p class="male"><a href="${linkArkusza(KARTY.zawory.gid)}" target="_blank" rel="noopener">Otwórz kartę Zawory</a></p>`;
+    + jakUzupelnic(`<a href="${linkArkusza(KARTY.zawory.gid)}" target="_blank" rel="noopener">Otwórz kartę Zawory</a> w arkuszu „MójDomek”.`);
 }
 
 // ---------------------------------------------------------------- Kanalizacja
+const BRAKI_KANALIZACJI = [
+  { html: '<b>Odpływy</b> – zlew, zmywarka, umywalka, wanna, WC, pralka: gdzie wchodzą w ścianę lub podłogę.' },
+  { html: '<b>Piony i rewizje</b> (otwory kontrolne) – gdzie są i jak się do nich dostać.' },
+  { html: '<b>Wyjście z budynku</b> – dokąd prowadzi kanalizacja (szambo, oczyszczalnia, sieć).' },
+];
 function htmlKanalizacja() {
   return `<section class="karta-strony">
-    <h3>Kanalizacja</h3>
-    <p>Jeszcze nieudokumentowana. Co warto zebrać (zdjęcia przed zabudową są najcenniejsze):</p>
-    <ul class="checklista">
-      <li>Odpływy: zlew, zmywarka, umywalka, wanna, WC, pralka – gdzie wchodzą w ścianę lub podłogę.</li>
-      <li>Piony i rewizje (otwory kontrolne) – gdzie są i jak się do nich dostać.</li>
-      <li>Wyjście kanalizacji z budynku i dokąd prowadzi (szambo / oczyszczalnia / sieć).</li>
-      <li>Na zdjęciach z budowy widać szare rury w kuchni i łazience – przypiszemy je do ścian.</li>
-    </ul>
+    <h3>Kanalizacja ${plakietkaBrakow(BRAKI_KANALIZACJI)}</h3>
+    <p>Jeszcze nieudokumentowana. Najcenniejsze są zdjęcia sprzed zabudowy – na zdjęciach z budowy widać szare rury w kuchni i łazience.</p>
     <p class="male">Na modelu kanalizacja będzie szarą warstwą. Nic nie rysuję bez danych.</p>
+    ${htmlBraki(BRAKI_KANALIZACJI)}
   </section>`;
+}
+
+// ====================================================================== strona „Do uzupełnienia” – wszystkie braki domu w jednym miejscu
+const DZIALY_BRAKOW = [
+  ['Elektryka', '#elektryka', () => [...brakiRozdzielnicy(), ...BRAKI_PUNKTOW]],
+  ['Ogrzewanie', '#ogrzewanie', () => [...brakiPetli(), ...brakiPompy()]],
+  ['Hydraulika', '#hydraulika', () => [...BRAKI_STUDNI, ...brakiZaworow()]],
+  ['Kanalizacja', '#kanalizacja', () => BRAKI_KANALIZACJI],
+];
+async function wczytajDoBrakow() {
+  const p = [];
+  for (const k of ['rozdzielnica', 'petle', 'zawory', 'studnia']) if (!kartyCache[k]) p.push(kartaDanych(k));
+  if (!stanPompy.wczytano) p.push(otworzPompeCicho());
+  await Promise.all(p);
+}
+async function otworzPompeCicho() {
+  const r = await kartaDanych('pompa');
+  stanPompy.wiersze = r.brak ? null : r.wiersze; stanPompy.blad = r.blad; stanPompy.wczytano = true;
+}
+// liczba braków (ekran startowy) – po wczytaniu kart arkusza
+export async function liczbaBrakow() {
+  await wczytajDoBrakow();
+  return DZIALY_BRAKOW.reduce((s, [, , f]) => s + f().length, 0);
+}
+async function otworzBraki() {
+  const el = $('#braki-tresc');
+  if (!el) return;
+  if (!kartyCache.rozdzielnica) el.innerHTML = szkielet(3);
+  await wczytajDoBrakow();
+  el.innerHTML = `<p class="male">Lista z danych aplikacji i arkusza „MójDomek”. Przyda się do planowania pomiarów i zdjęć.</p>`
+    + DZIALY_BRAKOW.map(([nazwa, hash, f]) => {
+      const l = f();
+      return `<section class="karta-strony"><h3>${esc(nazwa)} ${plakietkaBrakow(l)}</h3>
+        ${l.length ? `<ul class="checklista">${l.map((b) => `<li>${b.html}</li>`).join('')}</ul>` : '<p class="male">Nic nie brakuje.</p>'}
+        <a class="link-model" href="${hash}">Przejdź do działu ${esc(nazwa)} →</a></section>`;
+    }).join('');
+}
+
+// szare „szkielety” kart zamiast napisu „Wczytywanie…” (plan GUI, pkt 12)
+function szkielet(n = 2, wTresci = false) {
+  const k = Array.from({ length: n }, () => '<div class="szkielet-linia"></div><div class="szkielet-linia krotka"></div>').join('');
+  return wTresci ? `<div class="szkielet" aria-label="Wczytywanie">${k}</div>`
+    : Array.from({ length: n }, () => `<div class="karta-strony szkielet" aria-label="Wczytywanie"><div class="szkielet-linia tytul"></div>${k}</div>`).join('');
 }
 
 // ====================================================================== start

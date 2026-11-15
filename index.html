@@ -71,7 +71,16 @@
 
 <main id="sekcja-widok">
   <aside id="panel" aria-label="Warstwy i legenda">
-    <div class="uchwyt tylko-telefon" aria-hidden="true"></div>
+    <button type="button" class="uchwyt tylko-telefon" aria-label="Panel do połowy / na cały ekran"></button>
+    <section>
+      <h2>Tryb</h2>
+      <div class="tryby" role="group" aria-label="Tryb widoku">
+        <button type="button" data-tryb="standard">Standard</button>
+        <button type="button" data-tryb="instalacje">Instalacje</button>
+        <button type="button" data-tryb="techniczny">Techniczny</button>
+      </div>
+      <p id="opis-trybu" class="male"></p>
+    </section>
     <section>
       <h2>Widok</h2>
       <div class="przyciski">
@@ -82,27 +91,32 @@
         <select id="kamery"><option value="">— wybierz —</option></select>
       </label>
     </section>
-    <section>
-      <h2>Budynek</h2>
+    <details class="grupa-warstw" data-grupa="budynek" open>
+      <summary><h2>Budynek</h2></summary>
       <div id="lista-budynek"></div>
-    </section>
-    <section>
-      <h2>Elektryka <span class="male">(legenda)</span></h2>
+    </details>
+    <details class="grupa-warstw" data-grupa="elektryka" open>
+      <summary><h2>Elektryka <span class="male">(legenda)</span></h2></summary>
       <div class="przyciski male-przyciski">
         <button type="button" data-el="wszystkie">wszystkie</button>
         <button type="button" data-el="zadne">żadne</button>
       </div>
       <div id="lista-elektryka"></div>
       <p id="suma-el" class="male"></p>
-    </section>
-    <section>
+    </details>
+    <details class="grupa-warstw" data-grupa="ogrzewanie">
+      <summary><h2>Ogrzewanie</h2></summary>
+      <div id="lista-ogrzewanie"></div>
+      <p class="male"><a href="#ogrzewanie">Rozdzielacz i kurki →</a> (dotknięcie kurka podświetla rury pomieszczenia)</p>
+    </details>
+    <section class="tylko-techniczny">
       <h2>Obwody i trasy kabli</h2>
       <div id="obwody-info" class="male">wczytywanie…</div>
     </section>
     <section class="stopka">
       <button id="btn-odswiez" type="button">Odśwież dane</button>
-      <p class="male tylko-lokalnie">Po uruchomieniu <b>ODSWIEZ.bat</b> nowe dane wczytują się same (sprawdzane co kilka sekund).</p>
-      <p class="male tylko-github">Wersja w internecie: nowe dane pojawiają się po <b>WYSLIJ_NA_GITHUB.bat</b> (ok. 1–2 min) i odświeżeniu strony.</p>
+      <p class="male tylko-lokalnie tylko-techniczny">Po uruchomieniu <b>ODSWIEZ.bat</b> nowe dane wczytują się same (sprawdzane co kilka sekund).</p>
+      <p class="male tylko-github tylko-techniczny">Wersja w internecie: nowe dane pojawiają się po <b>WYSLIJ_NA_GITHUB.bat</b> (ok. 1–2 min) i odświeżeniu strony.</p>
     </section>
   </aside>
 
@@ -135,6 +149,13 @@
   <div class="strona-srodek">
     <h2 class="strona-tytul">Ogrzewanie</h2>
     <div id="pompa-tresc"></div>
+  </div>
+</section>
+
+<section id="sekcja-braki" class="strona" hidden>
+  <div class="strona-srodek">
+    <h2 class="strona-tytul">Do uzupełnienia</h2>
+    <div id="braki-tresc"></div>
   </div>
 </section>
 
