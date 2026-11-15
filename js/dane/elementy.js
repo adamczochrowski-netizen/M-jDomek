@@ -95,6 +95,7 @@ const stan = {
   zKopii: false,          // ostatni odczyt z kopii na urządzeniu (bez potwierdzenia serwera)
   czas: null, blad: '',
   plik: null,             // punkty z rysunku (dane_modelu.json)
+  porownywac: true,       // false na GitHub Pages: tam jest kopia rysunku, która może być starsza niż baza
   roznice: null,
   wysylanie: false, komunikat: '',
 };
@@ -105,7 +106,7 @@ function powiadom() {
   zaplanowane = true;
   queueMicrotask(() => {
     zaplanowane = false;
-    stan.roznice = stan.aktywna && stan.elementy && stan.plik ? porownaj(stan.plik, stan.elementy) : null;
+    stan.roznice = stan.aktywna && stan.elementy && stan.plik && stan.porownywac ? porownaj(stan.plik, stan.elementy) : null;
     if (typeof window !== 'undefined') window.dispatchEvent(new Event('mojdomek:baza'));
   });
 }
@@ -118,7 +119,8 @@ export function punktyZBazy() {
   return lista.length ? lista.sort((a, b) => (a.id < b.id ? -1 : 1)).map(punktZElementu) : null;
 }
 
-export function ustawPlik(items) { stan.plik = items || []; powiadom(); }
+// porownywac = false: nie proponuj przenoszenia (kopia rysunku na GitHubie mogłaby cofnąć nowsze dane w bazie)
+export function ustawPlik(items, porownywac = true) { stan.plik = items || []; stan.porownywac = porownywac; powiadom(); }
 
 export async function ustawKonto(user, dostep) {
   stan.konto = { user, dostep };

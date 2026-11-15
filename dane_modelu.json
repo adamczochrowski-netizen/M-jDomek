@@ -504,7 +504,8 @@
    "n": 3,
    "pion": true,
    "id": "lazienka-Z01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "S",
@@ -520,7 +521,8 @@
    "n": 1,
    "pion": false,
    "id": "lazienka-S01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -536,7 +538,8 @@
    "n": 1,
    "pion": false,
    "id": "sypialnia-Z04",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -552,7 +555,8 @@
    "n": 1,
    "pion": false,
    "id": "sypialnia-Z03",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -568,7 +572,8 @@
    "n": 1,
    "pion": false,
    "id": "sypialnia-Z02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -584,7 +589,8 @@
    "n": 1,
    "pion": false,
    "id": "sypialnia-Z01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "S",
@@ -600,7 +606,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-S03",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "I",
@@ -616,7 +623,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-I01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "S",
@@ -632,7 +640,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-S04",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -648,7 +657,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z11",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -664,7 +674,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z05",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -680,7 +691,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-adam-Z02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -696,7 +708,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-adam-Z01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -712,7 +725,8 @@
    "n": 5,
    "pion": false,
    "id": "biuro-adam-Z04",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "S",
@@ -728,7 +742,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-S02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -744,7 +759,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z13",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -760,7 +776,8 @@
    "n": 1,
    "pion": false,
    "id": "salon-Z02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -776,7 +793,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-magda-Z03",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -792,7 +810,8 @@
    "n": 1,
    "pion": false,
    "id": "salon-Z04",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "S",
@@ -808,7 +827,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-S01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -824,7 +844,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-magda-Z02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -840,7 +861,8 @@
    "n": 1,
    "pion": false,
    "id": "salon-Z01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -856,7 +878,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-magda-Z01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -872,7 +895,8 @@
    "n": 1,
    "pion": false,
    "id": "salon-Z03",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -888,7 +912,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-adam-Z03",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -904,7 +929,8 @@
    "n": 1,
    "pion": false,
    "id": "sypialnia-W03",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -920,7 +946,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-adam-W02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -936,7 +963,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-magda-W01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -952,7 +980,8 @@
    "n": 1,
    "pion": false,
    "id": "salon-W04",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -968,7 +997,8 @@
    "n": 1,
    "pion": false,
    "id": "salon-W05",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -984,7 +1014,8 @@
    "n": 1,
    "pion": false,
    "id": "salon-W01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -1000,7 +1031,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-W02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -1016,7 +1048,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-W01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -1032,7 +1065,8 @@
    "n": 1,
    "pion": false,
    "id": "salon-W02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -1048,7 +1082,8 @@
    "n": 1,
    "pion": false,
    "id": "sypialnia-W02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -1064,7 +1099,8 @@
    "n": 1,
    "pion": false,
    "id": "sypialnia-W01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "S",
@@ -1080,7 +1116,8 @@
    "n": 1,
    "pion": false,
    "id": "lazienka-S02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -1096,7 +1133,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z06",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -1112,7 +1150,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z09",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -1128,7 +1167,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -1144,7 +1184,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z03",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -1160,7 +1201,8 @@
    "n": 1,
    "pion": false,
    "id": "lazienka-W02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "S",
@@ -1176,7 +1218,8 @@
    "n": 1,
    "pion": false,
    "id": "lazienka-S03",
-   "opis": "kaloryfer"
+   "opis": "kaloryfer",
+   "zrodlo": "pomiar"
   },
   {
    "type": "W",
@@ -1192,7 +1235,8 @@
    "n": 1,
    "pion": false,
    "id": "lazienka-W01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -1208,7 +1252,8 @@
    "n": 1,
    "pion": false,
    "id": "zewnatrz-Z01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -1224,7 +1269,8 @@
    "n": 1,
    "pion": false,
    "id": "salon-W03",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -1240,7 +1286,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z10",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar"
   },
   {
    "type": "Z",
@@ -1256,7 +1303,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z12",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar"
   },
   {
    "type": "Z",
@@ -1272,7 +1320,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z04",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -1288,7 +1337,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z07",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -1304,7 +1354,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z08",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -1320,7 +1371,8 @@
    "n": 1,
    "pion": false,
    "id": "zewnatrz-Z02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -1336,7 +1388,8 @@
    "n": 1,
    "pion": false,
    "id": "wiatrolap-W02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "szacunek"
   },
   {
    "type": "S",
@@ -1352,7 +1405,8 @@
    "n": 1,
    "pion": false,
    "id": "pomieszczenie-gospodarcze-S02",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar"
   },
   {
    "type": "Z",
@@ -1368,7 +1422,8 @@
    "n": 1,
    "pion": false,
    "id": "wiatrolap-Z01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "szacunek"
   },
   {
    "type": "W",
@@ -1384,7 +1439,8 @@
    "n": 1,
    "pion": false,
    "id": "wiatrolap-W01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "W",
@@ -1400,7 +1456,8 @@
    "n": 1,
    "pion": false,
    "id": "pomieszczenie-gospodarcze-W01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "Z",
@@ -1416,7 +1473,8 @@
    "n": 1,
    "pion": false,
    "id": "pomieszczenie-gospodarcze-Z01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "rysunek"
   },
   {
    "type": "S",
@@ -1432,7 +1490,8 @@
    "n": 1,
    "pion": false,
    "id": "pomieszczenie-gospodarcze-S01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar"
   },
   {
    "type": "S",
@@ -1448,7 +1507,8 @@
    "n": 1,
    "pion": false,
    "id": "pomieszczenie-gospodarcze-S03",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "Z",
@@ -1464,7 +1524,8 @@
    "n": 1,
    "pion": false,
    "id": "kuchnia-Z01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar"
   },
   {
    "type": "W",
@@ -1480,7 +1541,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-adam-W01",
-   "opis": "włącza gn. zewn."
+   "opis": "włącza gn. zewn.",
+   "zrodlo": "szacunek"
   },
   {
    "type": "D",
@@ -1496,7 +1558,8 @@
    "n": 1,
    "pion": false,
    "id": "zewnatrz-D01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar"
   },
   {
    "type": "L",
@@ -1512,7 +1575,8 @@
    "n": 1,
    "pion": false,
    "id": "zewnatrz-L01",
-   "opis": "szczyt przy sypialni"
+   "opis": "szczyt przy sypialni",
+   "zrodlo": "szacunek"
   },
   {
    "type": "L",
@@ -1528,7 +1592,8 @@
    "n": 1,
    "pion": false,
    "id": "zewnatrz-L02",
-   "opis": "szczyt przy biurze"
+   "opis": "szczyt przy biurze",
+   "zrodlo": "szacunek"
   },
   {
    "type": "L",
@@ -1544,7 +1609,8 @@
    "n": 1,
    "pion": false,
    "id": "zewnatrz-L03",
-   "opis": "wiatrołap bok"
+   "opis": "wiatrołap bok",
+   "zrodlo": "szacunek"
   },
   {
    "type": "L",
@@ -1560,7 +1626,8 @@
    "n": 1,
    "pion": false,
    "id": "zewnatrz-L04",
-   "opis": "wejście lewa"
+   "opis": "wejście lewa",
+   "zrodlo": "szacunek"
   },
   {
    "type": "L",
@@ -1576,7 +1643,8 @@
    "n": 1,
    "pion": false,
    "id": "zewnatrz-L05",
-   "opis": "wejście prawa"
+   "opis": "wejście prawa",
+   "zrodlo": "szacunek"
   },
   {
    "type": "G",
@@ -1592,7 +1660,8 @@
    "n": 1,
    "pion": false,
    "id": "wiatrolap-G01",
-   "opis": ""
+   "opis": "",
+   "zrodlo": "pomiar"
   }
  ],
  "furniture": [],

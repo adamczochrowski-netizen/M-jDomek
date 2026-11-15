@@ -605,7 +605,7 @@ function zastosujDane(M, wersja, pierwszy) {
   if (p) wybierz(p); else zamknijKarte();
   if (pierwszy) obsluzAdres();
   window.dispatchEvent(new Event('mojdomek:dane'));      // dla modułów (np. Elektryka: punkty w pomieszczeniach)
-  dane.ustawPlik(M.items);                               // porównanie rysunku z bazą (panel konta)
+  dane.ustawPlik(M.items, !NA_GITHUB);                   // porównanie rysunku z bazą (panel konta) – tylko na komputerze
 }
 
 // zmiany w bazie (wczytanie, zapis drugiej osoby, wylogowanie) – przebudowa tylko, gdy zmieniły się punkty

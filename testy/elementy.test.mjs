@@ -37,12 +37,29 @@ test('po przeniesieniu: baza zgodna z rysunkiem, punkty wracają do widoku bez z
 
 test('bez informacji o źródle położenie jest PRAWDOPODOBNA, nigdy POTWIERDZONA', () => {
   for (const it of PUNKTY) {
-    const e = elementZPunktu(it, '2026-11-15');
+    const { zrodlo, ...bez } = it;
+    const e = elementZPunktu(bez, '2026-11-15');
     assert.equal(e.wiarygodnosc.polozenie, 'PRAWDOPODOBNA');
     assert.equal(e.wiarygodnosc.polaczenia, 'NIEZWERYFIKOWANA');
   }
   assert.equal(elementZPunktu({ ...PUNKTY[0], zrodlo: 'pomiar' }).wiarygodnosc.polozenie, 'POTWIERDZONA');
-  assert.equal(elementZPunktu({ ...PUNKTY[0], zrodlo: 'szacunek' }).wiarygodnosc.polozenie, 'PRAWDOPODOBNA');
+  for (const z of ['szacunek', 'pomiar+szacunek', 'rysunek', 'cokolwiek'])
+    assert.equal(elementZPunktu({ ...PUNKTY[0], zrodlo: z }).wiarygodnosc.polozenie, 'PRAWDOPODOBNA', z);
+});
+
+test('POTWIERDZONA tylko dla punktów z pomiaru (pole „zrodlo” z generuj.py)', () => {
+  for (const it of PUNKTY) {
+    const e = elementZPunktu(it, '2026-11-15');
+    assert.equal(e.wiarygodnosc.polozenie === 'POTWIERDZONA', it.zrodlo === 'pomiar', it.id);
+  }
+});
+
+test('baza sprzed pola „zrodlo”: nowe pole to zmiana „źródło położenia” (bez innych pól)', () => {
+  const stare = PUNKTY.map(({ zrodlo, ...bez }) => bez);
+  const r = porownaj(PUNKTY, bazaZ(stare));
+  const zZrodlem = PUNKTY.filter((p) => p.zrodlo).length;
+  assert.equal(r.zmienione.length, zZrodlem);
+  for (const x of r.zmienione) assert.deepEqual(x.pola, ['źródło położenia']);
 });
 
 test('kolejność pól z bazy nie ma znaczenia (Firestore sortuje klucze)', () => {
