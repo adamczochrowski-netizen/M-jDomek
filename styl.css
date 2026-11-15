@@ -79,6 +79,82 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .pasek button.aktywny { background: #f3f1ec; color: #20303f; border-color: #f3f1ec; }
 #btn-reset { font-size: 18px; padding: 2px 10px; }
 
+/* ---------------------------------------------------------------- menu */
+.menu { display: flex; gap: 4px; flex-shrink: 0; }
+.menu a {
+  color: var(--pasek-tekst);
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+  font-weight: 500;
+  opacity: .82;
+}
+.menu a:hover { background: rgba(255,255,255,.12); opacity: 1; }
+.menu a.aktywny { background: #f3f1ec; color: #20303f; opacity: 1; font-weight: 650; }
+.menu a:focus-visible { outline: 2px solid #f3f1ec; outline-offset: 2px; }
+
+/* przyciski widoku na scenie 3D */
+.narzedzia-sceny { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; z-index: 4; }
+.narzedzia-sceny button { box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+
+/* ---------------------------------------------------------------- strony (Co mamy, Pompa ciepła) */
+.strona { overflow-y: auto; min-height: 0; background: var(--tlo); overscroll-behavior: contain; }
+.strona-srodek { max-width: 920px; margin: 0 auto; padding: 16px 16px 48px; padding-bottom: max(48px, env(safe-area-inset-bottom)); }
+.strona-tytul { font-size: 22px; margin: 4px 0 12px; }
+.karta-strony { background: var(--panel); border: 1px solid var(--linia); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+.karta-strony h2 { margin-top: 0; font-size: 18px; }
+.karta-strony h3 { margin: 0 0 6px; font-size: 16px; }
+.karta-strony p:last-child { margin-bottom: 0; }
+.lista-pomyslow { padding-left: 20px; }
+.lista-pomyslow li { margin: 4px 0; }
+.podlacz-form { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.podlacz-form input { flex: 1 1 240px; min-height: 38px; padding: 6px 10px; border: 1px solid var(--linia); border-radius: 8px; background: var(--tlo); }
+button.link { border: 0; background: none; padding: 0; min-height: 0; color: var(--akcent); text-decoration: underline; cursor: pointer; font-size: inherit; }
+.zrodlo { margin-top: 18px; }
+.zrodlo a { color: var(--akcent); }
+.pusto { color: var(--tekst2); padding: 20px 4px; }
+
+.mamy-gora { position: sticky; top: -16px; z-index: 2; background: var(--tlo); padding: 16px 0 10px; margin-top: -16px; }
+.zakladki { display: flex; gap: 6px; margin-bottom: 10px; }
+.zakladki button { flex: 1; font-weight: 600; min-height: 40px; }
+.zakladki span, .filtry span { font-weight: 400; opacity: .7; margin-left: 2px; }
+#mamy-szukaj { width: 100%; min-height: 40px; padding: 8px 12px; border: 1px solid var(--linia); border-radius: 10px; background: var(--panel); font-size: 15px; }
+.filtry { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.filtry button { min-height: 30px; padding: 3px 10px; font-size: 13px; border-radius: 999px; }
+
+.grupa { background: var(--panel); border: 1px solid var(--linia); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; }
+.grupa h3 { margin: 2px 0 6px; font-size: 16px; display: inline; }
+details.grupa summary { cursor: pointer; list-style: none; padding: 4px 0; }
+details.grupa summary::-webkit-details-marker { display: none; }
+details.grupa summary::before { content: '▸'; display: inline-block; width: 16px; color: var(--tekst2); transition: transform .15s; }
+details.grupa[open] summary::before { transform: rotate(90deg); }
+.grupa-uwagi { margin: 6px 0 4px; }
+.pozycje { list-style: none; margin: 8px 0 0; padding: 0; }
+.pozycja { padding: 9px 0; border-top: 1px solid var(--linia); }
+.pozycja:first-child { border-top: 0; }
+.pozycja-gora { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.pozycja .uwagi, .pozycja .kandydaci { font-size: 13px; color: var(--tekst2); margin-top: 3px; }
+.pozycja .kandydaci { font-style: italic; }
+.kwota { white-space: nowrap; color: var(--tekst2); font-size: 13px; }
+.status { flex-shrink: 0; font-size: 11.5px; font-weight: 650; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.s-mamy { background: #e3f4e1; color: #1f6b1a; }
+.s-kandydaci { background: #e3eefb; color: #1d5296; }
+.s-kupic { background: #fdeedd; color: #8a4b06; }
+.filtry button.s-mamy, .filtry button.s-kandydaci, .filtry button.s-kupic { border-color: transparent; }
+.filtry button.aktywny { outline: 2px solid var(--akcent); outline-offset: 0; }
+@media (prefers-color-scheme: dark) {
+  .s-mamy { background: #1d3a1c; color: #9fdc98; }
+  .s-kandydaci { background: #1b3150; color: #9cc5ff; }
+  .s-kupic { background: #45300f; color: #ffc98a; }
+}
+.opcje { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.opcja { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px;
+  padding: 3px 9px; border-radius: 8px; background: var(--akcent-tlo); color: var(--akcent); text-decoration: none; }
+.opcja:hover { text-decoration: underline; }
+.podobne { margin-top: 6px; font-size: 12.5px; padding: 5px 8px; border-radius: 8px; background: #f3ecfb; color: #4a2a74; }
+@media (prefers-color-scheme: dark) { .podobne { background: #2e2342; color: #d9c4ff; } }
+
 /* ---------------------------------------------------------------- układ */
 main { position: relative; display: grid; grid-template-columns: 300px 1fr; min-height: 0; }
 #panel {
@@ -223,7 +299,11 @@ html.plik .tylko-plik { display: flex; }
   .tylko-telefon { display: inline-flex; align-items: center; justify-content: center; }
   main { grid-template-columns: 1fr; }
   #stan-danych { display: none; }
-  .tytul h1 { font-size: 17px; }
+  .tytul h1 { font-size: 16px; }
+  .menu { gap: 2px; }
+  .menu a { padding: 6px 9px; font-size: 14px; }
+  .dluzej { display: none; }
+  #komunikat { top: 56px; }
   .pasek { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
   .pasek button { padding: 6px 10px; }
   #panel {

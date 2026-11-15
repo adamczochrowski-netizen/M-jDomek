@@ -20,14 +20,14 @@
     <h1>Mój domek</h1>
     <span id="stan-danych">wczytywanie danych…</span>
   </div>
-  <div class="akcje">
-    <button id="btn-gora" type="button" title="Przełącz rzut z góry / widok 3D">Rzut z góry</button>
-    <button id="btn-reset" type="button" title="Wyśrodkuj widok" aria-label="Wyśrodkuj widok">⟲</button>
-    <button id="btn-panel" type="button" class="tylko-telefon" aria-controls="panel">Warstwy</button>
-  </div>
+  <nav class="menu" aria-label="Menu">
+    <a href="#widok" data-sekcja="widok">Widok</a>
+    <a href="#mamy" data-sekcja="mamy">Co mamy<span class="dluzej">, co dokupić</span></a>
+    <a href="#pompa" data-sekcja="pompa">Pompa<span class="dluzej"> ciepła</span></a>
+  </nav>
 </header>
 
-<main>
+<main id="sekcja-widok">
   <aside id="panel" aria-label="Warstwy i legenda">
     <div class="uchwyt tylko-telefon" aria-hidden="true"></div>
     <section>
@@ -66,11 +66,30 @@
 
   <div id="scena">
     <div id="etykiety" aria-hidden="true"></div>
+    <div class="narzedzia-sceny">
+      <button id="btn-gora" type="button" title="Przełącz rzut z góry / widok 3D">Rzut z góry</button>
+      <button id="btn-reset" type="button" title="Wyśrodkuj widok" aria-label="Wyśrodkuj widok">⟲</button>
+      <button id="btn-panel" type="button" class="tylko-telefon" aria-controls="panel">Warstwy</button>
+    </div>
     <div id="podpowiedz"></div>
     <div id="karta" role="dialog" aria-label="Szczegóły punktu" hidden></div>
     <div id="komunikat" role="status" hidden></div>
   </div>
 </main>
+
+<section id="sekcja-mamy" class="strona" hidden>
+  <div class="strona-srodek">
+    <h2 class="strona-tytul">Co mamy, co dokupić</h2>
+    <div id="mamy-tresc"></div>
+  </div>
+</section>
+
+<section id="sekcja-pompa" class="strona" hidden>
+  <div class="strona-srodek">
+    <h2 class="strona-tytul">Obsługa pompy ciepła</h2>
+    <div id="pompa-tresc"></div>
+  </div>
+</section>
 
 <div id="blad" class="zaslona" hidden>
   <div class="okno">
@@ -90,6 +109,7 @@
   </div>
 </div>
 
+<script type="module" src="js/sekcje.js"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

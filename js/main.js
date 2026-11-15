@@ -105,6 +105,8 @@ function rozmiar() {
   kamera3d.aspect = w / h;
   kamera3d.updateProjectionMatrix();
   ustawFrustumGora();
+  // aplikacja mogła wystartować na innej zakładce menu – kadr ustawiamy przy pierwszym pokazaniu sceny
+  if (stan.A && !stan.dopasowano) { stan.dopasowano = true; widokUkos(); }
   render();
 }
 function ustawFrustumGora() {
@@ -562,8 +564,8 @@ function zastosujDane(M, wersja, pierwszy) {
   $('#stan-danych').textContent = opisWersji(wersja?.lm);
   $('#stan-danych').title = NA_GITHUB ? 'Kopia danych wysłana na GitHub (WYSLIJ_NA_GITHUB.bat)'
     : stan.urlDanych === ZRODLA_DANYCH[0] ? 'Plik: Projekt\\skrypty\\dane_modelu.json' : 'Kopia: aplikacja\\dane_modelu.json';
+  if (pierwszy) stan.dopasowano = false;
   rozmiar();
-  if (pierwszy) widokUkos();
   const p = wybranyId && A.items.find((q) => q.id === wybranyId);
   if (p) wybierz(p); else zamknijKarte();
   if (pierwszy) punktZAdresu();
