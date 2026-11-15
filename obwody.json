@@ -1,0 +1,40 @@
+{
+ "_opis": "Mój domek – obwody elektryczne i trasy kabli. Format: README.txt, rozdział OBWODY. Współrzędne jak w dane_modelu.json: cm, x w prawo i y w dół od wewnętrznego lewego górnego narożnika domu, z = wysokość nad podłogą. Identyfikatory punktów (np. kuchnia-Z06) pokazuje karta punktu w aplikacji (przycisk kopiuj). Sekcja _przyklad jest tylko wzorem – aplikacja jej nie czyta.",
+ "wersja": 1,
+ "rozdzielnica": null,
+ "punkty": {},
+ "obwody": [],
+ "trasy": [],
+ "_przyklad": {
+  "rozdzielnica": { "x": 600, "y": 900, "z": 150, "opis": "skrzynka w pom. gospodarczym (przykład – nie wiemy jeszcze, gdzie jest)" },
+  "punkty": {
+   "kuchnia-Z06": { "opis": "potrójne przy rogu, nad blatem", "obwod": "K1" }
+  },
+  "obwody": [
+   {
+    "id": "K1",
+    "nazwa": "Kuchnia – gniazdka nad blatem",
+    "zabezpieczenie": "B16",
+    "przewod": "YDYp 3x2,5",
+    "kolor": "#e03131",
+    "punkty": ["kuchnia-Z06", "kuchnia-Z07", "kuchnia-Z08"],
+    "uwagi": ""
+   }
+  ],
+  "trasy": [
+   {
+    "id": "T1",
+    "obwod": "K1",
+    "pewnosc": "szacunek",
+    "przewod": "YDYp 3x2,5",
+    "punkty": [
+     { "punkt": "kuchnia-Z06" },
+     [642.5, 42, 230],
+     [642.5, 215, 230],
+     { "punkt": "kuchnia-Z08" }
+    ],
+    "uwagi": "pion z puszki do góry, potem poziomo 20 cm pod sufitem"
+   }
+  ]
+ }
+}

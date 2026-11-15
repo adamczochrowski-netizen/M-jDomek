@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#20303f">
+<title>Mój domek</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 30 32 10l24 20v24H8z' fill='%23e8e4da' stroke='%2320303f' stroke-width='4' stroke-linejoin='round'/%3E%3Ccircle cx='32' cy='38' r='8' fill='%23e03131'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styl.css">
+<script>
+  if (location.protocol === 'file:') document.documentElement.classList.add('plik');
+  document.documentElement.classList.add(/\.github\.io$/i.test(location.hostname) ? 'github' : 'lokalnie');
+</script>
+<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+</head>
+<body>
+<header class="pasek">
+  <div class="tytul">
+    <h1>Mój domek</h1>
+    <span id="stan-danych">wczytywanie danych…</span>
+  </div>
+  <div class="akcje">
+    <button id="btn-gora" type="button" title="Przełącz rzut z góry / widok 3D">Rzut z góry</button>
+    <button id="btn-reset" type="button" title="Wyśrodkuj widok" aria-label="Wyśrodkuj widok">⟲</button>
+    <button id="btn-panel" type="button" class="tylko-telefon" aria-controls="panel">Warstwy</button>
+  </div>
+</header>
+
+<main>
+  <aside id="panel" aria-label="Warstwy i legenda">
+    <div class="uchwyt tylko-telefon" aria-hidden="true"></div>
+    <section>
+      <h2>Widok</h2>
+      <div class="przyciski">
+        <button type="button" data-widok="ukos">Z ukosa</button>
+        <button type="button" data-widok="gora">Rzut z góry</button>
+      </div>
+      <label class="wybor">Ujęcia kamer (jak zdjęcia z domu)
+        <select id="kamery"><option value="">— wybierz —</option></select>
+      </label>
+    </section>
+    <section>
+      <h2>Budynek</h2>
+      <div id="lista-budynek"></div>
+    </section>
+    <section>
+      <h2>Elektryka <span class="male">(legenda)</span></h2>
+      <div class="przyciski male-przyciski">
+        <button type="button" data-el="wszystkie">wszystkie</button>
+        <button type="button" data-el="zadne">żadne</button>
+      </div>
+      <div id="lista-elektryka"></div>
+      <p id="suma-el" class="male"></p>
+    </section>
+    <section>
+      <h2>Obwody i trasy kabli</h2>
+      <div id="obwody-info" class="male">wczytywanie…</div>
+    </section>
+    <section class="stopka">
+      <button id="btn-odswiez" type="button">Odśwież dane</button>
+      <p class="male tylko-lokalnie">Po uruchomieniu <b>ODSWIEZ.bat</b> nowe dane wczytują się same (sprawdzane co kilka sekund).</p>
+      <p class="male tylko-github">Wersja w internecie: nowe dane pojawiają się po <b>WYSLIJ_NA_GITHUB.bat</b> (ok. 1–2 min) i odświeżeniu strony.</p>
+    </section>
+  </aside>
+
+  <div id="scena">
+    <div id="etykiety" aria-hidden="true"></div>
+    <div id="podpowiedz"></div>
+    <div id="karta" role="dialog" aria-label="Szczegóły punktu" hidden></div>
+    <div id="komunikat" role="status" hidden></div>
+  </div>
+</main>
+
+<div id="blad" class="zaslona" hidden>
+  <div class="okno">
+    <h2>Nie udało się wczytać danych</h2>
+    <p id="blad-tekst"></p>
+    <p class="tylko-lokalnie">Uruchom aplikację przez <b>URUCHOM.bat</b> (folder <i>Projekt\aplikacja</i>) albo wskaż plik ręcznie:</p>
+    <p class="tylko-github">Albo wskaż plik dane_modelu.json ręcznie:</p>
+    <label class="plik-przycisk">Wybierz plik dane_modelu.json<input id="plik-danych" type="file" accept=".json,application/json"></label>
+  </div>
+</div>
+
+<div class="zaslona tylko-plik">
+  <div class="okno">
+    <h2>Mój domek</h2>
+    <p>Ta strona musi być otwarta przez mały serwer – przeglądarka nie pozwala wczytać danych bezpośrednio z pliku.</p>
+    <p>Zamknij tę kartę i kliknij dwa razy <b>URUCHOM.bat</b> w folderze <i>Projekt\aplikacja</i>. Aplikacja otworzy się sama.</p>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
