@@ -229,6 +229,7 @@ export function analizuj(M) {
     const p = {
       idx, typ: it.type, x: it.x, yd: it.yd, z: it.z, n: it.n || 1, pion: !!it.pion,
       ax, c, s, size: it.size || 8, opisDanych: it.opis || '', idDanych: it.id || null,
+      baza: it.baza || null,        // punkt ze wspólnej bazy: wiarygodność, wersja, kto zmienił
     };
     const along = ax === 'v' ? it.yd : it.x;
     const m = ax === 'v' ? miejsce(c + s * 5, it.yd) : miejsce(it.x, c + s * 5);

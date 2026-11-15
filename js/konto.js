@@ -1,7 +1,9 @@
 // Mój domek – konto: przycisk logowania w nagłówku i stan dostępu do wspólnego domu.
 // Biblioteka Firebase ładuje się osobno: gdy Google nie odpowiada, reszta aplikacji działa jak dotąd.
+import * as dane from './dane/elementy.js';
+
 const el = document.getElementById('konto');
-const stan = { fb: null, user: null, dostep: null, blad: '', otwarte: false };
+const stan = { fb: null, user: null, dostep: null, blad: '', otwarte: false, lista: false };
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 const BLEDY_LOGOWANIA = {
@@ -18,6 +20,7 @@ function etykieta() {
   const imie = (stan.user.displayName || stan.user.email || '').split(' ')[0];
   switch (stan.dostep?.stan) {
     case 'czlonek': return { klasa: 'k-ok', tekst: imie };
+    case 'offline': return { klasa: 'k-uwaga', tekst: imie };
     case 'brak-dostepu': return { klasa: 'k-uwaga', tekst: 'Brak dostępu' };
     case 'baza-niegotowa': return { klasa: 'k-uwaga', tekst: 'Baza niegotowa' };
     case 'blad': return { klasa: 'k-blad', tekst: 'Błąd połączenia' };
@@ -34,7 +37,8 @@ function opisStanu() {
     <button type="button" class="k-przycisk" data-konto="zaloguj">Zaloguj przez Google</button>`;
   const kto = `<p><b>${esc(u.displayName || '')}</b><br><span class="male">${esc(u.email || '')}</span></p>`;
   const d = stan.dostep?.stan;
-  const info = d === 'czlonek' ? '<p>✓ Masz dostęp do wspólnego domu. Wspólny zapis i synchronizacja będą włączane etapami.</p>'
+  const info = d === 'czlonek' ? '<p>✓ Masz dostęp do wspólnego domu.</p>' + htmlBazy()
+    : d === 'offline' ? '<p class="uwaga">Brak połączenia z serwerem – pokazuję kopię danych z tego urządzenia.</p>' + htmlBazy()
     : d === 'brak-dostepu' ? '<p class="uwaga">To konto nie ma dostępu do wspólnego domu. Dostęp mają tylko konta dopisane w regułach bazy (Adam i Magda).</p>'
     : d === 'baza-niegotowa' ? '<p class="uwaga">Baza Firestore nie jest jeszcze utworzona w projekcie Firebase (Firestore Database → Utwórz bazę danych).</p>'
     : d === 'blad' ? `<p class="uwaga">Nie udało się sprawdzić dostępu: ${esc(stan.dostep.blad)}</p>`
@@ -42,11 +46,52 @@ function opisStanu() {
   return `${kto}${info}<button type="button" class="k-przycisk drugi" data-konto="wyloguj">Wyloguj</button>`;
 }
 
+const odm = (n, [jeden, kilka, wiele]) => (n === 1 ? jeden : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? kilka : wiele);
+const godz = (d) => (d ? d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '');
+
+// wspólne dane domu: ile punktów w bazie i czy rysunek (ODSWIEZ.bat) ma coś do przeniesienia
+function htmlBazy() {
+  const b = dane.stanBazy(), r = b.roznice;
+  let h = '<div class="k-baza"><h4>Wspólne dane domu</h4>';
+  const ileWBazie = b.elementy ? [...b.elementy.values()].filter((e) => !e.usuniety).length : 0;
+  if (b.blad) h += `<p class="uwaga">Baza: ${esc(b.blad)}</p>`;
+  else if (!b.elementy) h += '<p class="male">Wczytywanie danych z bazy…</p>';
+  else if (ileWBazie) h += `<p>Punkty elektryczne z bazy: <b>${ileWBazie}</b><br><span class="male">${b.zKopii
+    ? 'kopia na tym urządzeniu (bez potwierdzenia serwera)' : 'zsynchronizowano ' + godz(b.czas)}</span></p>`;
+  else h += '<p>W bazie nie ma jeszcze punktów – widok pokazuje punkty z rysunku (plik).</p>';
+  if (r && (r.doZapisu || r.konflikty.length)) {
+    const pierwszy = !b.elementy.size;
+    const czesci = [[r.nowe, ['nowy', 'nowe', 'nowych']], [r.zmienione, ['zmieniony', 'zmienione', 'zmienionych']],
+      [r.przywrocone, ['wrócił na rysunek', 'wróciły na rysunek', 'wróciło na rysunek']],
+      [r.usuniete, ['zniknął z rysunku', 'zniknęły z rysunku', 'zniknęło z rysunku']], [r.konflikty, ['z konfliktem', 'z konfliktem', 'z konfliktem']]]
+      .filter(([l]) => l.length).map(([l, f]) => `${l.length} ${odm(l.length, f)}`).join(' · ');
+    h += pierwszy ? `<p>Na rysunku jest <b>${r.nowe.length}</b> ${odm(r.nowe.length, ['punkt', 'punkty', 'punktów'])} do przeniesienia.</p>`
+      : `<p>Rysunek (ODSWIEZ.bat) różni się od bazy: ${czesci}.</p>`;
+    if (stan.lista) {
+      const wiersze = [...r.nowe.map((x) => [x.id, 'nowy']), ...r.zmienione.map((x) => [x.id, 'zmiana: ' + x.pola.join(', ')]),
+        ...r.przywrocone.map((x) => [x.id, 'wraca']), ...r.usuniete.map((x) => [x.id, 'oznaczyć jako usunięty']),
+        ...r.konflikty.map((x) => [x.id, 'konflikt: ' + x.pola.join(', ')])];
+      h += `<ul>${wiersze.map(([id, t]) => `<li><code>${esc(id)}</code> – ${esc(t)}</li>`).join('')}</ul>`;
+    }
+    h += `<button type="button" class="k-link" data-konto="lista">${stan.lista ? 'ukryj listę' : 'pokaż listę'}</button>`;
+    if (r.doZapisu) {
+      h += `<button type="button" class="k-przycisk" data-konto="przenies"${b.wysylanie ? ' disabled' : ''}>${b.wysylanie ? 'Wysyłanie…'
+        : pierwszy ? `Przenieś ${r.nowe.length} ${odm(r.nowe.length, ['punkt', 'punkty', 'punktów'])} do bazy` : `Przenieś zmiany do bazy (${r.doZapisu})`}</button>`;
+      h += '<p class="male">Położenia z rysunku trafiają jako „prawdopodobne” (±10–15 cm). Nic nie jest kasowane, a każda zmiana zostaje w historii bazy.</p>';
+    }
+    if (r.konflikty.length) h += '<p class="uwaga">Punkty z konfliktem (zmienione i na rysunku, i w aplikacji) nie są przenoszone – trzeba je rozstrzygnąć ręcznie.</p>';
+  } else if (r && ileWBazie) h += '<p class="male">✓ Zgodne z rysunkiem (ODSWIEZ.bat).</p>';
+  if (b.komunikat) h += `<p class="${b.komunikat.startsWith('Zapisano') ? 'ok' : 'uwaga'}">${esc(b.komunikat)}</p>`;
+  return h + '</div>';
+}
+
 function rysuj() {
   if (!el) return;
   const e = etykieta();
-  el.innerHTML = `<button type="button" class="konto-przycisk ${e.klasa}" data-konto="panel" aria-expanded="${stan.otwarte}">
-      <span class="kropka" aria-hidden="true"></span>${esc(e.tekst)}</button>
+  const doZapisu = dane.stanBazy().roznice?.doZapisu || 0;
+  el.innerHTML = `<button type="button" class="konto-przycisk ${e.klasa}" data-konto="panel" aria-expanded="${stan.otwarte}"
+      ${doZapisu ? `title="Rysunek ma ${doZapisu} ${odm(doZapisu, ['zmianę', 'zmiany', 'zmian'])} do przeniesienia do bazy"` : ''}>
+      <span class="kropka" aria-hidden="true"></span>${esc(e.tekst)}${doZapisu ? `<span class="liczba-zmian">${doZapisu}</span>` : ''}</button>
     ${stan.otwarte ? `<div class="konto-panel" role="dialog" aria-label="Konto">${opisStanu()}</div>` : ''}`;
 }
 
@@ -59,7 +104,9 @@ async function akcja(a) {
     rysuj();
     return;
   }
-  if (a === 'wyloguj') { await stan.fb.wyloguj(); stan.otwarte = false; rysuj(); }
+  if (a === 'wyloguj') { await stan.fb.wyloguj(); stan.otwarte = false; rysuj(); return; }
+  if (a === 'lista') { stan.lista = !stan.lista; rysuj(); return; }
+  if (a === 'przenies') await dane.przeniesZRysunku();
 }
 
 el?.addEventListener('click', (e) => {
@@ -71,6 +118,8 @@ document.addEventListener('click', (e) => {          // klik poza panelem zamyka
   if (stan.otwarte && el && !el.contains(e.target)) { stan.otwarte = false; rysuj(); }
 });
 
+window.addEventListener('mojdomek:baza', rysuj);
+
 (async function start() {
   rysuj();
   try { stan.fb = await import('./firebase.js'); }
@@ -80,6 +129,7 @@ document.addEventListener('click', (e) => {          // klik poza panelem zamyka
     stan.dostep = null;
     rysuj();
     if (u) { stan.dostep = await stan.fb.sprawdzDostep(); rysuj(); }
+    dane.ustawKonto(u, stan.dostep);
     window.dispatchEvent(new CustomEvent('mojdomek:konto', { detail: { user: u, dostep: stan.dostep } }));
   });
 })();

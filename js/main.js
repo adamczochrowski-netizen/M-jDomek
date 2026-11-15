@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from '../lib/OrbitControls.js';
 import { analizuj, TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
 import { zbudujDom, zbudujSciany, materialy, teksturaWyboru, ikonaTypu, POZIOM_PODLOGI, KOLOR_RUR } from './budowa3d.js';
+import * as dane from './dane/elementy.js';
 
 // dane_modelu.json tworzy ODSWIEZ.bat (skrypty/generuj.py):
 //  - na komputerze (serwer.py) czytamy świeży plik ../skrypty/dane_modelu.json,
@@ -508,6 +509,7 @@ function pokazKarte(p) {
     ['Opis', esc(opis)],
     ...(osprzet ? [['Osprzęt', osprzet]] : []),
     ['Obwód', obwod ? esc([obwod.id, obwod.nazwa].filter(Boolean).join(' – ')) : '<span class="male">jeszcze nieprzypisany</span>'],
+    ...(p.baza ? [['Pewność położenia', wiarPunktu(p.baza)]] : []),
     ['ID punktu', `<code>${esc(p.id)}</code><button type="button" class="kopiuj" data-kopiuj="${esc(p.id)}">kopiuj</button>`],
     ['Położenie', `<span class="male">na licu ściany: x = ${cm(p.ax === 'v' ? p.c : p.x)}, y = ${cm(p.ax === 'v' ? p.yd : p.c)} (od wewnętrznego lewego górnego narożnika domu)</span>`],
   ];
@@ -526,6 +528,16 @@ function pokazKarte(p) {
   k.scrollTop = 0;
   k.querySelector('.zamknij').addEventListener('click', zamknijKarte);
   k.querySelector('.kopiuj').addEventListener('click', (e) => kopiuj(e.currentTarget.dataset.kopiuj, e.currentTarget));
+}
+
+// znaczek wiarygodności położenia + źródło i ostatnia zmiana (punkty z bazy)
+function wiarPunktu(b) {
+  const w = b.wiarygodnosc || {};
+  const [klasa, etyk] = w.polozenie === 'POTWIERDZONA' ? ['wiar-potw', 'potwierdzona'] : w.polozenie === 'PRAWDOPODOBNA'
+    ? ['wiar-prawd', 'prawdopodobna'] : ['wiar-niezw', 'niezweryfikowana'];
+  const kiedy = b.zmieniono ? b.zmieniono.toLocaleDateString('pl-PL') : '';
+  return `<span class="wiar ${klasa}">${etyk}</span> <span class="male">${esc(w.zrodlo || '')}`
+    + `${b.wersja ? `<br>wersja ${b.wersja}${b.zmienilNazwa ? ` · ${esc(b.zmienilNazwa)}` : ''}${kiedy ? ` · ${kiedy}` : ''}` : ''}</span>`;
 }
 
 async function kopiuj(tekst, przycisk) {
@@ -571,22 +583,40 @@ async function wczytajObwody() {
 }
 
 function zastosujDane(M, wersja, pierwszy) {
-  const A = analizuj(M);
+  // M – dane z pliku (geometria + punkty z rysunku); punkty z bazy zastępują punkty z rysunku po zalogowaniu
+  const zBazy = dane.punktyZBazy();
+  stan.Mplik = M;
+  stan.podpisPunktow = zBazy ? JSON.stringify(zBazy) : 'plik';
+  stan.zrodloPunktow = zBazy ? 'baza' : 'plik';
+  const Mw = zBazy ? { ...M, items: zBazy } : M;
+  const A = analizuj(Mw);
   const wybranyId = stan.wybrany?.id;
-  stan.M = M; stan.A = A; stan.wersjaDanych = wersja;
+  stan.M = Mw; stan.A = A; stan.wersjaDanych = wersja;
   zbudujScene();
   zbudujPanel();
   pokazInfoObwodow();
-  $('#stan-danych').textContent = opisWersji(wersja?.lm);
-  $('#stan-danych').title = NA_GITHUB ? 'Kopia danych wysłana na GitHub (WYSLIJ_NA_GITHUB.bat)'
-    : stan.urlDanych === ZRODLA_DANYCH[0] ? 'Plik: Projekt\\skrypty\\dane_modelu.json' : 'Kopia: aplikacja\\dane_modelu.json';
+  $('#stan-danych').textContent = opisWersji(wersja?.lm) + (zBazy ? ' · punkty z bazy' : '');
+  $('#stan-danych').title = (NA_GITHUB ? 'Kopia danych wysłana na GitHub (WYSLIJ_NA_GITHUB.bat)'
+    : stan.urlDanych === ZRODLA_DANYCH[0] ? 'Plik: Projekt\\skrypty\\dane_modelu.json' : 'Kopia: aplikacja\\dane_modelu.json')
+    + (zBazy ? `\nPunkty elektryczne: wspólna baza (${zBazy.length})` : '');
   if (pierwszy) stan.dopasowano = false;
   rozmiar();
   const p = wybranyId && A.items.find((q) => q.id === wybranyId);
   if (p) wybierz(p); else zamknijKarte();
   if (pierwszy) obsluzAdres();
   window.dispatchEvent(new Event('mojdomek:dane'));      // dla modułów (np. Elektryka: punkty w pomieszczeniach)
+  dane.ustawPlik(M.items);                               // porównanie rysunku z bazą (panel konta)
 }
+
+// zmiany w bazie (wczytanie, zapis drugiej osoby, wylogowanie) – przebudowa tylko, gdy zmieniły się punkty
+window.addEventListener('mojdomek:baza', () => {
+  if (!stan.Mplik) return;
+  const zBazy = dane.punktyZBazy();
+  if ((zBazy ? JSON.stringify(zBazy) : 'plik') === stan.podpisPunktow) return;
+  const zmianaZrodla = (zBazy ? 'baza' : 'plik') !== stan.zrodloPunktow;
+  zastosujDane(stan.Mplik, stan.wersjaDanych, false);
+  if (zmianaZrodla) pokazKomunikat(zBazy ? `Punkty elektryczne ze wspólnej bazy (${zBazy.length})` : 'Punkty elektryczne z rysunku (plik)');
+});
 
 // adresy: #punkt=ID (karta punktu), #pokoj=Nazwa (pomieszczenie na rzucie), #ogrzewanie=Nazwa (rury tego pomieszczenia)
 function obsluzAdres() {

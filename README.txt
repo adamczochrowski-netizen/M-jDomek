@@ -74,10 +74,25 @@ Zmiany w arkuszach widać w aplikacji po odświeżeniu (bez WYSLIJ_NA_GITHUB.bat
 KONTO I WSPÓLNA BAZA (Firebase) – wdrażane etapami
 ---------------------------------------------------
 Przycisk „Zaloguj” w nagłówku: logowanie kontem Google (projekt Firebase mylittleproject-e91e3).
-Etap 1 (teraz): logowanie i sprawdzenie, czy konto ma dostęp do wspólnego domu. Dane jeszcze
-nie są w bazie – aplikacja działa jak dotąd. Bez logowania wszystko działa w trybie podglądu.
 Dostęp mają tylko konta wpisane w regułach bazy: plik Projekt\dokumentacja\firestore.rules
-(poza repozytorium; wkleja się go w konsoli Firebase: Firestore Database → Reguły → Opublikuj).
+(poza repozytorium; publikuje się go w konsoli Firebase: Firestore Database → Reguły → Opublikuj,
+albo skryptem „Firebase - baza i reguły (Cloud Shell).sh” z tego samego folderu).
+Bez logowania wszystko działa jak dotąd, na punktach z rysunku (dane_modelu.json).
+
+Po zalogowaniu (etap 2):
+  • punkty elektryczne są czytane ze wspólnej bazy (domy/moj-dom/elementy); na pasku u góry
+    widać „· punkty z bazy”, a w karcie punktu – „Pewność położenia” (prawdopodobna/potwierdzona),
+    źródło, numer wersji, kto i kiedy zmienił;
+  • kopia bazy zostaje na urządzeniu – aplikacja pokazuje punkty także bez internetu;
+    „Wyloguj” usuwa tę kopię z urządzenia;
+  • panel konta porównuje bazę z rysunkiem. Gdy po ODSWIEZ.bat coś się zmieni (nowy punkt,
+    inne położenie, punkt w [Punkty usunięte]), przy imieniu pojawia się liczba zmian, a w panelu
+    lista i przycisk „Przenieś zmiany do bazy”. Nic nie jest kasowane: punkt, którego nie ma już
+    na rysunku, dostaje w bazie oznaczenie „usunięty”. Każdy zapis ma numer wersji i wpis w historii
+    (domy/moj-dom/historia: kto, kiedy, co było przed, co jest po);
+  • położenia z rysunku są w bazie jako PRAWDOPODOBNE – nic nie staje się „potwierdzone” samo.
+    Gdy generuj.py zacznie zapisywać przy punkcie pole „zrodlo” (pomiar / rysunek / szacunek),
+    punkty z pomiaru w wymiary.ini pokażą się jako zmiana do przeniesienia z pewnością POTWIERDZONA.
 Kolejne etapy (wspólny zapis, historia zmian, tryb lokalny/globalny, zdjęcia) – opis w
 Projekt\dokumentacja\Audyt ETAP 0 - Mój dom.md, rozdział 12b.
 
@@ -244,6 +259,10 @@ js\analiza.js    – liczenie pomieszczeń, ścian, odległości, identyfikator�
 js\budowa3d.js   – budowa modelu 3D (ta sama logika co skrypty\buduj_3d.py w Blenderze)
 js\main.js       – widoki, warstwy, legenda, karta punktu, odświeżanie
 js\sekcje.js     – menu oraz sekcje Instalacje, Ogrzewanie i Wyposażenie (z arkusza „MójDomek”)
+js\konto.js      – przycisk konta, panel ze stanem wspólnej bazy i przenoszeniem zmian z rysunku
+js\firebase.js   – połączenie z Firebase (logowanie, baza z kopią na urządzeniu)
+js\dane\elementy.js – warstwa danych: elementy w bazie, porównanie z rysunkiem, zapis z wersją i historią
+testy\           – testy warstwy danych bez przeglądarki: node --test testy\elementy.test.mjs
 lib\             – Three.js 0.170 (licencja MIT, lib\LICENSE-three.txt)
 obwody.json      – obwody i trasy kabli (na razie puste, z przykładem)
 .gitignore, .nojekyll – ustawienia dla Gita i GitHub Pages (pliki ukryte)
