@@ -83,33 +83,99 @@ function plaska(cells, z, nrmY = 1) {
   return S.geometria();
 }
 
-// pozioma powierzchnia z współrzędnymi tekstury liczonymi z położenia (wzór powtarza się co `okres` cm)
-function plaskaUV(cells, z, okres) {
-  const p = [], uv = [], idx = [];
-  for (const [x0, x1, y0, y1] of cells) {
-    const b = p.length / 3;
-    for (const [x, y] of [[x0, y0], [x0, y1], [x1, y1], [x1, y0]]) { p.push(x, z, y); uv.push(x / okres, y / okres); }
+// ---------------------------------------------------------------- ogrzewanie podłogowe (schemat jak na zdjęciach z budowy)
+// Pomieszczenie dzielimy na prostokąty z komórek siatki (największy możliwy, potem następny…).
+// W dużym prostokącie rury idą „ślimakiem”: pętle co ROZSTAW od ścian do środka, w środku zawijas w kształcie S.
+// W wąskim pasie (korytarz, przejście) – proste rury wzdłuż pasa, jak wiązka zasilająca pokoje.
+const ROZSTAW = 15, OD_SCIANY = 8, GRUBOSC_RURY = 2.2;
+
+function prostokatyZKomorek(cells, A) {
+  const nx = A.xs.length - 1, ny = A.ys.length - 1;
+  const ix = new Map(A.xs.map((v, i) => [v, i])), iy = new Map(A.ys.map((v, i) => [v, i]));
+  const mask = Array.from({ length: nx }, () => new Uint8Array(ny));
+  for (const [x0, , y0] of cells) mask[ix.get(x0)][iy.get(y0)] = 1;
+  const wynik = [];
+  for (let krok = 0; krok < 30; krok++) {
+    // sumy prefiksowe – szybkie sprawdzanie, czy prostokąt komórek jest cały w pomieszczeniu
+    const S = Array.from({ length: nx + 1 }, () => new Float64Array(ny + 1));
+    for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) S[i + 1][j + 1] = mask[i][j] + S[i][j + 1] + S[i + 1][j] - S[i][j];
+    const pelny = (i0, i1, j0, j1) => S[i1 + 1][j1 + 1] - S[i0][j1 + 1] - S[i1 + 1][j0] + S[i0][j0] === (i1 - i0 + 1) * (j1 - j0 + 1);
+    let best = null, bestPole = 0;
+    for (let i0 = 0; i0 < nx; i0++) for (let i1 = i0; i1 < nx; i1++) for (let j0 = 0; j0 < ny; j0++) {
+      if (!mask[i0][j0]) continue;
+      for (let j1 = j0; j1 < ny && pelny(i0, i1, j0, j1); j1++) {
+        const pole = (A.xs[i1 + 1] - A.xs[i0]) * (A.ys[j1 + 1] - A.ys[j0]);
+        if (pole > bestPole) { bestPole = pole; best = [i0, i1, j0, j1]; }
+      }
+    }
+    if (!best) break;
+    const [i0, i1, j0, j1] = best;
+    const r = [A.xs[i0], A.xs[i1 + 1], A.ys[j0], A.ys[j1 + 1]];
+    if (Math.min(r[1] - r[0], r[3] - r[2]) < 2 * OD_SCIANY + ROZSTAW || bestPole < 2500) break;   // zostały okruchy
+    wynik.push(r);
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) mask[i][j] = 0;
+  }
+  return wynik;
+}
+
+// zaokrąglony prostokąt jako zamknięta łamana
+function zaokraglony(x0, x1, y0, y1, r) {
+  const pkt = [], N = 5;
+  const naroznik = (cx, cy, a0) => { for (let k = 0; k <= N; k++) { const a = a0 + (k / N) * Math.PI / 2; pkt.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } };
+  naroznik(x1 - r, y0 + r, -Math.PI / 2);
+  naroznik(x1 - r, y1 - r, 0);
+  naroznik(x0 + r, y1 - r, Math.PI / 2);
+  naroznik(x0 + r, y0 + r, Math.PI);
+  pkt.push(pkt[0]);
+  return pkt;
+}
+
+function trasyRur(prost) {
+  const [X0, X1, Y0, Y1] = prost;
+  const w = X1 - X0, h = Y1 - Y0, linie = [];
+  if (Math.min(w, h) < 90) {                         // wąski pas: proste rury wzdłuż
+    const wzdluzX = w >= h, szer = wzdluzX ? h : w;
+    for (let d = OD_SCIANY; d <= szer - OD_SCIANY + 0.1; d += ROZSTAW) {
+      linie.push(wzdluzX ? [[X0 + 2, Y0 + d], [X1 - 2, Y0 + d]] : [[X0 + d, Y0 + 2], [X0 + d, Y1 - 2]]);
+    }
+    return linie;
+  }
+  let k = 0;
+  for (; ; k++) {                                    // pętle od ścian do środka
+    const e = OD_SCIANY + k * ROZSTAW;
+    const x0 = X0 + e, x1 = X1 - e, y0 = Y0 + e, y1 = Y1 - e;
+    if (x1 - x0 < 2 * ROZSTAW || y1 - y0 < 2 * ROZSTAW) break;
+    linie.push(zaokraglony(x0, x1, y0, y1, Math.min(14, (x1 - x0) / 2, (y1 - y0) / 2)));
+  }
+  const e = OD_SCIANY + k * ROZSTAW;                 // zawijas S w środku
+  const x0 = X0 + e, x1 = X1 - e, y0 = Y0 + e, y1 = Y1 - e;
+  if (x1 - x0 > 4 && y1 - y0 > 4) {
+    const poziomo = x1 - x0 >= y1 - y0, dl = poziomo ? x1 - x0 : y1 - y0, amp = (poziomo ? y1 - y0 : x1 - x0) / 2 - 1;
+    const s = [];
+    for (let t = 0; t <= 24; t++) {
+      const u = t / 24, a = Math.sin(u * 2 * Math.PI) * amp;
+      s.push(poziomo ? [x0 + u * dl, (y0 + y1) / 2 + a] : [(x0 + x1) / 2 + a, y0 + u * dl]);
+    }
+    linie.push(s);
+  }
+  return linie;
+}
+
+// łamane -> płaskie wstążki (rury) leżące na podłodze
+function wstazki(linie, z, grub) {
+  const p = [], idx = [];
+  for (const l of linie) for (let i = 0; i + 1 < l.length; i++) {
+    const [ax, ay] = l[i], [bx, by] = l[i + 1];
+    const dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy);
+    if (d < 1e-6) continue;
+    const nx = (-dy / d) * grub / 2, ny = (dx / d) * grub / 2, b = p.length / 3;
+    p.push(ax + nx, z, ay + ny, bx + nx, z, by + ny, bx - nx, z, by - ny, ax - nx, z, ay - ny);
     idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
-  g.computeVertexNormals();
   return g;
-}
-function teksturaRur() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const x = c.getContext('2d');
-  x.strokeStyle = 'rgba(214, 64, 36, 0.95)';
-  x.lineWidth = 12;
-  x.lineCap = 'round';
-  for (const y of [32, 96]) { x.beginPath(); x.moveTo(0, y); x.lineTo(128, y); x.stroke(); }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
 }
 
 // prostopadłościan w układzie rzutu: środek (x, yd, z), wymiary (dx, dyd, dz), obrót wokół pionu
@@ -188,15 +254,19 @@ export function zbudujDom(M, A, mat, opcje = {}) {
   }
   if (A.thresholds.length) grupa('podlogi').add(new THREE.Mesh(plaska(A.thresholds, POZIOM_PODLOGI), mat.plytki));
 
-  // ogrzewanie podłogowe: wzór rur (co ok. 15 cm) na podłogach wskazanych pomieszczeń
+  // ogrzewanie podłogowe: schemat rur w każdym pomieszczeniu (podział jak sufity: kuchnia osobno, salon z holem)
   const og = opcje.ogrzewanie;
   if (og) {
     const wszystkie = og.pomieszczenia === 'wszystkie' || !Array.isArray(og.pomieszczenia);
     const lista = wszystkie ? [] : og.pomieszczenia.map((s) => String(s).toLowerCase());
-    const cells = A.floors.filter((f) => wszystkie || f.nazwa.split(' + ').some((n) => lista.includes(n.toLowerCase()))).flatMap((f) => f.cells);
-    if (cells.length) {
-      const m = new THREE.Mesh(plaskaUV(cells, POZIOM_PODLOGI + 0.3, 30), new THREE.MeshBasicMaterial({
-        map: teksturaRur(), transparent: true, opacity: 0.55, depthWrite: false,
+    const linie = [];
+    for (const c of A.ceilings) {
+      if (!wszystkie && !lista.includes(c.nazwa.toLowerCase())) continue;
+      for (const pr of prostokatyZKomorek(c.cells, A)) linie.push(...trasyRur(pr));
+    }
+    if (linie.length) {
+      const m = new THREE.Mesh(wstazki(linie, POZIOM_PODLOGI + 0.3, GRUBOSC_RURY), new THREE.MeshBasicMaterial({
+        color: 0xd9452b, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide,
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
       }));
       m.name = 'Ogrzewanie podłogowe';

@@ -12,12 +12,12 @@ rem kopia aktualnych danych domu obok index.html - z niej korzysta wersja na Git
 copy /y "..\skrypty\dane_modelu.json" "dane_modelu.json" >nul
 git add -A
 git diff --cached --quiet
-if not errorlevel 1 (
-  echo Nic sie nie zmienilo od ostatniego wyslania.
-  pause
-  exit /b 0
+if errorlevel 1 (
+  git commit -q -m "Aktualizacja danych domu"
+) else (
+  echo Nowych zmian nie ma - wysylam to, co jeszcze nie dotarlo na GitHub.
 )
-git commit -q -m "Aktualizacja danych domu"
+rem push takze wtedy, gdy commit jest juz zrobiony, a wczesniej nie dotarl (np. trzeba bylo sie zalogowac)
 git push
 if errorlevel 1 (
   echo.
