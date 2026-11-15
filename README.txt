@@ -120,6 +120,11 @@ położenie albo typ. Numer usuniętego punktu nie zostanie użyty ponownie
 zostałyby nadane od nowa, w kolejności czytania rzutu.
 Gdyby obwody.json wskazywał punkt, którego już nie ma, aplikacja ostrzeże w panelu „Obwody”.
 
+Usunięcie punktu (np. gniazdka z rysunku, którego w domu nie ma): w wymiary.ini, sekcja
+[Punkty usunięte], dopisz linię  identyfikator = powód  (identyfikator z karty punktu, np.
+lazienka-Z02 = nadmiarowe), potem ODSWIEZ.bat i – dla wersji w internecie – WYSLIJ_NA_GITHUB.bat.
+Punkt znika z aplikacji, rzutu CAD i Blendera. Żeby go przywrócić, usuń tę linię.
+
 
 OBWODY – plik obwody.json (przygotowanie pod wersję 2)
 ------------------------------------------------------
