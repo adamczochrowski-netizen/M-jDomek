@@ -739,7 +739,7 @@ function htmlHydraulika() {
     </section>
     <section class="karta-strony">
       <h3>Zawory (kurki) wody</h3>
-      <input id="zawory-szukaj" type="search" placeholder="Szukaj zaworu, np. pralka, zlew, główny…" autocomplete="off" style="width:100%;min-height:40px;padding:8px 12px;border:1px solid var(--linia);border-radius:10px;background:var(--panel);font-size:15px">
+      <input id="zawory-szukaj" type="search" placeholder="Szukaj zaworu, np. pralka, zlew, główny…" autocomplete="off" class="pole-szukaj">
       <div id="zawory-lista">${htmlListaZaworow()}</div>
     </section>
     <section class="karta-strony">

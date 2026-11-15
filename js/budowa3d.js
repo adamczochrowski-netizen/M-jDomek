@@ -20,7 +20,8 @@ export function materialy() {
     drzwi: lambert(0x6b4a2e),
     drzwiZewn: lambert(0xb87a38),
     fundament: lambert(0x9a9a9a),
-    teren: lambert(0x9fb48a),
+    teren: lambert(0x9fb48a),          // trawa i siatka – kolory z motywu (main.js: koloryTerenu)
+    siatka: [0x7f9670, 0x8ea67e],
     belka: lambert(0x9e6634),
     krawedzie: new THREE.LineBasicMaterial({ color: 0x4a4a4a, transparent: true, opacity: 0.45 }),
     meble: {
@@ -304,7 +305,7 @@ export function zbudujDom(M, A, mat, opcje = {}) {
   trawa.rotation.x = -Math.PI / 2;
   trawa.position.set(cxm, -A.teren - 0.6, cym);
   g.add(trawa);
-  const siatka = new THREE.GridHelper(2 * R, 32, 0x7f9670, 0x8ea67e);
+  const siatka = new THREE.GridHelper(2 * R, 32, mat.siatka[0], mat.siatka[1]);
   siatka.position.set(cxm, -A.teren - 0.3, cym);
   siatka.material.transparent = true; siatka.material.opacity = 0.5;
   g.add(siatka);

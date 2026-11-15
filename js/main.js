@@ -30,7 +30,8 @@ const NAZWA_WARSTWY_EL = { L: 'Lampy zewnętrzne' };
 
 const $ = (s) => document.querySelector(s);
 const dotyk = matchMedia('(pointer: coarse)').matches;
-const ciemny = matchMedia('(prefers-color-scheme: dark)');
+// kolory sceny z motywu (zmienne w styl.css: --scena, --teren, --siatka-1, --siatka-2)
+const kolorMotywu = (nazwa, zapas) => getComputedStyle(document.documentElement).getPropertyValue(nazwa).trim() || zapas;
 
 // ---------------------------------------------------------------- stan i ustawienia
 const stan = {
@@ -55,12 +56,17 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 kontener.prepend(renderer.domElement);
 const scene = new THREE.Scene();
-const ustawTlo = () => { scene.background = new THREE.Color(ciemny.matches ? 0x1d242c : 0xdfe7ee); render(); };
+const ustawTlo = () => { scene.background = new THREE.Color(kolorMotywu('--scena', '#1d242c')); render(); };
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8d8a80, 1.9));
 const slonce = new THREE.DirectionalLight(0xffffff, 1.5);
 slonce.position.set(-500, 1000, 700);
 scene.add(slonce);
 const mat = materialy();
+function koloryTerenu() {
+  mat.teren.color.set(kolorMotywu('--teren', '#4d5c45'));
+  mat.siatka = [kolorMotywu('--siatka-1', '#3f4c38'), kolorMotywu('--siatka-2', '#46553f')];
+}
+koloryTerenu();
 
 const kamera3d = new THREE.PerspectiveCamera(45, 1, 5, 40000);
 const kameraGora = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 40000);
@@ -779,7 +785,13 @@ document.querySelectorAll('[data-el]').forEach((b) => b.addEventListener('click'
   zastosujWidocznosc();
 }));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { zamknijKarte(); document.body.classList.remove('panel-otwarty'); } });
-ciemny.addEventListener('change', ustawTlo);
+// zmiana motywu: tło, trawa i siatka (siatkę trzeba zbudować od nowa – stąd przebudowa sceny)
+window.addEventListener('mojdomek:motyw', () => {
+  ustawTlo();
+  koloryTerenu();
+  if (stan.A) zbudujScene();
+  render();
+});
 
 $('#podpowiedz').textContent = dotyk
   ? '1 palec – obrót · 2 palce – przybliżanie i przesuwanie · dotknij kółko, by zobaczyć szczegóły'

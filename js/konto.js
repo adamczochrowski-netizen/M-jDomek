@@ -85,6 +85,14 @@ function htmlBazy() {
   return h + '</div>';
 }
 
+// wybór motywu (na telefonie – tutaj; na komputerze ten sam wybór jest w nagłówku, a ta sekcja jest ukryta w CSS)
+function htmlMotyw() {
+  const w = window.mojDomekMotyw?.wybor() || 'ciemny';
+  const opcja = (k, t) => `<button type="button" class="${w === k ? 'aktywny' : ''}" aria-pressed="${w === k}" data-konto="motyw-${k}">${t}</button>`;
+  return `<div class="k-motyw"><h4>Wygląd</h4><div class="opcje-motywu" role="group" aria-label="Motyw">
+    ${opcja('ciemny', 'Ciemny')}${opcja('jasny', 'Jasny')}${opcja('system', 'Jak w telefonie')}</div></div>`;
+}
+
 function rysuj() {
   if (!el) return;
   const e = etykieta();
@@ -92,10 +100,11 @@ function rysuj() {
   el.innerHTML = `<button type="button" class="konto-przycisk ${e.klasa}" data-konto="panel" aria-expanded="${stan.otwarte}"
       ${doZapisu ? `title="Rysunek ma ${doZapisu} ${odm(doZapisu, ['zmianę', 'zmiany', 'zmian'])} do przeniesienia do bazy"` : ''}>
       <span class="kropka" aria-hidden="true"></span>${esc(e.tekst)}${doZapisu ? `<span class="liczba-zmian">${doZapisu}</span>` : ''}</button>
-    ${stan.otwarte ? `<div class="konto-panel" role="dialog" aria-label="Konto">${opisStanu()}</div>` : ''}`;
+    ${stan.otwarte ? `<div class="konto-panel" role="dialog" aria-label="Konto">${opisStanu()}${htmlMotyw()}</div>` : ''}`;
 }
 
 async function akcja(a) {
+  if (a.startsWith('motyw-')) { window.mojDomekMotyw?.ustaw(a.slice(6)); rysuj(); return; }
   if (a === 'panel') { stan.otwarte = !stan.otwarte; if (!stan.user && !stan.otwarte) stan.blad = ''; rysuj(); return; }
   if (a === 'zaloguj') {
     stan.blad = '';
@@ -119,6 +128,7 @@ document.addEventListener('click', (e) => {          // klik poza panelem zamyka
 });
 
 window.addEventListener('mojdomek:baza', rysuj);
+window.addEventListener('mojdomek:motyw', () => { if (stan.otwarte) rysuj(); });
 
 (async function start() {
   rysuj();

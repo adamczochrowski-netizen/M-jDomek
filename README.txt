@@ -139,6 +139,10 @@ OBSŁUGA
 -------
 Mysz:   lewy przycisk – obrót, prawy – przesuwanie, kółko – przybliżanie.
 Telefon: 1 palec – obrót, 2 palce – przybliżanie i przesuwanie. Panel: przycisk „Warstwy”.
+Wygląd: Ciemny (domyślnie) / Jasny / Jak w telefonie – na komputerze trzy ikony w nagłówku
+(księżyc, słońce, półkole), na telefonie w panelu konta (przycisk z imieniem albo „Zaloguj”).
+Każde urządzenie pamięta swój wybór. Kolory są zmiennymi na początku styl.css (oba motywy
+spełniają kontrast WCAG AA); na telefonie tekst ma 16 px, a przyciski co najmniej 44 px.
 
 „Rzut z góry” – widok jak rysunek (bez perspektywy); przyciskiem obok wracasz do 3D.
 ⟲ – ustawia widok od nowa.
