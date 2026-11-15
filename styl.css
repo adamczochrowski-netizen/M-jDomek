@@ -129,6 +129,25 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .zawor:first-of-type { border-top: 0; }
 .zawor-gora { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 
+/* schemat szafy z bezpiecznikami: rzędy = szyny, szerokość = liczba biegunów */
+.szafa { display: grid; gap: 10px; padding: 12px; margin: 4px 0 12px; border-radius: 12px; background: #e8e6e1; border: 1px solid #d3d0c9; }
+.szafa-rzad .male { margin-bottom: 4px; color: #555; }
+.szyna { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 2px; }
+.wyl { flex: 1 0 0; min-width: 44px; min-height: 66px; padding: 4px 2px; border-radius: 6px; border: 1px solid #c9c6bf;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: #fbfbf9; color: #222; }
+.wyl small { font-size: 9.5px; color: #777; }
+.wyl b { font-size: 13px; }
+.wyl span { font-size: 9.5px; line-height: 1.1; text-align: center; color: #444; word-break: break-word; }
+.wyl.w-spd { background: #e04a3a; border-color: #b8321f; color: #fff; }
+.wyl.w-spd small, .wyl.w-spd span { color: #ffe3de; }
+.wyl.w-rcd { background: #e6f2e4; border-color: #8fbf88; }
+.wyl.w-glowny { border: 2px solid #d9241c; }
+.wyl.w-glowny span { color: #d9241c; font-weight: 700; }
+.wyl:hover { outline: 2px solid var(--akcent); }
+@media (prefers-color-scheme: dark) { .szafa { background: #2a2f35; border-color: #3a4048; } .szafa-rzad .male { color: #aab2bb; } }
+.zawor.mignij { animation: mignij 1.6s ease; }
+@keyframes mignij { 0%, 60% { background: var(--akcent-tlo); } 100% { background: transparent; } }
+
 /* rozdzielacz ogrzewania podłogowego: rząd kurków */
 .rozdzielacz { overflow-x: auto; padding: 6px 2px 2px; }
 .rozdz-belka { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; background: linear-gradient(#e9cf8a, #c9a24e); min-width: max-content; }

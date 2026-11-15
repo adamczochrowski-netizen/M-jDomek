@@ -503,23 +503,28 @@ function htmlElektryka() {
   const st = window.mojDomek?.stan;
   const A = st?.A;
   const osp = st?.obw?.osprzet;
-  const wiersze = rozdz.map(([nr, wyl, zasila, pokoje, punkty, uwagi]) => {
-    const ids = String(punkty || '').split(/[\s,;]+/).filter(Boolean);
-    return `<div class="zawor"><div class="zawor-gora"><b>${esc([nr, wyl].filter(Boolean).join(' · ') || '—')}</b></div>
-      ${zasila ? `<div>${esc(zasila)}</div>` : ''}
-      ${pokoje ? `<div class="male">Pomieszczenia: ${esc(pokoje)}</div>` : ''}
+  const wyl = rozdz.map(([nr, opis, zasila, pokoje, punkty, uwagi, wiar]) => ({
+    nr: String(nr || '').trim(), opis: String(opis || ''), zasila: String(zasila || ''), pokoje, punkty, uwagi, wiar,
+  })).filter((w) => w.nr || w.opis);
+  const wiersze = wyl.map((w) => {
+    const ids = String(w.punkty || '').split(/[\s,;]+/).filter(Boolean);
+    return `<div class="zawor" id="wyl-${esc(w.nr.replace(/\W/g, '-'))}"><div class="zawor-gora"><b>${esc([w.nr, w.opis].filter(Boolean).join(' · ') || '—')}</b>${chipWiar(w.wiar)}</div>
+      ${w.zasila ? `<div>${esc(w.zasila)}</div>` : ''}
+      ${w.pokoje ? `<div class="male">Pomieszczenia: ${esc(w.pokoje)}</div>` : ''}
       ${ids.length ? `<div class="pkt-lista" style="margin-top:6px">${ids.map((id) => htmlPunktId(id, A)).join('')}</div>` : ''}
-      ${uwagi ? `<div class="male">${esc(uwagi)}</div>` : ''}</div>`;
+      ${w.uwagi ? `<div class="male">${esc(w.uwagi)}</div>` : ''}</div>`;
   }).join('');
   return `
     <section class="karta-strony">
       <h3>Rozdzielnica (skrzynka z bezpiecznikami)</h3>
+      ${wyl.length ? htmlSzafa(wyl) : ''}
       ${wiersze || `<p>Czeka na zdjęcie skrzynki z opisami wyłączników – przepiszę je do karty <b>Rozdzielnica</b>
         (Nr | Wyłącznik | Co zasila | Pomieszczenia | Punkty | Uwagi). Wtedy tu będzie widać, który bezpiecznik
         wyłącza które gniazdka.</p>`}
-      <h4 style="margin:12px 0 4px">Z zakupów – prawdopodobny skład rozdzielnicy</h4>
-      ${htmlZakupy(zakupyPasujace(ROZDZIELNICA_ZAKUPY), stanMamy.dane ? 'Brak pasujących zakupów.' : 'Wczytywanie listy zakupów…')}
-      <p class="male">Do potwierdzenia na zdjęciu skrzynki. <a href="${linkArkusza(KARTY.rozdzielnica.gid)}" target="_blank" rel="noopener">Otwórz kartę Rozdzielnica</a>.</p>
+      <details style="margin-top:10px"${wyl.length ? '' : ' open'}><summary class="male">Z zakupów – elementy rozdzielnicy</summary>
+        ${htmlZakupy(zakupyPasujace(ROZDZIELNICA_ZAKUPY), stanMamy.dane ? 'Brak pasujących zakupów.' : 'Wczytywanie listy zakupów…')}</details>
+      <p class="male">Typ i prąd każdego wyłącznika odczytane ze zdjęcia szafy; przeznaczenie – tylko tam, gdzie jest naklejka.
+        Co zasilają nieopisane wyłączniki, najlepiej ustalić z elektrykiem. <a href="${linkArkusza(KARTY.rozdzielnica.gid)}" target="_blank" rel="noopener">Otwórz kartę Rozdzielnica</a>.</p>
     </section>
     <section class="karta-strony">
       <h3>Gniazdka i włączniki w pomieszczeniach</h3>
@@ -531,7 +536,7 @@ function htmlElektryka() {
     <section class="karta-strony">
       <h3>Co jeszcze udokumentować</h3>
       <ul class="checklista">
-        <li><b>Rozdzielnica</b> – zdjęcie z opisami przy każdym wyłączniku.</li>
+        <li><b>Rozdzielnica</b> – co zasilają nieopisane wyłączniki (1.1, 1.2, 2.3, 2.5, 2.7–2.10), które pomieszczenia są na „gniazdkowych” 2.1 i 2.6, i w którym pomieszczeniu wisi szafa.</li>
         <li><b>Trasy przewodów</b> – zdjęcia ścian przed tynkiem są w folderze „Położenie kabli” na komputerze (kuchnia, salon, sypialnia, biura); naniesiemy je na model jako osobną warstwę.</li>
         <li><b>Puszki</b> rozgałęźne – gdzie są i co się w nich łączy.</li>
         <li><b>Który włącznik</b> steruje którą lampą.</li>
@@ -540,6 +545,43 @@ function htmlElektryka() {
       <p class="male">Położenia części gniazdek pochodzą z rysunku (±10–15 cm). Przed wierceniem sprawdź ścianę wykrywaczem.</p>
     </section>`;
 }
+// schemat szafy: rzędy jak na szynach (Nr „rząd.pozycja”), szerokość = liczba biegunów, kolor = rodzaj
+const NAZWY_RZEDOW = { 1: 'Rząd górny', 2: 'Rząd środkowy', 3: 'Rząd dolny' };
+function rodzajWyl(w) {
+  const t = norm(w.opis + ' ' + w.zasila);
+  if (/ogranicznik|dehn/.test(t)) return { klasa: 'w-spd', skrot: 'SPD', pod: (/\bl\d\b/.exec(t) || [''])[0].toUpperCase() };
+  if (/roznicow|\bi?id\b/.test(t)) return { klasa: 'w-rcd', skrot: '30 mA', pod: 'różnicówka' };
+  if (/rozlacznik|glowny/.test(t)) return { klasa: 'w-glowny', skrot: (/(\d+)\s*a\b/.exec(t) || ['', ''])[1] + 'A', pod: 'GŁÓWNY' };
+  const prad = /\b([bcd])\s?(\d{1,2})a?\b/.exec(t);
+  const pod = /^nieopisany/.test(norm(w.zasila)) ? '?' : w.zasila.replace(/\s*\(.*$/, '').slice(0, 14);
+  return { klasa: 'w-mcb', skrot: prad ? (prad[1] + prad[2]).toUpperCase() : '?', pod };
+}
+function htmlSzafa(wyl) {
+  const rzedy = new Map();
+  for (const w of wyl) {
+    const r = (w.nr.split('.')[0] || '?');
+    if (!rzedy.has(r)) rzedy.set(r, []);
+    rzedy.get(r).push(w);
+  }
+  return `<div class="szafa">${[...rzedy].map(([r, lista]) => `<div class="szafa-rzad">
+    <div class="male">${esc(NAZWY_RZEDOW[r] || 'Rząd ' + r)}</div>
+    <div class="szyna">${lista.map((w) => {
+      const rd = rodzajWyl(w);
+      const bieguny = Number((/(\d)p\b/.exec(norm(w.opis)) || [0, 1])[1]) || 1;
+      return `<button type="button" class="wyl ${rd.klasa}" style="flex-grow:${bieguny}" data-wyl="wyl-${esc(w.nr.replace(/\W/g, '-'))}"
+        title="${esc(w.nr + ' ' + w.opis + ' – ' + w.zasila)}"><small>${esc(w.nr)}</small><b>${esc(rd.skrot)}</b><span>${esc(rd.pod)}</span></button>`;
+    }).join('')}</div></div>`).join('')}</div>`;
+}
+document.addEventListener('click', (e) => {          // dotknięcie wyłącznika na schemacie -> jego opis
+  const b = e.target.closest('[data-wyl]');
+  if (!b) return;
+  const el = document.getElementById(b.dataset.wyl);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('mignij');
+  setTimeout(() => el.classList.remove('mignij'), 1600);
+});
+
 function htmlPunktId(id, A) {
   const p = A?.items.find((q) => q.id === id);
   const T = p ? TYPY[p.typ] : null;
