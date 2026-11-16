@@ -466,7 +466,7 @@ function zbudujPanel() {
     }
     if (w.k === 'szambo' && !wylaczony) {
       const p = document.createElement('div'); p.className = 'podwiersz';
-      p.innerHTML = 'Miejsce z zaznaczenia Adama (przy narożniku od strony Kuchni). Wymiary ok. 200×100 cm, głębokość ok. 150 cm i materiał – szacunek. Zbiornik jest pod ziemią – widać go po wyłączeniu „Terenu”. <span class="wiar wiar-niezw">niezweryfikowana</span>';
+      p.innerHTML = 'Miejsce z zaznaczenia Adama (przy narożniku od strony Kuchni). Wymiary ok. 200×100 cm, głębokość ok. 150 cm i materiał – szacunek. Dwie rury po ok. 18 m (razem 36 m), 1 m od siebie, ok. 1 m pod ziemią – od Adama; łuk przy drzewie z jego rysunku. Zbiornik i rury są pod ziemią – widać go po wyłączeniu „Terenu”. <span class="wiar wiar-niezw">niezweryfikowana</span>';
       lb.append(p);
     }
     if (w.k === 'studnia' && !wylaczony) {

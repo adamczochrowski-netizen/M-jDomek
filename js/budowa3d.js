@@ -297,12 +297,15 @@ export function zbudujDom(M, A, mat, opcje = {}) {
   }
   // środek terenu zaokrąglony do 1 m, żeby linie siatki wypadały co metr od wewnętrznego narożnika domu
   const bb = A.bbox, cxm = Math.round((bb.x0 + bb.x1) / 200) * 100, cym = Math.round((bb.y0 + bb.y1) / 200) * 100;
-  const R = 1600;
+  // teren obejmuje też urządzenia na działce (np. rury od szamba), z zapasem 3 m; siatka zostaje co 1 m
+  let R = 1600;
+  for (const f of M.urzadzenia || []) R = Math.max(R, Math.abs(f.x0 - cxm) + 300, Math.abs(f.x1 - cxm) + 300, Math.abs(f.yd0 - cym) + 300, Math.abs(f.yd1 - cym) + 300);
+  R = Math.ceil(R / 100) * 100;
   const trawa = new THREE.Mesh(new THREE.PlaneGeometry(2 * R, 2 * R), mat.teren);
   trawa.rotation.x = -Math.PI / 2;
   trawa.position.set(cxm, -A.teren - 0.6, cym);
   g.add(trawa);
-  const siatka = new THREE.GridHelper(2 * R, 32, mat.siatka[0], mat.siatka[1]);
+  const siatka = new THREE.GridHelper(2 * R, 2 * R / 100, mat.siatka[0], mat.siatka[1]);
   siatka.position.set(cxm, -A.teren - 0.3, cym);
   siatka.material.transparent = true; siatka.material.opacity = 0.5;
   g.add(siatka);

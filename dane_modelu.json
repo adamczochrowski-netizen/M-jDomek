@@ -1770,6 +1770,66 @@
    "zrodlo": "szacunek"
   },
   {
+   "nazwa": "Szambo – rura 1",
+   "typ": "box",
+   "x0": 1040.5,
+   "x1": 2840.5,
+   "yd0": -200.0,
+   "yd1": -189.0,
+   "z0": -116.0,
+   "z1": -105.0,
+   "mat": "rura_pvc",
+   "zrodlo": "pomiar+szacunek"
+  },
+  {
+   "nazwa": "Szambo – rura 2 (początek)",
+   "typ": "box",
+   "x0": 1040.5,
+   "x1": 1140.5,
+   "yd0": -150.0,
+   "yd1": -139.0,
+   "z0": -116.0,
+   "z1": -105.0,
+   "mat": "rura_pvc",
+   "zrodlo": "pomiar+szacunek"
+  },
+  {
+   "nazwa": "Szambo – rura 2 (odbicie)",
+   "typ": "box",
+   "x0": 1140.5,
+   "x1": 1151.5,
+   "yd0": -150.0,
+   "yd1": -89.0,
+   "z0": -116.0,
+   "z1": -105.0,
+   "mat": "rura_pvc",
+   "zrodlo": "pomiar+szacunek"
+  },
+  {
+   "nazwa": "Szambo – rura 2",
+   "typ": "box",
+   "x0": 1140.5,
+   "x1": 2790.5,
+   "yd0": -100.0,
+   "yd1": -89.0,
+   "z0": -116.0,
+   "z1": -105.0,
+   "mat": "rura_pvc",
+   "zrodlo": "pomiar+szacunek"
+  },
+  {
+   "nazwa": "Szambo – drzewo",
+   "typ": "cyl",
+   "x0": 2220.5,
+   "x1": 2260.5,
+   "yd0": -164.5,
+   "yd1": -124.5,
+   "z0": -5.0,
+   "z1": 295.0,
+   "mat": "drewno",
+   "zrodlo": "szacunek"
+  },
+  {
    "nazwa": "Studnia – komora",
    "typ": "box",
    "x0": 350.5,
