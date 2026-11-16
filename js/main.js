@@ -466,7 +466,7 @@ function zbudujPanel() {
     }
     if (w.k === 'szambo' && !wylaczony) {
       const p = document.createElement('div'); p.className = 'podwiersz';
-      p.innerHTML = 'Miejsce z zaznaczenia Adama (przy narożniku od strony Kuchni). Prawdopodobnie przydomowa oczyszczalnia Idmar 2000 l z polietylenu (Adam: „chyba ta”; w karcie produktu 240 cm szer., 160 cm wys.) – kształt i wymiary na modelu to szacunek. Dwie rury po ok. 18 m (razem 36 m), 1 m od siebie, ok. 1 m pod ziemią – od Adama; łuk przy drzewie z jego rysunku. Zbiornik i rury są pod ziemią – widać go po wyłączeniu „Terenu”. <span class="wiar wiar-niezw">niezweryfikowana</span>';
+      p.innerHTML = 'Miejsce z zaznaczenia Adama (przy narożniku od strony Kuchni). Prawdopodobnie przydomowa oczyszczalnia Idmar 2000 l z polietylenu (Adam: „chyba ta”; w karcie produktu 240 cm szer., 160 cm wys.) – kształt i wymiary na modelu to szacunek. Dwa włazy w ramce z kostki – duży od strony domu, mały od strony rur (Adam); wielkość ze zdjęcia. Dwie rury po ok. 18 m (razem 36 m), 1 m od siebie, ok. 1 m pod ziemią – od Adama; łuk przy drzewie z jego rysunku. Zbiornik i rury są pod ziemią – widać go po wyłączeniu „Terenu”. <span class="wiar wiar-niezw">niezweryfikowana</span>';
       lb.append(p);
     }
     if (w.k === 'studnia' && !wylaczony) {
