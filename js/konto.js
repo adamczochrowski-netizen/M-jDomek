@@ -86,7 +86,7 @@ function htmlBazy() {
     if (r.doZapisu) {
       h += `<button type="button" class="k-przycisk" data-konto="przenies"${b.wysylanie ? ' disabled' : ''}>${b.wysylanie ? 'Wysyłanie…'
         : pierwszy ? `Przenieś ${r.nowe.length} ${odm(r.nowe.length, ['punkt', 'punkty', 'punktów'])} do bazy` : `Przenieś zmiany do bazy (${r.doZapisu})`}</button>`;
-      h += '<p class="male">Położenia z rysunku trafiają jako „prawdopodobne” (±10–15 cm). Nic nie jest kasowane, a każda zmiana zostaje w historii bazy.</p>';
+      h += '<p class="male">Położenia z pomiaru trafiają jako „potwierdzone”, a z rysunku lub szacunku jako „prawdopodobne”. Nic nie jest kasowane, a każda zmiana zostaje w historii bazy.</p>';
     }
     if (r.konflikty.length) h += '<p class="uwaga">Punkty z konfliktem (zmienione i na rysunku, i w aplikacji) nie są przenoszone – trzeba je rozstrzygnąć ręcznie.</p>';
   } else if (r && ileWBazie) h += '<p class="male">✓ Zgodne z rysunkiem (ODSWIEZ.bat).</p>';
