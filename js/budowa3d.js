@@ -30,7 +30,7 @@ export function materialy() {
       'tkanina_ciemna': lambert(0x383a42), 'pościel': lambert(0xe0e0ea), 'poduszka': lambert(0xf7f7f7),
       'ciemny': lambert(0x141414), 'stal': lambert(0xb8babf), 'ceramika': lambert(0xf8f8f8),
       'blat': lambert(0x4d4a47), 'lodówka': lambert(0xd9dbdd), 'pompa': lambert(0xe9eaec), 'beton': lambert(0x9c9a94), 'bloczek': lambert(0xa3a19b), 'styropian': lambert(0xf4f5f2),
-      'wlaz': lambert(0x3b3a38), 'rura_pvc': lambert(0x8d9095),
+      'wlaz': lambert(0x3b3a38), 'rura_pvc': lambert(0x8d9095), 'hydrofor': lambert(0x1f8fb3),
     },
     el: Object.fromEntries(KOLEJNOSC_TYPOW.map((t) => [t, lambert(TYPY[t].kolor)])),
     lampaObudowa: lambert(0x1b1b1e),

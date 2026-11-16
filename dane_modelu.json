@@ -1806,6 +1806,18 @@
    "zrodlo": "pomiar+szacunek"
   },
   {
+   "nazwa": "Studnia – hydrofor",
+   "typ": "cyl",
+   "x0": 437.5,
+   "x1": 485.5,
+   "yd0": 1436.0,
+   "yd1": 1484.0,
+   "z0": -155.0,
+   "z1": -80.0,
+   "mat": "hydrofor",
+   "zrodlo": "szacunek"
+  },
+  {
    "nazwa": "Studnia – rura",
    "typ": "cyl",
    "x0": 447.5,
