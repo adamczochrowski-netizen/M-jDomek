@@ -815,7 +815,7 @@
   },
   {
    "type": "S",
-   "x": 800.0,
+   "x": 790.0,
    "yd": 10.0,
    "z": 46.0,
    "face": [
@@ -828,7 +828,7 @@
    "pion": false,
    "id": "kuchnia-S01",
    "opis": "",
-   "zrodlo": "pomiar+szacunek"
+   "zrodlo": "pomiar"
   },
   {
    "type": "Z",
@@ -1559,7 +1559,7 @@
    "pion": false,
    "id": "zewnatrz-Z03",
    "opis": "podwójne, włączane z Biura - Adam",
-   "zrodlo": "pomiar+szacunek"
+   "zrodlo": "pomiar"
   },
   {
    "type": "D",
@@ -1701,23 +1701,23 @@
    "nazwa": "Pompa ciepła – jednostka zewnętrzna",
    "typ": "box",
    "x0": 750.3,
-   "x1": 795.3,
+   "x1": 802.9,
    "yd0": 801.0,
-   "yd1": 911.0,
-   "z0": 10.0,
-   "z1": 85.0,
+   "yd1": 939.5,
+   "z0": 15.0,
+   "z1": 101.5,
    "mat": "pompa",
    "zrodlo": "pomiar+szacunek"
   },
   {
    "nazwa": "Pompa ciepła – wentylator",
    "typ": "box",
-   "x0": 795.3,
-   "x1": 796.8,
-   "yd0": 848.0,
-   "yd1": 903.0,
-   "z0": 20.0,
-   "z1": 75.0,
+   "x0": 802.9,
+   "x1": 804.4,
+   "yd0": 862.25,
+   "yd1": 931.5,
+   "z0": 23.625,
+   "z1": 92.875,
    "mat": "ciemny",
    "zrodlo": "pomiar+szacunek"
   }
