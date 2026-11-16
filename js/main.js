@@ -26,6 +26,7 @@ const WARSTWY_BUDYNKU = [
   { k: 'meble', nazwa: 'Meble', wl: true },
   { k: 'sanitariaty', nazwa: 'Sanitariaty', wl: true },
   { k: 'urzadzenia', nazwa: 'Pompa ciepła (na zewnątrz)', wl: true },
+  { k: 'studnia', nazwa: 'Studnia', wl: true },
   { k: 'teren', nazwa: 'Teren (siatka co 1 m)', wl: true },
   { k: 'nazwy', nazwa: 'Nazwy pomieszczeń', wl: true },
 ];
@@ -36,7 +37,7 @@ const TRYBY = {
   instalacje: { opis: 'Elektryka i rury ogrzewania podłogowego (schemat).', wid: { ogrzewanie: true, sufity: false, meble: false } },
   techniczny: { opis: 'Wszystkie warstwy oraz informacje o plikach (wymiary.ini, obwody.json).', wid: { ogrzewanie: true, sufity: true, meble: true } },
 };
-const PODSTAWA_TRYBU = { sciany: true, okna: true, podlogi: true, belka: true, sanitariaty: true, urzadzenia: true, teren: true, nazwy: true };
+const PODSTAWA_TRYBU = { sciany: true, okna: true, podlogi: true, belka: true, sanitariaty: true, urzadzenia: true, studnia: true, teren: true, nazwy: true };
 
 const $ = (s) => document.querySelector(s);
 const dotyk = matchMedia('(pointer: coarse)').matches;
@@ -442,7 +443,9 @@ function zbudujPanel() {
       if (!(M.furniture || []).length) { wylaczony = true; ile = 'wyłączone'; tytul = 'Włącz w wymiary.ini: [Meble] pokaż = tak, potem ODSWIEZ.bat'; }
     }
     if (w.k === 'sanitariaty') ile = String((M.sanitariaty || []).length);
-    if (w.k === 'urzadzenia') { wylaczony = !(M.urzadzenia || []).length; ile = wylaczony ? 'brak danych' : ''; }
+    const jestStudnia = (f) => /^studnia/i.test(f.nazwa || '');
+    if (w.k === 'urzadzenia') { wylaczony = !(M.urzadzenia || []).filter((f) => !jestStudnia(f)).length; ile = wylaczony ? 'brak danych' : ''; }
+    if (w.k === 'studnia') { wylaczony = !(M.urzadzenia || []).some(jestStudnia); ile = wylaczony ? 'brak danych' : ''; }
     if (w.k === 'belka') { ile = String((M.belki || []).length); wylaczony = !(M.belki || []).length; }
     if (w.k === 'sufity') ile = `${A.ceilings.length} wys.`;
     if (w.k === 'ogrzewanie') {
@@ -455,6 +458,11 @@ function zbudujPanel() {
     if (w.k === 'urzadzenia' && !wylaczony) {    // uczciwie: co zmierzone, co szacowane
       const p = document.createElement('div'); p.className = 'podwiersz';
       p.innerHTML = 'Miejsce zmierzone, wymiary z instrukcji Immergas, wysokość nad ziemią to szacunek. <span class="wiar wiar-prawd">prawdopodobna</span>';
+      lb.append(p);
+    }
+    if (w.k === 'studnia' && !wylaczony) {
+      const p = document.createElement('div'); p.className = 'podwiersz';
+      p.innerHTML = 'Zmierzone 430 cm od frontu wiatrołapu. Położenie w bok (na wprost drzwi), wymiary ok. 150×150 i głębokość ok. 150 cm to szacunek. Komora jest pod ziemią – widać ją po wyłączeniu „Terenu”. <span class="wiar wiar-prawd">prawdopodobna</span>';
       lb.append(p);
     }
     if (w.k === 'okna' && (M.doors || []).length) lb.append(przelacznikDrzwi());

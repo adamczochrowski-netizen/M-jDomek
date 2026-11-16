@@ -29,7 +29,7 @@ export function materialy() {
       'drewno': lambert(0xb38d61), 'biały': lambert(0xededeb), 'tkanina': lambert(0x737a85),
       'tkanina_ciemna': lambert(0x383a42), 'pościel': lambert(0xe0e0ea), 'poduszka': lambert(0xf7f7f7),
       'ciemny': lambert(0x141414), 'stal': lambert(0xb8babf), 'ceramika': lambert(0xf8f8f8),
-      'blat': lambert(0x4d4a47), 'lodówka': lambert(0xd9dbdd), 'pompa': lambert(0xe9eaec),
+      'blat': lambert(0x4d4a47), 'lodówka': lambert(0xd9dbdd), 'pompa': lambert(0xe9eaec), 'beton': lambert(0x9c9a94),
     },
     el: Object.fromEntries(KOLEJNOSC_TYPOW.map((t) => [t, lambert(TYPY[t].kolor)])),
     lampaObudowa: lambert(0x1b1b1e),
@@ -370,9 +370,10 @@ export function zbudujDom(M, A, mat, opcje = {}) {
   grupa('meble'); grupa('sanitariaty');
   for (const f of M.furniture || []) dodajMebel(f, 'meble');
   for (const f of M.sanitariaty || []) dodajMebel(f, 'sanitariaty');
-  // urządzenia na zewnątrz (pompa ciepła) – ten sam format co meble, z od podłogi domu
-  grupa('urzadzenia');
-  for (const f of M.urzadzenia || []) dodajMebel(f, 'urzadzenia');
+  // urządzenia na zewnątrz – ten sam format co meble, z od podłogi domu; studnia osobną warstwą
+  // (komora leży pod ziemią – widać ją po wyłączeniu warstwy „Teren”)
+  grupa('urzadzenia'); grupa('studnia');
+  for (const f of M.urzadzenia || []) dodajMebel(f, /^studnia/i.test(f.nazwa || '') ? 'studnia' : 'urzadzenia');
 
   // elektryka: prawdziwej wielkości puszki + znaczniki (kółka o stałej wielkości na ekranie)
   const poz = { };

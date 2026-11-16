@@ -1720,6 +1720,30 @@
    "z1": 92.875,
    "mat": "ciemny",
    "zrodlo": "pomiar+szacunek"
+  },
+  {
+   "nazwa": "Studnia – komora",
+   "typ": "box",
+   "x0": 350.5,
+   "x1": 500.5,
+   "yd0": 1385.0,
+   "yd1": 1535.0,
+   "z0": -155.0,
+   "z1": -5.0,
+   "mat": "beton",
+   "zrodlo": "pomiar+szacunek"
+  },
+  {
+   "nazwa": "Studnia – przykrycie",
+   "typ": "box",
+   "x0": 345.5,
+   "x1": 505.5,
+   "yd0": 1380.0,
+   "yd1": 1540.0,
+   "z0": -5.0,
+   "z1": -2.0,
+   "mat": "ciemny",
+   "zrodlo": "pomiar+szacunek"
   }
  ],
  "furniture": [],

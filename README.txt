@@ -188,7 +188,8 @@ zajrzeć do środka), okna i drzwi (z przełącznikiem „Drzwi: Otwarte / Zamkn
 zamknięte skrzydło stoi w otworze, otwarte jak na rzucie), podłogi, ogrzewanie podłogowe (czerwone paski = rury
 w wylewce, w całym domu – nie wiercić w posadzce), sufity (każde pomieszczenie na swojej
 wysokości, niebieskie płaszczyzny), belka, meble, sanitariaty, pompa ciepła (jednostka zewnętrzna; wysokość nad
-ziemią to szacunek), teren (siatka co 1 m),
+ziemią to szacunek), studnia (komora pod ziemią – widać ją po wyłączeniu
+terenu; położenie w bok i głębokość to szacunek), teren (siatka co 1 m),
 nazwy pomieszczeń, a w części „Elektryka” każdy typ osobno i lampy zewnętrzne.
 Przy każdym typie jest liczba: ramki i gniazda (np. potrójne gniazdko = 1 ramka, 3 gniazda).
 Meble są wyłączone w wymiary.ini ([Meble] pokaż = nie) – po zmianie na „tak” i ODSWIEZ.bat
