@@ -869,11 +869,12 @@ const STUDNIA_ZAKUPY = /studni|hydrofor|rura wod|filtr wod|zawor/;
 const PEX_ZAKUPY = /pex|trojnik|kolank/;          // woda albo podłogówka – nie wiadomo, więc osobno
 const BRAKI_STUDNI = [
   { html: '<b>Pompa w studni</b> – model (zdjęcie tabliczki znamionowej).' },
-  { html: '<b>Hydrofor</b> – gdzie stoi (w zakupach jest „Hydrofor”, 05.2025), wyłącznik ciśnieniowy i manometr.' },
+  { html: '<b>Hydrofor</b> – stoi w komorze studni; zdjęcie tabliczki (pojemność, ciśnienie) i zmierzyć średnicę i wysokość zbiornika.' },
   { html: '<b>Filtry wody</b> – rodzaj i gdzie są.' },
   { html: '<b>Rura ze studni</b> – którędy wchodzi do domu i gdzie jest główny zawór wody.' },
   { html: '<b>Zasilanie pompy</b> – który bezpiecznik w rozdzielnicy (2.11 ma naklejkę „silnik” – do potwierdzenia).' },
-  { html: '<b>Położenie studni</b> – odległość od dwóch narożników domu (do mapy działki).' },
+  { html: '<b>Położenie studni</b> – 430 cm od frontu wiatrołapu jest; zmierzyć jeszcze przesunięcie w bok od narożnika wiatrołapu i głębokość komory.' },
+  { html: '<b>Właz i rura na studni</b> – w którym narożniku jest właz (dziś przyjęty dalej od domu, od zachodu).' },
 ];
 function brakiZaworow() {
   return kartyCache.zawory && !(kartyCache.zawory.wiersze || []).length
