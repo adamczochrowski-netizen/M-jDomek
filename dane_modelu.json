@@ -2034,6 +2034,20 @@
    "zrodlo": "pomiar+szacunek"
   }
  ],
+ "ocieplenie": {
+  "strych": {
+   "material": "wełna mineralna",
+   "grubosc": 20.0,
+   "uklad": "2 × 10 cm na krzyż",
+   "zrodlo": "szacunek"
+  },
+  "podloga": {
+   "material": "styropian",
+   "grubosc": 10.0,
+   "uklad": "2 × 5 cm z przesunięciem spoin, pod spodem papa",
+   "zrodlo": "szacunek"
+  }
+ },
  "furniture": [],
  "sanitariaty": [
   {

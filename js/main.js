@@ -464,6 +464,14 @@ function zbudujPanel() {
       p.innerHTML = 'Miejsce zmierzone, wymiary z instrukcji Immergas, wysokość nad ziemią to szacunek. Betonowa płyta pod pompą (80×160 cm) i odpływ skroplin – ze zdjęcia, szacunek. <span class="wiar wiar-prawd">prawdopodobna</span>';
       lb.append(p);
     }
+    // ocieplenie (dane_modelu.json → „ocieplenie”): pod „Podłogi” i „Sufity”, ze stopniem pewności
+    const ocp = { podlogi: [M.ocieplenie?.podloga, 'Ocieplenie podłogi'], sufity: [M.ocieplenie?.strych, 'Ocieplenie strychu (nad sufitem)'] }[w.k];
+    if (ocp?.[0]) {
+      const o = ocp[0], p = document.createElement('div'); p.className = 'podwiersz';
+      p.innerHTML = `${esc(ocp[1])}: ${esc(o.material)} ${fmtLiczba(o.grubosc)} cm${o.uklad ? ` (${esc(o.uklad)})` : ''}. <span class="wiar ${/pomiar|potw/.test(o.zrodlo || '') ? 'wiar-potw">potwierdzona' : 'wiar-prawd">prawdopodobna'}</span>`;
+      p.title = 'Źródło: ' + (o.zrodlo || 'brak') + ' (Adam, 16.11.2026: „chyba”)';
+      lb.append(p);
+    }
     if (w.k === 'szambo' && !wylaczony) {
       const p = document.createElement('div'); p.className = 'podwiersz';
       p.innerHTML = 'Miejsce z zaznaczenia Adama (przy narożniku od strony Kuchni). Prawdopodobnie przydomowa oczyszczalnia Idmar 2000 l z polietylenu (Adam: „chyba ta”; w karcie produktu 240 cm szer., 160 cm wys.) – kształt i wymiary na modelu to szacunek. Dwa włazy w ramce z kostki – duży od strony domu, mały od strony rur (Adam); wielkość ze zdjęcia. Dwie rury po ok. 18 m (razem 36 m), 1 m od siebie, ok. 1 m pod ziemią – od Adama; łuk przy drzewie z jego rysunku. Zbiornik i rury są pod ziemią – widać go po wyłączeniu „Terenu”. <span class="wiar wiar-niezw">niezweryfikowana</span>';
