@@ -595,6 +595,27 @@ function brakiRozdzielnicy() {
   b.push({ html: '<b>Rozdzielnica</b> – w którym pomieszczeniu wisi szafa.' });
   return b;
 }
+// złącze kablowo-pomiarowe na zewnątrz (zdjęcia Adama 16.11.2026) – tylko to, co widać na zdjęciach
+const BRAKI_ZLACZA = [
+  { html: '<b>Złącze</b> – prąd wyłącznika w złączu (napis na dźwigniach, np. C25 / B32).' },
+  { html: '<b>Złącze</b> – gdzie dokładnie wisi: odległość od narożnika domu i wysokość dołu skrzynki nad ziemią.' },
+  { html: '<b>Złącze</b> – kto ma klucz do skrzynki i czy jest plomba operatora (PGE).' },
+];
+function htmlZlacza() {
+  const el = (tytul, tresc) => `<div class="wiersz-fakt"><div class="tresc"><b>${tytul}</b><div class="male">${tresc}</div></div>${chipWiar('prawdopodobna (ze zdjęcia)')}</div>`;
+  return `
+    <section class="karta-strony">
+      <h3>Złącze z licznikiem (skrzynka na zewnątrz) ${plakietkaBrakow(BRAKI_ZLACZA)}</h3>
+      <p class="male">Szara skrzynka na zewnętrznej ścianie domu, przy salonie, obok pomieszczenia gospodarczego.
+        Tu prąd z sieci wchodzi do domu. Na drzwiczkach naklejka „PGE 2015” – skrzynka operatora sieci.</p>
+      ${el('Zasilanie (lewa góra)', 'Zaciski kabla, który przychodzi z sieci – naklejka „ZASILANIE”, 5 zacisków pod przezroczystą osłoną.')}
+      ${el('Odbiór (prawa góra)', 'Zaciski kabla, który idzie dalej do domu – naklejka „ODBIÓR”, 5 zacisków pod osłoną.')}
+      ${el('Wyłącznik (lewy dół)', 'Wyłącznik 3-fazowy (3 dźwignie, Eaton) w osobnej białej obudowie. Prąd – do odczytania.')}
+      ${el('Licznik prądu (prawy dół)', 'Licznik 3-fazowy GAMA 300 z wyświetlaczem.')}
+      <p class="uwaga">Zaciski „Zasilanie” są pod napięciem od strony sieci – nie wyłączysz ich w domu. Osłon nie zdejmować; to część operatora (PGE).</p>
+      ${htmlBraki(BRAKI_ZLACZA)}
+    </section>`;
+}
 const BRAKI_PUNKTOW = [
   { html: '<b>Trasy przewodów</b> – ze zdjęć ścian przed tynkiem (folder „Położenie kabli”: kuchnia, salon, sypialnia, biura); będą osobną warstwą modelu.' },
   { html: '<b>Puszki</b> rozgałęźne – gdzie są i co się w nich łączy.' },
@@ -613,7 +634,7 @@ function htmlElektryka() {
   const przelacznik = `<div class="przelacznik-widoku" role="group" aria-label="Widok rozdzielnicy">
       <button type="button" data-szafa="rysunek" class="${widok === 'rysunek' ? 'aktywny' : ''}" aria-pressed="${widok === 'rysunek'}">Rysunek</button>
       <button type="button" data-szafa="lista" class="${widok === 'lista' ? 'aktywny' : ''}" aria-pressed="${widok === 'lista'}">Lista</button></div>`;
-  return `
+  return `${htmlZlacza()}
     <section class="karta-strony">
       <h3>Rozdzielnica (skrzynka z bezpiecznikami) ${plakietkaBrakow(braki)}</h3>
       ${!kartyCache.rozdzielnica ? szkielet(1, true) : kartyCache.rozdzielnica.blad && !wyl.length ? htmlBladArkusza(kartyCache.rozdzielnica.blad) : wyl.length ? `${przelacznik}
@@ -952,7 +973,7 @@ function htmlKanalizacja() {
 
 // ====================================================================== strona „Do uzupełnienia” – wszystkie braki domu w jednym miejscu
 const DZIALY_BRAKOW = [
-  ['Elektryka', '#elektryka', () => [...brakiRozdzielnicy(), ...BRAKI_PUNKTOW]],
+  ['Elektryka', '#elektryka', () => [...BRAKI_ZLACZA, ...brakiRozdzielnicy(), ...BRAKI_PUNKTOW]],
   ['Ogrzewanie', '#ogrzewanie', () => [...brakiPetli(), ...brakiPompy()]],
   ['Hydraulika', '#hydraulika', () => [...BRAKI_STUDNI, ...brakiZaworow()]],
   ['Kanalizacja', '#kanalizacja', () => BRAKI_KANALIZACJI],

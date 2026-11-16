@@ -1746,6 +1746,18 @@
    "zrodlo": "pomiar+szacunek"
   },
   {
+   "nazwa": "Złącze – skrzynka",
+   "typ": "box",
+   "x0": 1010.5,
+   "x1": 1037.5,
+   "yd0": 628.0,
+   "yd1": 688.0,
+   "z0": 50.0,
+   "z1": 145.0,
+   "mat": "zlacze",
+   "zrodlo": "szacunek"
+  },
+  {
    "nazwa": "Studnia – komora",
    "typ": "box",
    "x0": 350.5,
