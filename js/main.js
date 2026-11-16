@@ -28,6 +28,7 @@ const WARSTWY_BUDYNKU = [
   { k: 'urzadzenia', nazwa: 'Pompa ciepła (na zewnątrz)', wl: true },
   { k: 'studnia', nazwa: 'Studnia', wl: true },
   { k: 'zlacze', nazwa: 'Złącze z licznikiem (na zewnątrz)', wl: true },
+  { k: 'szambo', nazwa: 'Szambo', wl: true },
   { k: 'teren', nazwa: 'Teren (siatka co 1 m)', wl: true },
   { k: 'nazwy', nazwa: 'Nazwy pomieszczeń', wl: true },
 ];
@@ -38,7 +39,7 @@ const TRYBY = {
   instalacje: { opis: 'Elektryka i rury ogrzewania podłogowego (schemat).', wid: { ogrzewanie: true, sufity: false, meble: false } },
   techniczny: { opis: 'Wszystkie warstwy oraz informacje o plikach (wymiary.ini, obwody.json).', wid: { ogrzewanie: true, sufity: true, meble: true } },
 };
-const PODSTAWA_TRYBU = { sciany: true, okna: true, podlogi: true, belka: true, sanitariaty: true, urzadzenia: true, studnia: true, zlacze: true, teren: true, nazwy: true };
+const PODSTAWA_TRYBU = { sciany: true, okna: true, podlogi: true, belka: true, sanitariaty: true, urzadzenia: true, studnia: true, zlacze: true, szambo: true, teren: true, nazwy: true };
 
 const $ = (s) => document.querySelector(s);
 const dotyk = matchMedia('(pointer: coarse)').matches;
@@ -444,9 +445,10 @@ function zbudujPanel() {
       if (!(M.furniture || []).length) { wylaczony = true; ile = 'wyłączone'; tytul = 'Włącz w wymiary.ini: [Meble] pokaż = tak, potem ODSWIEZ.bat'; }
     }
     if (w.k === 'sanitariaty') ile = String((M.sanitariaty || []).length);
-    const jestStudnia = (f) => /^studnia/i.test(f.nazwa || ''), jestZlacze = (f) => /^złącze/i.test(f.nazwa || '');
+    const jestStudnia = (f) => /^studnia/i.test(f.nazwa || ''), jestZlacze = (f) => /^złącze/i.test(f.nazwa || ''), jestSzambo = (f) => /^szambo/i.test(f.nazwa || '');
+    if (w.k === 'szambo') { wylaczony = !(M.urzadzenia || []).some(jestSzambo); ile = wylaczony ? 'brak danych' : 'szacunek'; }
     if (w.k === 'zlacze') { wylaczony = !(M.urzadzenia || []).some(jestZlacze); ile = wylaczony ? 'brak danych' : 'szacunek'; }
-    if (w.k === 'urzadzenia') { wylaczony = !(M.urzadzenia || []).filter((f) => !jestStudnia(f) && !jestZlacze(f)).length; ile = wylaczony ? 'brak danych' : ''; }
+    if (w.k === 'urzadzenia') { wylaczony = !(M.urzadzenia || []).filter((f) => !jestStudnia(f) && !jestZlacze(f) && !jestSzambo(f)).length; ile = wylaczony ? 'brak danych' : ''; }
     if (w.k === 'studnia') { wylaczony = !(M.urzadzenia || []).some(jestStudnia); ile = wylaczony ? 'brak danych' : ''; }
     if (w.k === 'belka') { ile = String((M.belki || []).length); wylaczony = !(M.belki || []).length; }
     if (w.k === 'sufity') ile = `${A.ceilings.length} wys.`;
@@ -460,6 +462,11 @@ function zbudujPanel() {
     if (w.k === 'urzadzenia' && !wylaczony) {    // uczciwie: co zmierzone, co szacowane
       const p = document.createElement('div'); p.className = 'podwiersz';
       p.innerHTML = 'Miejsce zmierzone, wymiary z instrukcji Immergas, wysokość nad ziemią to szacunek. Betonowa płyta pod pompą (80×160 cm) i odpływ skroplin – ze zdjęcia, szacunek. <span class="wiar wiar-prawd">prawdopodobna</span>';
+      lb.append(p);
+    }
+    if (w.k === 'szambo' && !wylaczony) {
+      const p = document.createElement('div'); p.className = 'podwiersz';
+      p.innerHTML = 'Miejsce z zaznaczenia Adama (przy narożniku od strony Kuchni). Wymiary ok. 200×100 cm, głębokość ok. 150 cm i materiał – szacunek. Zbiornik jest pod ziemią – widać go po wyłączeniu „Terenu”. <span class="wiar wiar-niezw">niezweryfikowana</span>';
       lb.append(p);
     }
     if (w.k === 'studnia' && !wylaczony) {

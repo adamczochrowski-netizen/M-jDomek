@@ -1758,6 +1758,18 @@
    "zrodlo": "szacunek"
   },
   {
+   "nazwa": "Szambo – zbiornik",
+   "typ": "box",
+   "x0": 840.5,
+   "x1": 1040.5,
+   "yd0": -225.0,
+   "yd1": -125.0,
+   "z0": -155.0,
+   "z1": -10.0,
+   "mat": "szambo",
+   "zrodlo": "szacunek"
+  },
+  {
    "nazwa": "Studnia – komora",
    "typ": "box",
    "x0": 350.5,
