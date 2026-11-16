@@ -90,6 +90,9 @@ function htmlBazy() {
     }
     if (r.konflikty.length) h += '<p class="uwaga">Punkty z konfliktem (zmienione i na rysunku, i w aplikacji) nie są przenoszone – trzeba je rozstrzygnąć ręcznie.</p>';
   } else if (r && ileWBazie) h += '<p class="male">✓ Zgodne z rysunkiem (ODSWIEZ.bat).</p>';
+  // na GitHub Pages kopia rysunku może być starsza niż baza – przenoszenie tylko z komputera (świeży plik z ODSWIEZ.bat)
+  if (b.elementy && !b.porownywac) h += '<p class="male">Zmiany z rysunku (po ODSWIEZ.bat) przenosi się do bazy na komputerze: '
+    + 'uruchom <b>URUCHOM.bat</b>, zaloguj się na stronie, która się otworzy, i tam w tym panelu kliknij „Przenieś zmiany do bazy”.</p>';
   if (b.komunikat) h += `<p class="${b.komunikat.startsWith('Zapisano') ? 'ok' : 'uwaga'}">${esc(b.komunikat)}</p>`;
   return h + '</div>';
 }
