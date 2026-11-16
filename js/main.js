@@ -46,7 +46,7 @@ const kolorMotywu = (nazwa, zapas) => getComputedStyle(document.documentElement)
 const stan = {
   M: null, A: null, obw: null, wersjaDanych: null,
   warstwy: {}, znaczniki: {}, korzen: null,
-  wid: {}, wysokoscScian: null, tryb: '3d', wybrany: null,
+  wid: {}, wysokoscScian: null, tryb: '3d', wybrany: null, drzwi: 'otwarte',
 };
 for (const w of WARSTWY_BUDYNKU) stan.wid[w.k] = w.wl;
 for (const t of KOLEJNOSC_TYPOW) stan.wid['el_' + t] = true;
@@ -55,10 +55,11 @@ try {
   if (zap && zap.wid) Object.assign(stan.wid, zap.wid);
   if (zap && typeof zap.wysokoscScian === 'number') stan.wysokoscScian = zap.wysokoscScian;
   if (zap && zap.trybWarstw) stan.trybWarstw = zap.trybWarstw;
+  if (zap && zap.drzwi === 'zamkniete') stan.drzwi = 'zamkniete';
   if (!zap) stan.trybWarstw = 'standard';             // pierwsze uruchomienie: domyślne warstwy = tryb Standard
 } catch { /* bez zapisanych ustawień */ }
 function zapiszUstawienia() {
-  try { localStorage.setItem(KLUCZ_USTAWIEN, JSON.stringify({ wid: stan.wid, wysokoscScian: stan.wysokoscScian, trybWarstw: stan.trybWarstw || null })); } catch { /* np. tryb prywatny */ }
+  try { localStorage.setItem(KLUCZ_USTAWIEN, JSON.stringify({ wid: stan.wid, wysokoscScian: stan.wysokoscScian, trybWarstw: stan.trybWarstw || null, drzwi: stan.drzwi })); } catch { /* np. tryb prywatny */ }
 }
 
 // ---------------------------------------------------------------- renderer, światło, kamery
@@ -361,7 +362,7 @@ function zbudujScene() {
   stan.scenaCzeka = false;
   if (stan.korzen) { scene.remove(stan.korzen); zwolnij(stan.korzen); }
   const zs = stan.wysokoscScian != null ? Math.min(stan.wysokoscScian, stan.A.zCeil) : null;
-  const { warstwy, znaczniki } = zbudujDom(stan.M, stan.A, mat, { wysokoscScian: zs, ogrzewanie: stan.obw?.ogrzewanie_podlogowe });
+  const { warstwy, znaczniki } = zbudujDom(stan.M, stan.A, mat, { wysokoscScian: zs, ogrzewanie: stan.obw?.ogrzewanie_podlogowe, drzwi: stan.drzwi });
   stan.warstwy = warstwy;
   stan.znaczniki = znaczniki;
   stan.korzen = new THREE.Group();
@@ -449,6 +450,7 @@ function zbudujPanel() {
     }
     (w.k === 'ogrzewanie' ? $('#lista-ogrzewanie') : lb).append(wierszWarstwy(w.k, w.nazwa, { ile, wylaczony, tytul }));
     if (w.k === 'sciany') lb.append(suwakScian());
+    if (w.k === 'okna' && (M.doors || []).length) lb.append(przelacznikDrzwi());
     if (w.k === 'meble' && wylaczony) {       // podpowiedź techniczna – tylko w trybie „Techniczny”
       const p = document.createElement('div'); p.className = 'podwiersz tylko-techniczny'; p.textContent = 'Włączysz je w wymiary.ini: [Meble] pokaż = tak.'; lb.append(p);
     }
@@ -481,6 +483,32 @@ function zbudujPanel() {
     sel.append(o);
   }
   sel.closest('label').hidden = !(M.kamery || []).length;
+}
+
+// drzwi otwarte / zamknięte (prośba Adama, 16.11.2026) – bez przebudowy sceny, zapamiętywane
+function przelacznikDrzwi() {
+  const d = document.createElement('div');
+  d.className = 'podwiersz';
+  d.innerHTML = `<div>Drzwi:</div><div class="przelacznik-widoku drzwi-przelacznik" role="group" aria-label="Drzwi">
+    <button type="button" data-drzwi="otwarte">Otwarte</button><button type="button" data-drzwi="zamkniete">Zamknięte</button></div>`;
+  d.addEventListener('click', (e) => { const b = e.target.closest('[data-drzwi]'); if (b) ustawDrzwi(b.dataset.drzwi); });
+  oznaczDrzwi(d);
+  return d;
+}
+function oznaczDrzwi(el = document) {
+  el.querySelectorAll('[data-drzwi]').forEach((b) => {
+    const tak = b.dataset.drzwi === stan.drzwi;
+    b.classList.toggle('aktywny', tak);
+    b.setAttribute('aria-pressed', String(tak));
+  });
+}
+function ustawDrzwi(v) {
+  stan.drzwi = v === 'zamkniete' ? 'zamkniete' : 'otwarte';
+  stan.warstwy.okna?.traverse((o) => { if (o.userData.drzwi) o.visible = o.userData.drzwi === stan.drzwi; });
+  oznaczDrzwi();
+  zapiszUstawienia();
+  planujBanki(0);
+  render();
 }
 
 function suwakScian() {
@@ -544,7 +572,7 @@ function zaslaniajace() {
   const lista = [];
   for (const [k, g] of Object.entries(stan.warstwy)) {
     if (!g.visible || k.startsWith('el_')) continue;
-    g.traverse((o) => { if (o.isMesh && o.userData.zaslania) lista.push(o); });
+    g.traverseVisible((o) => { if (o.isMesh && o.userData.zaslania) lista.push(o); });
   }
   return lista;
 }

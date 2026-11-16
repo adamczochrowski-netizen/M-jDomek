@@ -184,7 +184,8 @@ Awaryjnie: dopisz do adresu ?bezsw – strona wyłączy tryb offline i wyczyści
                  (np. kuchnia z salonu, wiatrołap, pom. gospodarcze).
 
 Warstwy (zaznacz/odznacz): ściany (z suwakiem wysokości – można je „przyciąć”, żeby
-zajrzeć do środka), okna i drzwi, podłogi, ogrzewanie podłogowe (czerwone paski = rury
+zajrzeć do środka), okna i drzwi (z przełącznikiem „Drzwi: Otwarte / Zamknięte” – zapamiętywany;
+zamknięte skrzydło stoi w otworze, otwarte jak na rzucie), podłogi, ogrzewanie podłogowe (czerwone paski = rury
 w wylewce, w całym domu – nie wiercić w posadzce), sufity (każde pomieszczenie na swojej
 wysokości, niebieskie płaszczyzny), belka, meble, sanitariaty, teren (siatka co 1 m),
 nazwy pomieszczeń, a w części „Elektryka” każdy typ osobno i lampy zewnętrzne.

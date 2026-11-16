@@ -466,6 +466,8 @@ body.tryb-techniczny .podwiersz.tylko-techniczny { display: block; }
 .wiersz.wylaczony:hover { background: none; }
 .podwiersz { padding: 2px 4px 8px 32px; font-size: var(--fs-male); color: var(--tekst2); }
 .podwiersz input[type=range] { width: 100%; accent-color: var(--akcent); }
+.drzwi-przelacznik { margin: 4px 0 2px; }
+.drzwi-przelacznik button { min-width: 0; flex: 1 1 auto; padding-inline: 14px; }
 .uwaga { color: var(--uwaga); }
 .stopka button { width: 100%; }
 .stopka p { margin: 8px 0 0; }

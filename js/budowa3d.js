@@ -322,26 +322,32 @@ export function zbudujDom(M, A, mat, opcje = {}) {
     place(0, A.zSill + hgt / 2, L - 2 * FR, hgt - 2 * FR, mat.szklo, 1);
   }
 
-  // drzwi otwarte jak na rzucie
+  // drzwi: skrzydło otwarte (jak na rzucie, kierunek swing) i zamknięte (w świetle otworu, kierunek closed);
+  // widać jedno z nich – przełącznik „Drzwi: otwarte / zamknięte” (opcje.drzwi, main.js: ustawDrzwi)
   const ZEWN = new Set(['Wejscie', 'Taras', 'Wiatrolap']);
   const LEAF = 4;
+  const widoczne = opcje.drzwi === 'zamkniete' ? 'zamkniete' : 'otwarte';
   for (const d of M.doors || []) {
-    const [hx, hy] = d.hinge, sw = d.swing, cl = d.closed;
+    const [hx, hy] = d.hinge;
     const wl = d.width - 6, hl = d.top - 5;
-    const obrot = Math.atan2(-sw[1], sw[0]);
-    const at = (u, v) => [hx + sw[0] * u - cl[0] * v, hy + sw[1] * u - cl[1] * v];
-    if (d.name === 'Taras') {
+    // kier – wzdłuż skrzydła od zawiasu; bok – grubość skrzydła idzie w stronę przeciwną do „bok”;
+    // u0 – odsunięcie od zawiasu (zamknięte: szczelina 3 cm z obu stron otworu)
+    for (const [stanDrzwi, kier, bok, u0] of [['otwarte', d.swing, d.closed, 0], ['zamkniete', d.closed, d.swing, 3]]) {
+      const obrot = Math.atan2(-kier[1], kier[0]);
+      const at = (u, v) => [hx + kier[0] * (u0 + u) - bok[0] * v, hy + kier[1] * (u0 + u) - bok[1] * v];
       const F = 8;
-      for (const [u, z, su, sz, m] of [[wl / 2, F / 2, wl, F, mat.rama], [wl / 2, hl - F / 2, wl, F, mat.rama],
-        [F / 2, hl / 2, F, hl, mat.rama], [wl - F / 2, hl / 2, F, hl, mat.rama], [wl / 2, hl / 2, wl - 2 * F, hl - 2 * F, mat.szklo]]) {
+      const czesci = d.name === 'Taras'
+        ? [[wl / 2, F / 2, wl, F, mat.rama], [wl / 2, hl - F / 2, wl, F, mat.rama],
+          [F / 2, hl / 2, F, hl, mat.rama], [wl - F / 2, hl / 2, F, hl, mat.rama], [wl / 2, hl / 2, wl - 2 * F, hl - 2 * F, mat.szklo]]
+        : [[wl / 2, hl / 2, wl, hl, ZEWN.has(d.name) ? mat.drzwiZewn : mat.drzwi]];
+      for (const [u, z, su, sz, m] of czesci) {
         const [x, y] = at(u, LEAF / 2);
-        grupa('okna').add(blok(x, y, z, su, m === mat.szklo ? 1 : LEAF, sz, m, obrot));
+        const o = blok(x, y, z, su, m === mat.szklo ? 1 : LEAF, sz, m, obrot);
+        o.userData.drzwi = stanDrzwi;
+        if (d.name !== 'Taras') o.userData.zaslania = true;
+        o.visible = stanDrzwi === widoczne;
+        grupa('okna').add(o);
       }
-    } else {
-      const [x, y] = at(wl / 2, LEAF / 2);
-      const m = blok(x, y, hl / 2, wl, LEAF, hl, ZEWN.has(d.name) ? mat.drzwiZewn : mat.drzwi, obrot);
-      m.userData.zaslania = true;
-      grupa('okna').add(m);
     }
   }
 
