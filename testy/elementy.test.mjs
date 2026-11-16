@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { elementZPunktu, punktZElementu, porownaj, rysunekPunktu, zmianaPolozenia, zmianaCofniecia } from '../js/dane/elementy.js';
+import { elementZPunktu, punktZElementu, porownaj, rysunekPunktu, zmianaPolozenia, zmianaCofniecia, zmianaElementu, nowyElement, wolnyId } from '../js/dane/elementy.js';
 
 const plik = ['../../skrypty/dane_modelu.json', '../dane_modelu.json'].map((p) => new URL(p, import.meta.url)).find((u) => existsSync(u));
 const PUNKTY = JSON.parse(readFileSync(plik, 'utf8')).items;
@@ -150,4 +150,31 @@ test('edytor: „zmierzone miarką” daje POTWIERDZONA; cofnięcie przywraca st
   assert.equal(c.dane.wersja, 3);
   assert.deepEqual(c.dane.polozenie, e.polozenie);
   assert.deepEqual(c.dane.wiarygodnosc, e.wiarygodnosc);
+});
+
+test('edytor 2: inna ściana, rodzaj, ramka i usunięcie – jedna wersja, cofnięcie przywraca wszystko', () => {
+  const e = bazaZ(PUNKTY).get(PUNKTY[3].id);
+  const { dane, hist } = zmianaElementu(e, { polozenie: { x: 100, yd: 20, z: 40, face: ['h', 10, 1] }, kod: 'S', parametry: { n: 2, pion: true } }, { ktoNazwa: 'Adam' });
+  assert.deepEqual(dane.polozenie.face, ['h', 10, 1]);
+  assert.equal(dane.kod, 'S'); assert.equal(dane.typ, 'gniazdo_sprzet');
+  assert.equal(dane.parametry.n, 2); assert.equal(dane.parametry.pion, true); assert.equal(dane.parametry.size, e.parametry.size);
+  assert.match(hist.operacja, /inną ścianę/);
+  const e2 = { ...e, ...dane };
+  const c = zmianaCofniecia(e2, hist.przed);
+  assert.deepEqual(c.dane.polozenie, e.polozenie); assert.equal(c.dane.kod, e.kod); assert.deepEqual(c.dane.parametry, e.parametry);
+  const u = zmianaElementu(e, { usuniety: true });
+  assert.equal(u.dane.usuniety, true); assert.equal('wiarygodnosc' in u.dane, false);
+});
+
+test('edytor 2: nowy element w bazie – bez „rysunku”, porównanie go nie usuwa; wolnyId pomija zajęte', () => {
+  const baza = bazaZ(PUNKTY);
+  const id = wolnyId('kuchnia-Z', [...baza.keys(), 'kuchnia-Z09', 'kuchnia-Zxx']);
+  assert.match(id, /^kuchnia-Z\d{2}$/);
+  assert.ok(!baza.has(id) && Number(id.slice(-2)) >= 10);
+  const { dane } = nowyElement({ id, kod: 'Z', x: 700, yd: 10, z: 30, face: ['h', 0, 1] }, { ktoNazwa: 'Magda' });
+  assert.equal(dane.wersja, 1); assert.equal('rysunek' in dane, false); assert.equal(dane.wiarygodnosc.polozenie, 'PRAWDOPODOBNA');
+  baza.set(id, dane);
+  const r = porownaj(PUNKTY, baza);
+  assert.equal(r.usuniete.length, 0); assert.equal(r.doZapisu, 0);
+  assert.equal(wolnyId('nowe-pom-W', []), 'nowe-pom-W01');
 });

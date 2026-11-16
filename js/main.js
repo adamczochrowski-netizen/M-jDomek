@@ -505,6 +505,12 @@ function zbudujPanel() {
   lw.innerHTML = '<div class="male">Pewność położenia (znaczek na ikonie):</div>' + ['P', 'R', 'N'].map((w) =>
     `<div class="lw"><img src="${ikonaTypu('Z', w)}" alt=""><span>${esc(WIAR_OPIS[w])}</span><span class="ile">${ileW[w]}</span></div>`).join('');
   le.append(lw);
+  if (edytor.moznaDodac()) {           // po zalogowaniu: nowy punkt dotknięciem ściany (js/edytor.js)
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'dodaj-punkt'; b.textContent = '+ Dodaj punkt (gniazdko, włącznik…)';
+    b.addEventListener('click', () => { document.body.classList.remove('panel-otwarty'); edytor.dodaj(); });
+    le.append(b);
+  }
   $('#suma-el').textContent = `Razem ${razemRamki} ${odmiana(razemRamki, ['punkt', 'punkty', 'punktów'])} (${razemSzt} ${odmiana(razemSzt, ['element', 'elementy', 'elementów'])} licząc każde gniazdo w ramce). Kliknij punkt na modelu, żeby zobaczyć szczegóły.`;
 
   const sel = $('#kamery');
@@ -737,7 +743,7 @@ function pokazKarte(p) {
         <button type="button" data-akcja="rzut">Pokaż na rzucie</button>
         <button type="button" data-akcja="kopiuj">Kopiuj ID</button>
         <button type="button" data-akcja="link">Udostępnij link</button>
-        ${edytor.mozna(p) ? '<button type="button" data-akcja="przesun" class="akcja-edycji">Przesuń punkt</button>' : ''}
+        ${edytor.mozna(p) ? '<button type="button" data-akcja="przesun" class="akcja-edycji">Edytuj punkt (przesuń, rodzaj, ramka)</button>' : ''}
       </div>
       <p class="ostrzezenie">Część położeń pochodzi z rysunku i może odbiegać o ok. 10–15 cm. Przewody od puszki biegną zwykle w pionie lub poziomie – przed wierceniem w pobliżu sprawdź ścianę wykrywaczem.${stan.obw?.ogrzewanie_podlogowe ? `<br><b>Podłoga:</b> ${esc(stan.obw.ogrzewanie_podlogowe.uwagi || 'jest ogrzewanie podłogowe – nie wierć w posadzce.')}` : ''}</p>
     </div>`;
@@ -752,7 +758,14 @@ function pokazKarte(p) {
 
 // edytor: przesuwanie punktu po ścianie i zapis do wspólnej bazy (js/edytor.js)
 const edytor = utworzEdytor({ THREE, canvas, kamera, sterowanie, stan, render, pokazKomunikat, wyborGeo, pokazZnacznik, planujBanki, esc, wybierz,
-  ikona: (p) => ikonaTypu(p.typ, p.wiar), widokNaPunkt });
+  zamknijKarte, widokNaPunkt, POZIOM_PODLOGI,
+  ikona: (t, w) => ikonaTypu(t, w),
+  widok3d: () => przelaczTryb('3d'),
+  // „duch” edytowanego punktu: pierścień wyboru + ikona rodzaju w miejscu wyborGeo
+  pokazDucha: (tak, t, w) => {
+    wyborPkt.visible = tak; wyborIkona.visible = tak;
+    if (tak) { wyborIkona.material.map = teksturaZnacznika(t, w); wyborIkona.material.needsUpdate = true; przygasZnaczniki(true); }
+  } });
 // kamera 3D przed ścianą z punktem (ok. 2,2 m od niej, lekko z góry); na komputerze punkt w widocznej części obok karty
 function widokNaPunkt(p) {
   if (stan.tryb !== '3d') return;

@@ -205,24 +205,65 @@ export async function przeniesZRysunku() {
 }
 
 // ---------------------------------------------------------------- zmiany z aplikacji (edytor)
-// zmiana położenia elementu: nowe x/yd/z na tej samej ścianie (face bez zmian), wersja +1, wpis do historii.
-// zmierzone = true → POTWIERDZONA (pomiar miarką), inaczej PRAWDOPODOBNA (przesunięte „na oko”)
-export function zmianaPolozenia(e, { x, yd, z }, { zmierzone = false, ktoNazwa = '', dzis = '' } = {}) {
-  const przed = { polozenie: e.polozenie, wiarygodnosc: e.wiarygodnosc || null };
-  const polozenie = { ...e.polozenie, x: mm(x), yd: mm(yd), z: mm(z) };
-  const wiarygodnosc = {
-    ...(e.wiarygodnosc || {}),
-    polozenie: zmierzone ? 'POTWIERDZONA' : 'PRAWDOPODOBNA',
-    zrodlo: zmierzone ? `pomiar miarką (${ktoNazwa || 'w aplikacji'})` : `przesunięte w aplikacji bez pomiaru (${ktoNazwa || '?'})`,
-    data: dzis,
-  };
-  return { dane: { polozenie, wiarygodnosc, wersja: (e.wersja || 0) + 1 },
-    hist: { operacja: zmierzone ? 'przesunięcie w aplikacji (zmierzone)' : 'przesunięcie w aplikacji', przed, po: { polozenie, wiarygodnosc } } };
+const wiarZRecznej = (e, zmierzone, ktoNazwa, dzis) => ({
+  ...(e?.wiarygodnosc || { polaczenia: 'NIEZWERYFIKOWANA', parametry: 'PRAWDOPODOBNA' }),
+  polozenie: zmierzone ? 'POTWIERDZONA' : 'PRAWDOPODOBNA',
+  zrodlo: zmierzone ? `pomiar miarką (${ktoNazwa || 'w aplikacji'})` : `ustawione w aplikacji bez pomiaru (${ktoNazwa || '?'})`,
+  data: dzis,
+});
+const stanElementu = (e) => ({ polozenie: e.polozenie, wiarygodnosc: e.wiarygodnosc || null, kod: e.kod, typ: e.typ,
+  parametry: e.parametry || null, usuniety: !!e.usuniety });
+
+// zmiana elementu z aplikacji: położenie (także na innej ścianie – nowe face), rodzaj, ramka (n, pion), usunięcie.
+// Wersja +1 i wpis „przed → po” do historii. Położenie zmienione albo „zmierzone” → nowa wiarygodność położenia:
+// zmierzone = POTWIERDZONA (pomiar miarką), inaczej PRAWDOPODOBNA – nigdy na wyrost.
+export function zmianaElementu(e, zm, { zmierzone = false, ktoNazwa = '', dzis = '' } = {}) {
+  const przed = stanElementu(e);
+  const dane = { wersja: (e.wersja || 0) + 1 };
+  const co = [];
+  if (zm.polozenie) {
+    const q = zm.polozenie;
+    dane.polozenie = { ...e.polozenie, x: mm(q.x), yd: mm(q.yd), z: mm(q.z), ...(q.face ? { face: q.face.map(mm) } : {}) };
+    co.push(q.face && JSON.stringify(q.face.map(mm)) !== JSON.stringify(e.polozenie?.face) ? 'przeniesienie na inną ścianę' : 'przesunięcie');
+  }
+  if (zm.polozenie || zmierzone) dane.wiarygodnosc = wiarZRecznej(e, zmierzone, ktoNazwa, dzis);
+  if (zm.kod && zm.kod !== e.kod) { dane.kod = zm.kod; dane.typ = TYP_ELEMENTU[zm.kod] || 'inny'; co.push('zmiana rodzaju'); }
+  if (zm.parametry) { dane.parametry = { ...(e.parametry || {}), ...zm.parametry }; co.push('zmiana ramki'); }
+  if (zm.usuniety !== undefined && zm.usuniety !== !!e.usuniety) { dane.usuniety = zm.usuniety; co.push(zm.usuniety ? 'usunięcie' : 'przywrócenie'); }
+  if (!co.length && zmierzone) co.push('potwierdzenie pomiarem');
+  const operacja = `${co.join(', ') || 'zmiana'} w aplikacji${zmierzone ? ' (zmierzone)' : ''}`;
+  const po = Object.fromEntries(Object.keys(dane).filter((k) => k !== 'wersja').map((k) => [k, dane[k]]));
+  return { dane, hist: { operacja, przed, po } };
 }
-// cofnięcie: przywraca położenie i wiarygodność sprzed zmiany (też jako nowa wersja – historia zostaje)
+export const zmianaPolozenia = (e, poz, opcje) => zmianaElementu(e, { polozenie: poz }, opcje);
+
+// cofnięcie: przywraca stan sprzed zmiany (też jako nowa wersja – historia zostaje)
 export function zmianaCofniecia(e, przed) {
-  return { dane: { polozenie: przed.polozenie, wiarygodnosc: przed.wiarygodnosc, wersja: (e.wersja || 0) + 1 },
-    hist: { operacja: 'cofnięcie zmiany w aplikacji', przed: { polozenie: e.polozenie, wiarygodnosc: e.wiarygodnosc || null }, po: przed } };
+  const dane = { wersja: (e.wersja || 0) + 1 };
+  for (const k of ['polozenie', 'wiarygodnosc', 'kod', 'typ', 'parametry', 'usuniety']) if (k in przed && przed[k] !== undefined) dane[k] = przed[k];
+  return { dane, hist: { operacja: 'cofnięcie zmiany w aplikacji', przed: stanElementu(e), po: przed } };
+}
+
+// nowy element dodany w aplikacji (bez pola „rysunek” – porównanie z plikiem go nie usuwa; ten sam ID w pliku = konflikt)
+export function nowyElement({ id, kod, x, yd, z, face, n = 1, pion = false, opis = '' }, { zmierzone = false, ktoNazwa = '', dzis = '' } = {}) {
+  const polozenie = { x: mm(x), yd: mm(yd), z: mm(z), face: face.map(mm) };
+  const dane = {
+    id, kategoria: 'elektryka', kod, typ: TYP_ELEMENTU[kod] || 'inny', opis,
+    polozenie, parametry: { n, pion, size: 8 }, stan: 'obecny', usuniety: false,
+    wiarygodnosc: wiarZRecznej(null, zmierzone, ktoNazwa, dzis), wersja: 1,
+  };
+  return { dane, hist: { operacja: `dodanie w aplikacji${zmierzone ? ' (zmierzone)' : ''}`, przed: null, po: { polozenie, kod, parametry: dane.parametry } } };
+}
+
+// następny wolny numer: kuchnia-Z07 po kuchnia-Z06 (liczą się też usunięte – identyfikatory się nie powtarzają)
+export function wolnyId(prefiks, zajete) {
+  let max = 0;
+  for (const id of zajete) {
+    if (!id.startsWith(prefiks)) continue;
+    const reszta = id.slice(prefiks.length);
+    if (/^\d+$/.test(reszta)) max = Math.max(max, Number(reszta));
+  }
+  return prefiks + String(max + 1).padStart(2, '0');
 }
 
 // zapis jednej zmiany elementu. Zmiana od razu trafia do kopii na urządzeniu (widok się odświeża),
@@ -242,3 +283,21 @@ export function zapiszZmiane(id, budujZmiane) {
   });
   return { przed: hist.przed, wyslano: b.commit() };
 }
+
+// zapis nowego elementu (wersja 1, autor) + wpis do historii
+export function utworzElement(budujNowy) {
+  const u = fb?.auth.currentUser;
+  if (!stan.aktywna || !stan.elementy) throw new Error('Wspólna baza nie jest jeszcze wczytana.');
+  if (!u) throw new Error('Zaloguj się ponownie.');
+  const kto = u.uid, ktoNazwa = (u.displayName || u.email || '').split(' ')[0];
+  const { dane, hist } = budujNowy({ ktoNazwa, dzis: new Date().toISOString().slice(0, 10) });
+  if (stan.elementy.has(dane.id)) throw new Error(`Identyfikator ${dane.id} jest już zajęty.`);
+  const teraz = fb.serverTimestamp();
+  const b = fb.writeBatch(fb.db);
+  b.set(fb.doc(fb.db, 'domy', fb.DOM_ID, 'elementy', dane.id), { ...dane, zmienil: kto, zmienilNazwa: ktoNazwa, zmieniono: teraz, utworzono: teraz });
+  b.set(fb.doc(fb.collection(fb.db, 'domy', fb.DOM_ID, 'historia')), {
+    kto, ktoNazwa, kiedy: teraz, element: dane.id, ...hist, opis: `${ktoNazwa}: ${hist.operacja} – ${dane.id}`,
+  });
+  return { id: dane.id, wyslano: b.commit() };
+}
+export const zajeteId = () => [...(stan.elementy?.keys() || [])];

@@ -301,6 +301,8 @@ js\budowa3d.js   – budowa modelu 3D (ta sama logika co skrypty\buduj_3d.py w B
 js\main.js       – widoki, warstwy, legenda, karta punktu, odświeżanie
 js\edytor.js     – „Przesuń punkt” (po zalogowaniu): przeciąganie po tej samej ścianie, liczby ±1/±5 cm,
                    „zmierzone miarką” = potwierdzona; zapis do bazy z wersją i historią, „Cofnij” przez 15 s
+                   + przeniesienie na inną ścianę (dotknięcie ściany w 3D), rodzaj, ramka (ile gniazd, pionowa),
+                   „Usuń punkt” (oznaczenie, z historią) i „+ Dodaj punkt” w panelu Warstwy → Elektryka
 js\sekcje.js     – menu oraz sekcje Instalacje, Ogrzewanie i Wyposażenie (z arkusza „MójDomek”)
 js\konto.js      – przycisk konta, panel ze stanem wspólnej bazy i przenoszeniem zmian z rysunku
 js\firebase.js   – połączenie z Firebase (logowanie, baza z kopią na urządzeniu)

@@ -583,6 +583,13 @@ body.tryb-techniczny .podwiersz.tylko-techniczny { display: block; }
 .edytor .ed-zmierzone { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 4px; font-size: var(--fs-male); }
 .edytor .ed-zmierzone input { width: 22px; height: 22px; flex: none; margin: 0; accent-color: var(--akcent); }
 .edytor .karta-akcje { grid-template-columns: 1fr 1fr; }
+.edytor .ed-rzad { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.edytor select { font-size: 16px; min-height: var(--dotyk, 40px); padding: 4px 8px; border: 1px solid var(--linia); border-radius: 8px; background: var(--tlo); color: var(--tekst); width: 100%; }
+.edytor .ed-sciana { width: 100%; min-height: var(--dotyk, 40px); margin: 2px 0 4px; font-weight: 600; }
+.edytor .ed-sciana[aria-pressed="true"] { background: var(--akcent-tlo); border-color: var(--akcent); color: var(--akcent); }
+.edytor .ed-wskazowka { margin: 6px 0; padding: 8px 10px; border-radius: 8px; border: 1px dashed var(--akcent); font-weight: 600; }
+.edytor .ed-usun { width: 100%; margin-top: 8px; min-height: var(--dotyk, 40px); color: var(--uwaga); border-color: var(--uwaga); background: transparent; }
+.dodaj-punkt { width: 100%; margin-top: 10px; min-height: var(--dotyk, 40px); font-weight: 600; border-style: dashed; }
 button.glowny { background: var(--akcent); border-color: var(--akcent); color: var(--akcent-na, #fff); }
 .karta-akcje .akcja-edycji { grid-column: 1 / -1; }
 button.glowny:disabled { opacity: .45; cursor: default; }
