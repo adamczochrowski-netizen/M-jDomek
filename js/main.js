@@ -25,6 +25,7 @@ const WARSTWY_BUDYNKU = [
   { k: 'belka', nazwa: 'Belka (kuchnia | salon)', wl: true },
   { k: 'meble', nazwa: 'Meble', wl: true },
   { k: 'sanitariaty', nazwa: 'Sanitariaty', wl: true },
+  { k: 'urzadzenia', nazwa: 'Pompa ciepła (na zewnątrz)', wl: true },
   { k: 'teren', nazwa: 'Teren (siatka co 1 m)', wl: true },
   { k: 'nazwy', nazwa: 'Nazwy pomieszczeń', wl: true },
 ];
@@ -35,7 +36,7 @@ const TRYBY = {
   instalacje: { opis: 'Elektryka i rury ogrzewania podłogowego (schemat).', wid: { ogrzewanie: true, sufity: false, meble: false } },
   techniczny: { opis: 'Wszystkie warstwy oraz informacje o plikach (wymiary.ini, obwody.json).', wid: { ogrzewanie: true, sufity: true, meble: true } },
 };
-const PODSTAWA_TRYBU = { sciany: true, okna: true, podlogi: true, belka: true, sanitariaty: true, teren: true, nazwy: true };
+const PODSTAWA_TRYBU = { sciany: true, okna: true, podlogi: true, belka: true, sanitariaty: true, urzadzenia: true, teren: true, nazwy: true };
 
 const $ = (s) => document.querySelector(s);
 const dotyk = matchMedia('(pointer: coarse)').matches;
@@ -441,6 +442,7 @@ function zbudujPanel() {
       if (!(M.furniture || []).length) { wylaczony = true; ile = 'wyłączone'; tytul = 'Włącz w wymiary.ini: [Meble] pokaż = tak, potem ODSWIEZ.bat'; }
     }
     if (w.k === 'sanitariaty') ile = String((M.sanitariaty || []).length);
+    if (w.k === 'urzadzenia') { wylaczony = !(M.urzadzenia || []).length; ile = wylaczony ? 'brak danych' : ''; }
     if (w.k === 'belka') { ile = String((M.belki || []).length); wylaczony = !(M.belki || []).length; }
     if (w.k === 'sufity') ile = `${A.ceilings.length} wys.`;
     if (w.k === 'ogrzewanie') {
@@ -450,6 +452,11 @@ function zbudujPanel() {
     }
     (w.k === 'ogrzewanie' ? $('#lista-ogrzewanie') : lb).append(wierszWarstwy(w.k, w.nazwa, { ile, wylaczony, tytul }));
     if (w.k === 'sciany') lb.append(suwakScian());
+    if (w.k === 'urzadzenia' && !wylaczony) {    // uczciwie: co zmierzone, co szacowane
+      const p = document.createElement('div'); p.className = 'podwiersz';
+      p.innerHTML = 'Miejsce zmierzone, wymiary z instrukcji Immergas, wysokość nad ziemią to szacunek. <span class="wiar wiar-prawd">prawdopodobna</span>';
+      lb.append(p);
+    }
     if (w.k === 'okna' && (M.doors || []).length) lb.append(przelacznikDrzwi());
     if (w.k === 'meble' && wylaczony) {       // podpowiedź techniczna – tylko w trybie „Techniczny”
       const p = document.createElement('div'); p.className = 'podwiersz tylko-techniczny'; p.textContent = 'Włączysz je w wymiary.ini: [Meble] pokaż = tak.'; lb.append(p);
