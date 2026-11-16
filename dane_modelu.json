@@ -380,7 +380,7 @@
     121.6
    ],
    "size3d": 24,
-   "sufit": 245.0
+   "sufit": 246.5
   },
   {
    "lines": [
@@ -395,7 +395,7 @@
     136.6
    ],
    "size3d": 24,
-   "sufit": 246.0
+   "sufit": 247.0
   },
   {
    "lines": [
@@ -425,7 +425,7 @@
     371.6
    ],
    "size3d": 24,
-   "sufit": 243.0
+   "sufit": 244.0
   },
   {
    "lines": [
@@ -440,7 +440,7 @@
     616.6
    ],
    "size3d": 24,
-   "sufit": 258.0
+   "sufit": 260.0
   },
   {
    "lines": [
@@ -455,7 +455,7 @@
     558.1
    ],
    "size3d": 24,
-   "sufit": 259.0
+   "sufit": 260.0
   },
   {
    "lines": [
@@ -470,7 +470,7 @@
     859.6
    ],
    "size3d": 24,
-   "sufit": 243.0
+   "sufit": 244.0
   },
   {
    "lines": [
@@ -486,7 +486,7 @@
     849.8
    ],
    "size3d": 16,
-   "sufit": 256.0
+   "sufit": 257.4
   }
  ],
  "items": [
@@ -1696,6 +1696,32 @@
    "zrodlo": "pomiar"
   }
  ],
+ "urzadzenia": [
+  {
+   "nazwa": "Pompa ciepła – jednostka zewnętrzna",
+   "typ": "box",
+   "x0": 750.3,
+   "x1": 795.3,
+   "yd0": 801.0,
+   "yd1": 911.0,
+   "z0": 10.0,
+   "z1": 85.0,
+   "mat": "pompa",
+   "zrodlo": "pomiar+szacunek"
+  },
+  {
+   "nazwa": "Pompa ciepła – wentylator",
+   "typ": "box",
+   "x0": 795.3,
+   "x1": 796.8,
+   "yd0": 848.0,
+   "yd1": 903.0,
+   "z0": 20.0,
+   "z1": 75.0,
+   "mat": "ciemny",
+   "zrodlo": "pomiar+szacunek"
+  }
+ ],
  "furniture": [],
  "sanitariaty": [
   {
@@ -1742,7 +1768,7 @@
    "yd0": 378.5,
    "yd1": 394.5,
    "z0": 249.0,
-   "z1": 259.0
+   "z1": 260.0
   }
  ],
  "kamery": [
