@@ -960,8 +960,8 @@ function htmlListaZaworow() {
 const BRAKI_KANALIZACJI = [
   { html: '<b>Odpływy</b> – zlew, zmywarka, umywalka, wanna, WC, pralka: gdzie wchodzą w ścianę lub podłogę.' },
   { html: '<b>Piony i rewizje</b> (otwory kontrolne) – gdzie są i jak się do nich dostać.' },
-  { html: '<b>Szambo</b> – przy końcu ściany domu (może lekko wystaje): przy której ścianie i narożniku, wielkość (Adam: chyba ok. 2 m – sprawdzić), pojemność.' },
-  { html: '<b>Rury do szamba</b> – głębokość wykopu (Adam: metr albo głębiej – sprawdzić w notatkach), średnica rur, którędy biegną od domu (rur kupionych/ułożonych razem: 36 m – Adam, 16.11.2026).' },
+  { html: '<b>Oczyszczalnia (szambo)</b> – prawdopodobnie Idmar 2000 l (Adam: „chyba ta”): potwierdzić model z faktury lub tabliczki; dokładne miejsce przy narożniku od strony Kuchni.' },
+  { html: '<b>Rury od oczyszczalni</b> – 2 nitki po ok. 18 m, 1 m od siebie (Adam); głębokość wykopu (metr albo głębiej – sprawdzić w notatkach), średnica rur; skąd do oczyszczalni wchodzi rura z domu.' },
 ];
 function htmlKanalizacja() {
   return `<section class="karta-strony">
