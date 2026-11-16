@@ -4,11 +4,11 @@
 // Biblioteki Firebase z gstatic mają wersję w adresie (niezmienne) – najpierw z pamięci.
 // Logowania i bazy (googleapis, firebaseapp) nie dotykamy – Firebase ma własną kopię danych na urządzeniu.
 // Awaryjnie: dopisz do adresu ?bezsw – strona wyrejestruje ten plik i wyczyści pamięć.
-const PAMIEC = 'mojdomek-v1';
+const PAMIEC = 'mojdomek-v2';
 const SZKIELET = [
   './', 'index.html', 'styl.css', 'manifest.webmanifest', 'obwody.json', 'dane_modelu.json',
   'js/main.js', 'js/sekcje.js', 'js/konto.js', 'js/motyw.js', 'js/status.js', 'js/ikony.js',
-  'js/analiza.js', 'js/budowa3d.js', 'js/firebase.js', 'js/dane/elementy.js',
+  'js/analiza.js', 'js/budowa3d.js', 'js/firebase.js', 'js/dane/elementy.js', 'js/edytor.js',
   'lib/three.module.min.js', 'lib/OrbitControls.js', 'ikony/ikona-192.png',
 ];
 
@@ -23,6 +23,11 @@ self.addEventListener('activate', (e) => {
     .then(() => self.clients.claim()));
 });
 
+// „najpierw sieć” z pominięciem pamięci przeglądarki (GitHub Pages pozwala trzymać pliki 10 min) – serwer
+// odpowiada krótko „bez zmian”, gdy plik jest ten sam, więc to nie kosztuje transferu, a nowa wersja jest od razu
+const swiezy = (r) => (r.mode === 'navigate'
+  ? fetch(r.url, { cache: 'no-cache', credentials: 'same-origin' }).then((o) => (o.redirected ? fetch(r) : o))
+  : fetch(r, { cache: 'no-cache' }));
 const zapamietaj = (r, o) => { if (o.ok && (o.type === 'basic' || o.type === 'cors')) { const k = o.clone(); caches.open(PAMIEC).then((c) => c.put(r, k)); } return o; };
 
 self.addEventListener('fetch', (e) => {
@@ -37,6 +42,6 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (!swoj && !arkusz) return;
-  e.respondWith(fetch(r).then((o) => zapamietaj(r, o)).catch(() =>
+  e.respondWith(swiezy(r).then((o) => zapamietaj(r, o)).catch(() =>
     caches.match(r, { ignoreSearch: swoj }).then((z) => z || (r.mode === 'navigate' ? caches.match('index.html') : Response.error()))));
 });
