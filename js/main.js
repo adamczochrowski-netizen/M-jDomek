@@ -649,6 +649,7 @@ canvas.addEventListener('pointerup', (e) => {
   start = null;
   if (ruch > 8 || czas > 600) return;
   const p = punktPod(e.clientX, e.clientY);
+  if (stan.zbieranie) { if (p) przelaczWZbieraniu(p); return; }
   if (p) wybierz(p);
   else if (document.body.classList.contains('panel-otwarty')) document.body.classList.remove('panel-otwarty');
   else zamknijKarte();
@@ -909,6 +910,36 @@ function obsluzAdres() {
   punktZAdresu();
   const m = /(pokoj|ogrzewanie)=([^&]+)/.exec(h);
   if (m && stan.A) pokazPokoj(decodeURIComponent(m[2]), m[1] === 'ogrzewanie');
+  const ob = /obwod=([^&]+)/.exec(h);
+  if (ob && stan.A) zacznijZbieranie(decodeURIComponent(ob[1])); else if (!ob && stan.zbieranie) zakonczZbieranie();
+  const mi = /miejsce=([^&]+)/.exec(h);
+  if (mi && stan.A) pokazMiejsce(decodeURIComponent(mi[1]));
+}
+// urządzenie na działce (#miejsce=Studnia, Złącze, Szambo, Pompa ciepła): jego warstwa włączona, rzut z góry na nie
+const normN = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
+const WARSTWA_MIEJSCA = [[/^studnia/, 'studnia'], [/^zlacze/, 'zlacze'], [/^szambo/, 'szambo']];
+function pokazMiejsce(prefiks) {
+  const lista = (stan.M?.urzadzenia || []).filter((f) => normN(f.nazwa).startsWith(normN(prefiks)));
+  if (!lista.length) { pokazKomunikat(`Nie ma „${prefiks}” na modelu`); return; }
+  const k = (WARSTWA_MIEJSCA.find(([re]) => re.test(normN(prefiks))) || [null, 'urzadzenia'])[1];
+  stan.wid[k] = true;
+  const i = document.querySelector(`#lista-budynek input[data-k="${k}"]`);
+  if (i) i.checked = true;
+  zastosujWidocznosc();
+  const x0 = Math.min(...lista.map((f) => f.x0)), x1 = Math.max(...lista.map((f) => f.x1));
+  const y0 = Math.min(...lista.map((f) => f.yd0)), y1 = Math.max(...lista.map((f) => f.yd1));
+  widokGora();
+  const cx = (x0 + x1) / 2, cz = (y0 + y1) / 2;
+  sterGora.target.set(cx, 0, cz);
+  kameraGora.position.set(cx, 3000, cz);
+  const szer = kameraGora.right - kameraGora.left, wys = kameraGora.top - kameraGora.bottom;
+  kameraGora.zoom = Math.max(0.3, Math.min(sterGora.maxZoom, szer / (x1 - x0 + 1400), wys / (y1 - y0 + 1400)));
+  kameraGora.updateProjectionMatrix();
+  kameraGora.lookAt(cx, 0, cz);
+  sterGora.update();
+  planujBanki(0);
+  render();
+  pokazKomunikat(prefiks + (lista.some((f) => f.z1 < 0) ? ' – część jest pod ziemią (wyłącz „Teren”, żeby ją zobaczyć)' : ''));
 }
 
 // nazwa z arkusza („Magda biuro”, „Pom. gospodarcze”, „hol”) -> pomieszczenie modelu
@@ -964,12 +995,18 @@ const podswietlenie = new THREE.Group();
 podswietlenie.renderOrder = 22;
 scene.add(podswietlenie);
 function punktyZAdresu() {
-  podswietlenie.children.slice().forEach((o) => { podswietlenie.remove(o); o.geometry.dispose(); o.material.dispose(); });
+  if (stan.zbieranie) return;                       // tryb sprawdzania obwodu sam rysuje podświetlenie
   const m = /punkty=([^&]+)/.exec(location.hash);
-  if (!m || !stan.A) { if (!stan.wybrany) przygasZnaczniki(false); render(); return; }
-  const ids = new Set(decodeURIComponent(m[1]).split(','));
-  const lista = stan.A.items.filter((p) => ids.has(p.id) && p.znacznik);
+  if (!m || !stan.A) { podswietlPunkty(null); return; }
+  const lista = podswietlPunkty(new Set(decodeURIComponent(m[1]).split(',')));
   if (!lista.length) { pokazKomunikat('Nie znalazłem tych punktów na modelu'); return; }
+  pokazKomunikat(`Podświetlone punkty: ${lista.length}`);
+}
+// podświetla punkty o podanych identyfikatorach (reszta przygasa); null/pusto = bez podświetlenia
+function podswietlPunkty(ids) {
+  podswietlenie.children.slice().forEach((o) => { podswietlenie.remove(o); o.geometry.dispose(); o.material.dispose(); });
+  const lista = ids && stan.A ? stan.A.items.filter((p) => ids.has(p.id) && p.znacznik) : [];
+  if (!lista.length) { if (!stan.wybrany) przygasZnaczniki(!!stan.zbieranie); render(); return lista; }
   const wg = new Map();
   for (const p of lista) { const k = p.typ + p.wiar; if (!wg.has(k)) wg.set(k, []); wg.get(k).push(p); }
   for (const [k, l] of wg) {
@@ -984,8 +1021,78 @@ function punktyZAdresu() {
   przygasZnaczniki(true);
   for (const t of new Set(lista.map((p) => p.typ))) stan.wid['el_' + t] = true;
   zastosujWidocznosc();
-  pokazKomunikat(`Podświetlone punkty: ${lista.length}`);
   render();
+  return lista;
+}
+
+// ---------------------------------------------------------------- sprawdzanie obwodu: #obwod=2.4
+// Wyłączasz bezpiecznik, chodzisz po domu i dotykasz na modelu punkty, które nie działają. Lista zapisuje się
+// w telefonie (można przerwać i wrócić); „Kopiuj listę” daje tekst do kolumny „Punkty” w karcie Rozdzielnica.
+const KLUCZ_OBWODOW = 'mojDomek.obwody.v1';
+const czytajObwody = () => { try { return JSON.parse(localStorage.getItem(KLUCZ_OBWODOW) || '{}'); } catch { return {}; } };
+function zapiszObwod() {
+  const z = stan.zbieranie;
+  if (!z) return;
+  const w = czytajObwody();
+  if (z.ids.size) w[z.nr] = [...z.ids]; else delete w[z.nr];
+  try { localStorage.setItem(KLUCZ_OBWODOW, JSON.stringify(w)); } catch { /* bez zapisu */ }
+}
+function zacznijZbieranie(nr) {
+  if (stan.zbieranie?.nr === nr) return;
+  zamknijKarte();
+  stan.zbieranie = { nr, ids: new Set(czytajObwody()[nr] || []) };
+  document.body.classList.add('zbieranie');
+  rysujPasekObwodu();
+  podswietlPunkty(stan.zbieranie.ids);
+  pokazKomunikat(`Wyłącznik ${nr}: dotykaj punkty, które nie działają`);
+}
+function zakonczZbieranie() {
+  if (!stan.zbieranie) return;
+  const nr = stan.zbieranie.nr;
+  stan.zbieranie = null;
+  document.body.classList.remove('zbieranie');
+  $('#obwod-pasek')?.remove();
+  podswietlPunkty(null);
+  przygasZnaczniki(false);
+  if (/obwod=/.test(location.hash)) location.hash = '#wyl=' + encodeURIComponent(nr);
+}
+function przelaczWZbieraniu(p) {
+  const z = stan.zbieranie;
+  if (z.ids.has(p.id)) z.ids.delete(p.id); else z.ids.add(p.id);
+  zapiszObwod();
+  podswietlPunkty(z.ids);
+  rysujPasekObwodu();
+}
+function rysujPasekObwodu() {
+  const z = stan.zbieranie;
+  let el = $('#obwod-pasek');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'obwod-pasek';
+    el.setAttribute('role', 'region');
+    el.setAttribute('aria-label', 'Sprawdzanie obwodu');
+    kontener.append(el);
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b || !stan.zbieranie) return;
+      if (b.dataset.ob === 'koniec') zakonczZbieranie();
+      if (b.dataset.ob === 'wyczysc' && confirm(`Wyczyścić listę punktów wyłącznika ${stan.zbieranie.nr}?`)) {
+        stan.zbieranie.ids.clear(); zapiszObwod(); podswietlPunkty(null); rysujPasekObwodu();
+      }
+      if (b.dataset.ob === 'kopiuj') kopiuj([...stan.zbieranie.ids].sort().join(', '), b, 'skopiowano ✓');
+    });
+  }
+  const ids = [...z.ids].sort();
+  el.innerHTML = `<div class="ob-tytul"><b>Wyłącznik ${esc(z.nr)}</b> – zaznaczone: ${ids.length}</div>
+    <div class="male">Wyłącz ten bezpiecznik i dotknij na modelu każdy punkt, który przestał działać (drugie dotknięcie odznacza).
+      Lista zostaje w tym telefonie.</div>
+    ${ids.length ? `<div class="ob-lista"><code>${ids.map(esc).join(', ')}</code></div>` : ''}
+    <div class="ob-przyciski">
+      <button type="button" data-ob="kopiuj" ${ids.length ? '' : 'disabled'}>Kopiuj listę</button>
+      <button type="button" data-ob="wyczysc" ${ids.length ? '' : 'disabled'}>Wyczyść</button>
+      <button type="button" data-ob="koniec" class="glowny">Gotowe</button>
+    </div>
+    ${ids.length ? '<div class="male">Skopiowaną listę wklej w arkuszu „MójDomek”, karta Rozdzielnica, kolumna Punkty – wtedy „pokaż te punkty na modelu” zadziała dla wszystkich.</div>' : ''}`;
 }
 
 // link do punktu: …/#punkt=kuchnia-Z06

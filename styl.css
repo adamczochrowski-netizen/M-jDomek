@@ -469,6 +469,17 @@ body.tryb-techniczny .podwiersz.tylko-techniczny { display: block; }
 .drzwi-przelacznik { margin: 4px 0 2px; }
 .drzwi-przelacznik button { min-width: 0; flex: 1 1 auto; padding-inline: 14px; }
 .uwaga { color: var(--uwaga); }
+/* Awaria */
+.menu a.menu-awaria { color: var(--uwaga); opacity: 1; font-weight: 650; }
+.menu a.menu-awaria.aktywny { color: var(--pasek-aktywny-tekst); }
+.kafelek.k-awaria { grid-column: 1 / -1; border-color: var(--uwaga); }
+.kafelek.k-awaria b { color: var(--uwaga); }
+.awaria-telefony { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px; }
+.awaria-telefony .tel { flex: 1 1 140px; display: flex; gap: 10px; align-items: center; min-height: 48px; padding: 6px 12px;
+  border: 1px solid var(--linia); border-radius: 10px; text-decoration: none; color: var(--tekst); }
+.awaria-telefony .tel b { font-size: 22px; color: var(--uwaga); }
+.awaria-telefony .tel span { font-size: var(--fs-male); color: var(--tekst2); }
+#sekcja-awaria .wiersz-fakt .tresc > div { line-height: 1.55; }
 .stopka button { width: 100%; }
 .stopka p { margin: 8px 0 0; }
 
@@ -669,3 +680,14 @@ html.plik .tylko-plik { display: flex; }
   #panel, .etykieta, #podpowiedz, details.grupa summary::before, .grupa-warstw > summary::before { transition: none; }
   .zawor.mignij, .szkielet-linia { animation: none; }
 }
+@media (max-width: 760px) {
+  #sekcja-awaria .wiersz-fakt { flex-direction: column; gap: 6px; }
+}
+/* sprawdzanie obwodu (#obwod=…) */
+#obwod-pasek { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 7; max-width: 520px; margin: 0 auto; padding: 10px 12px;
+  border-radius: 12px; background: var(--panel); color: var(--tekst); border: 2px solid var(--akcent); box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+#obwod-pasek .ob-tytul { font-size: var(--fs); margin-bottom: 2px; }
+#obwod-pasek .ob-lista { margin: 6px 0; max-height: 4.5em; overflow: auto; }
+#obwod-pasek .ob-przyciski { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 8px 0 4px; }
+#obwod-pasek button { min-height: 44px; font-weight: 600; }
+body.zbieranie #podpowiedz, body.zbieranie #karta { display: none; }

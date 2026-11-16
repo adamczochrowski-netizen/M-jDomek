@@ -29,7 +29,7 @@ const czytaj = (k, dom) => { try { return JSON.parse(localStorage.getItem(k) || 
 const zapisz = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* tryb prywatny */ } };
 
 // ====================================================================== menu
-const SEKCJE = ['start', 'widok', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
+const SEKCJE = ['start', 'awaria', 'widok', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
 const KLUCZ_SEKCJI = 'mojDomek.sekcja.v1';
 const naTelefonie = () => matchMedia('(max-width: 760px)').matches;
 const jakAplikacja = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -57,6 +57,7 @@ function pokazSekcje() {
   if (s === 'ogrzewanie') otworzPompe();
   if (s === 'instalacje') otworzInstalacje();
   if (s === 'braki') otworzBraki();
+  if (s === 'awaria') otworzAwarie();
 }
 
 // ====================================================================== arkusz: pobieranie, CSV
@@ -693,7 +694,8 @@ function htmlWylInfo(w, A) {
     ${w.pokoje ? `<div class="male">Pomieszczenia: ${esc(w.pokoje)}</div>` : ''}
     ${ids.length ? `<div class="pkt-lista" style="margin-top:6px">${ids.map((id) => htmlPunktId(id, A)).join('')}</div>
       <a class="link-model" href="#punkty=${ids.map(encodeURIComponent).join(',')}">pokaż te punkty na modelu</a>` : ''}
-    ${w.uwagi ? `<div class="male">${esc(w.uwagi)}</div>` : ''}`;
+    ${w.uwagi ? `<div class="male">${esc(w.uwagi)}</div>` : ''}
+    ${rodzajWyl(w).klasa === 'w-mcb' ? `<a class="link-model" href="#obwod=${encodeURIComponent(w.nr)}">sprawdź w domu, co zasila →</a>` : ''}`;
 }
 
 // ---------------------------------------------------------------- rysunek szafy (SVG) z danych arkusza
@@ -1046,6 +1048,93 @@ function rysujZmiany() {
 }
 window.addEventListener('mojdomek:baza', () => { if (document.body.dataset.sekcja === 'start') rysujZmiany(); });
 window.addEventListener('mojdomek:status', () => { if (document.body.dataset.sekcja === 'start') { const s = $('#start-stan'); if (s) s.textContent = podsumowanie().tekst; } });
+
+// ====================================================================== sekcja „Awaria” – gdzie co jest i co wyłącza
+// Tylko fakty z arkusza „MójDomek”, ze zdjęć i z modelu – bez instrukcji naprawy (te dopiero z instrukcji producentów).
+// Czego nie wiemy, jest oznaczone „do uzupełnienia”. Miejsca na zewnątrz: przycisk „pokaż na modelu” (#miejsce=…).
+async function otworzAwarie() {
+  rysujAwarie();
+  const brak = ['rozdzielnica', 'zawory', 'studnia', 'pompa'].filter((k) => !kartyCache[k]);
+  if (brak.length) {
+    await Promise.all(brak.map((k) => kartaDanych(k)));
+    if (kartyCache.pompa && !stanPompy.wczytano) { stanPompy.wiersze = kartyCache.pompa.brak ? null : kartyCache.pompa.wiersze; stanPompy.wczytano = true; }
+  }
+  rysujAwarie();
+}
+window.addEventListener('mojdomek:dane', () => { if (document.body.dataset.sekcja === 'awaria') rysujAwarie(); });
+const urzadzeniaModelu = () => window.mojDomek?.stan?.Mplik?.urzadzenia || window.mojDomek?.stan?.M?.urzadzenia || [];
+const naModelu = (prefiks) => urzadzeniaModelu().some((f) => norm(f.nazwa || '').startsWith(norm(prefiks)));
+const linkMiejsca = (prefiks) => (naModelu(prefiks)
+  ? `<a class="link-model" href="#miejsce=${encodeURIComponent(prefiks)}">pokaż na modelu</a>` : '');
+const doUzup = (t) => `<span class="do-uzup">do uzupełnienia</span> ${esc(t)}`;
+const wierszAw = (tytul, tresc, prawa = '') => `<div class="wiersz-fakt"><div class="tresc"><b>${tytul}</b><div>${tresc}</div></div>${prawa}</div>`;
+function rysujAwarie() {
+  const el = $('#awaria-tresc');
+  if (!el) return;
+  const wczytane = !!kartyCache.rozdzielnica;
+  const wyl = wylZArkusza();
+  const rodzaj = (w) => rodzajWyl(w).klasa;
+  const wylLink = (w) => `<a href="#wyl=${encodeURIComponent(w.nr)}">${esc(w.nr)}</a>`;
+  const tekstWyl = (w) => norm([w.opis, w.zasila, w.uwagi].join(' '));
+  const glowne = wyl.filter((w) => rodzaj(w) === 'w-glowny');
+  const rcd = wyl.filter((w) => rodzaj(w) === 'w-rcd');
+  const zwykle = wyl.filter((w) => rodzaj(w) === 'w-mcb');
+  const opisane = zwykle.filter((w) => !nieopisany(w)), nieop = zwykle.filter(nieopisany);
+  const pompaWody = zwykle.filter((w) => /silnik|studni|hydrofor|pompa wod|pompka/.test(tekstWyl(w)));
+  const pompaCiepla = zwykle.filter((w) => /pompa ciepla|immergas|\bpc\b/.test(tekstWyl(w)));
+  const zawory = (kartyCache.zawory?.wiersze || []).map(([id, pokoj, gdzie, co, rodz, wiar, uwagi]) => ({ id, pokoj, gdzie, co, rodz, wiar, uwagi }))
+    .filter((z) => z.id || z.co || z.gdzie);
+  const zawGlowne = zawory.filter((z) => /glown/.test(norm([z.id, z.co, z.gdzie, z.rodz, z.uwagi].join(' '))));
+  const kontakty = (stanPompy.wiersze || []).filter(([t]) => /kontakt|serwis|instalator/.test(norm(t)));
+  const czeka = (html) => (wczytane ? html : '<span class="male">Wczytywanie z arkusza…</span>');
+  const wylLista = (lista, pusto) => (lista.length ? lista.map((w) => `${wylLink(w)} <span class="male">${esc(rodzajWyl(w).skrot)}</span> – ${esc(w.zasila || w.opis)}${w.uwagi ? ` <span class="male">(${esc(w.uwagi)})</span>` : ''}`).join('<br>') : pusto);
+
+  el.innerHTML = `
+    <section class="karta-strony awaria-tel">
+      <p class="male">Gdzie co jest i co wyłącza. Instrukcji naprawy tu nie ma – tylko to, co sprawdzone w domu (arkusz, zdjęcia, model).</p>
+      <div class="awaria-telefony">
+        <a class="tel" href="tel:112"><b>112</b><span>numer alarmowy</span></a>
+        <a class="tel" href="tel:991"><b>991</b><span>pogotowie energetyczne</span></a>
+      </div>
+      ${kontakty.length ? `<div class="male">Z karty „Pompa ciepła”: ${kontakty.map(([t, tr]) => `<b>${esc(t)}</b>: ${esc(tr)}`).join(' · ')}</div>` : ''}
+    </section>
+
+    <section class="karta-strony" id="aw-prad">
+      <h3>⚡ Prąd</h3>
+      ${wierszAw('Złącze z licznikiem – na zewnątrz', `Szara skrzynka na ścianie salonu od strony tarasu, obok pomieszczenia gospodarczego.
+        W środku wyłącznik 3-fazowy (przed licznikiem – prawdopodobnie odcina cały dom). ${chipWiar('prawdopodobna (ze zdjęcia)')}
+        <br>${doUzup('prąd tego wyłącznika i dokładne miejsce skrzynki')}`, linkMiejsca('Złącze'))}
+      ${wierszAw('Rozdzielnica (szafa z bezpiecznikami) – w domu', czeka(`${doUzup('w którym pomieszczeniu wisi szafa')}
+        ${glowne.length ? `<br>Wyłącznik główny w szafie: ${wylLista(glowne, '')}` : ''}
+        ${rcd.length ? `<br>Różnicówka: ${wylLista(rcd, '')}` : ''}`), '<a class="link-model" href="#elektryka">rozdzielnica</a>')}
+      ${wierszAw(`Bezpieczniki – co zasilają${wczytane ? ` (${opisane.length} opisanych)` : ''}`, czeka(wylLista(opisane, 'Brak opisanych wyłączników.')
+        + (nieop.length ? `<br>${doUzup(`co zasilają: ${nieop.map((w) => w.nr).join(', ')}`)}` : '')))}
+    </section>
+
+    <section class="karta-strony" id="aw-woda">
+      <h3>💧 Woda</h3>
+      ${wierszAw('Studnia (hydrofor i pompka w środku)', `Przed wiatrołapem, ok. 4,3 m od frontu, pod przykryciem (kraty, folia).
+        Obudowa z bloczków, w środku niebieski zbiornik hydroforu i pompka. ${chipWiar('prawdopodobna')}`, linkMiejsca('Studnia'))}
+      ${wierszAw('Zasilanie pompy wody', czeka(pompaWody.length ? wylLista(pompaWody, '') + ` ${chipWiar('prawdopodobna (do potwierdzenia)')}` : doUzup('który bezpiecznik zasila pompę w studni')))}
+      ${wierszAw('Zawór główny wody', czeka(zawGlowne.length
+        ? zawGlowne.map((z) => `<b>${esc(z.id)}</b> – ${esc([z.pokoj, z.gdzie].filter(Boolean).join(', '))}${z.co ? ` · zamyka: ${esc(z.co)}` : ''} ${chipWiar(z.wiar)}`).join('<br>')
+        : doUzup('gdzie jest zawór główny (wejście wody ze studni)')),
+        `<a class="link-model" href="#hydraulika">zawory${zawory.length ? ` (${zawory.length})` : ''}</a>`)}
+    </section>
+
+    <section class="karta-strony" id="aw-cieplo">
+      <h3>🔥 Ogrzewanie</h3>
+      ${wierszAw('Pompa ciepła – jednostka zewnętrzna', `Immergas, na betonowej płycie przy ścianie od strony pomieszczenia gospodarczego. ${chipWiar('prawdopodobna')}`, linkMiejsca('Pompa ciepła'))}
+      ${wierszAw('Zasilanie pompy ciepła', czeka(pompaCiepla.length ? wylLista(pompaCiepla, '') : doUzup('który bezpiecznik zasila pompę ciepła')))}
+      ${wierszAw('Rozdzielacz ogrzewania podłogowego', `9 kurków – każdy to pętla rur jednego pomieszczenia. ${doUzup('gdzie stoi rozdzielacz')}`, '<a class="link-model" href="#ogrzewanie">kurki</a>')}
+    </section>
+
+    <section class="karta-strony" id="aw-scieki">
+      <h3>🚽 Ścieki</h3>
+      ${wierszAw('Oczyszczalnia ścieków', `Przy narożniku domu od strony kuchni: dwa włazy w ramce z kostki (duży od strony domu, mały od strony rur).
+        Prawdopodobnie Idmar 2000 l. ${chipWiar('prawdopodobna')}`, linkMiejsca('Szambo'))}
+    </section>`;
+}
 
 // ====================================================================== wyszukiwarka (plan GUI, pkt 10)
 // Szuka w pomieszczeniach, punktach (po ID i opisie), wyłącznikach, kurkach, zaworach, wyposażeniu i zakupach.
