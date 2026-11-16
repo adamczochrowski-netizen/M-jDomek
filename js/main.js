@@ -462,7 +462,7 @@ function zbudujPanel() {
     }
     if (w.k === 'studnia' && !wylaczony) {
       const p = document.createElement('div'); p.className = 'podwiersz';
-      p.innerHTML = 'Zmierzone 430 cm od frontu wiatrołapu. Położenie w bok (na wprost drzwi), wymiary ok. 150×150 i głębokość ok. 150 cm to szacunek. Komora jest pod ziemią – widać ją po wyłączeniu „Terenu”. <span class="wiar wiar-prawd">prawdopodobna</span>';
+      p.innerHTML = 'Zmierzone 430 cm od frontu wiatrołapu. Położenie w bok (na wprost drzwi), wymiary ok. 150×150, głębokość ok. 150 cm oraz miejsce włazu i rury (ze zdjęć) to szacunek. Komora jest pod ziemią – widać ją po wyłączeniu „Terenu”. <span class="wiar wiar-prawd">prawdopodobna</span>';
       lb.append(p);
     }
     if (w.k === 'okna' && (M.doors || []).length) lb.append(przelacznikDrzwi());
