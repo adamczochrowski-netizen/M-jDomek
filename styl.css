@@ -290,6 +290,7 @@ a { color: var(--akcent); }
 .kurek b { width: 40px; height: 40px; border-radius: 50%; background: var(--kurek); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.2); }
 .kurek span { font-size: var(--fs-plak); text-align: center; line-height: 1.25; min-height: 2.5em; }
 .kurek.pusty b { background: var(--kurek-pusty); }
+.kurek span em { display: block; width: max-content; margin: 3px auto 0; font-style: normal; }
 a.kurek:hover b, a.kurek:focus-visible b { outline: 3px solid var(--kurek-obrys); }
 a.kurek:focus-visible { outline: none; }
 

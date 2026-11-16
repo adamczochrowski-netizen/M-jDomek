@@ -469,11 +469,15 @@ function petleZArkusza() {
   return (kartyCache.petle?.wiersze || []).map(([nr, pokoj, uwagi]) => ({ nr: String(nr || '').trim(), pokoj: String(pokoj || '').trim(), uwagi: String(uwagi || '').trim() }))
     .filter((p) => p.nr);
 }
+// pomieszczenie wpisane, ale w Uwagach „do potwierdzenia” (np. „raczej sypialnia”) – pokazujemy to, nie udajemy pewności
+const petlaNiepewna = (p) => !!p.pokoj && RE_BRAK.test(p.uwagi);
 function brakiPetli() {
   if (!kartyCache.petle) return [];
   const petle = petleZArkusza(), bez = petle.filter((p) => !p.pokoj).map((p) => p.nr);
   if (!petle.length) return [{ html: '<b>Rozdzielacz</b> – lista pętli (kurków) i gdzie stoi rozdzielacz.' }];
-  return bez.length ? [{ html: `<b>Rozdzielacz</b> – które pomieszczenie grzeje kurek ${esc(bez.join(', '))}; gdzie stoi rozdzielacz.` }] : [];
+  const b = bez.length ? [{ html: `<b>Rozdzielacz</b> – które pomieszczenie grzeje kurek ${esc(bez.join(', '))}; gdzie stoi rozdzielacz.` }] : [];
+  for (const p of petle.filter(petlaNiepewna)) b.push({ html: `<b>Rozdzielacz, kurek ${esc(p.nr)}</b> (${esc(p.pokoj)}) – ${esc(zdanieBraku(p.uwagi))}` });
+  return b;
 }
 function brakiPompy() {
   if (!stanPompy.wczytano) return [];
@@ -488,18 +492,18 @@ function brakiPompy() {
 function htmlPetle() {
   const petle = petleZArkusza();
   const wgPokoju = new Map();
-  for (const p of petle) if (p.pokoj) { if (!wgPokoju.has(p.pokoj)) wgPokoju.set(p.pokoj, []); wgPokoju.get(p.pokoj).push(p.nr); }
-  const opisane = petle.filter((p) => p.pokoj).length;
+  for (const p of petle) if (p.pokoj) { if (!wgPokoju.has(p.pokoj)) wgPokoju.set(p.pokoj, []); wgPokoju.get(p.pokoj).push(p); }
+  const opisane = petle.filter((p) => p.pokoj).length, niepewne = petle.filter(petlaNiepewna).length;
   const braki = brakiPetli();
   return `<section class="karta-strony">
     <h3>Rozdzielacz ogrzewania podłogowego – kurki ${plakietkaBrakow(braki)}</h3>
     <p class="male">Każdy kurek to jedna pętla rur w podłodze. Kolejność od lewej, jak na rozdzielaczu.
-      ${opisane ? 'Dotknij kurka, żeby zobaczyć rury tego pomieszczenia na modelu.' : ''}${petle.length ? ` Opisane: ${opisane} z ${petle.length}.` : ''}</p>
+      ${opisane ? 'Dotknij kurka, żeby zobaczyć rury tego pomieszczenia na modelu.' : ''}${petle.length ? ` Opisane: ${opisane} z ${petle.length}${niepewne ? ` (${niepewne} do potwierdzenia)` : ''}.` : ''}</p>
     ${petle.length ? `<div class="rozdzielacz"><div class="rozdz-belka">${petle.map((p) => p.pokoj
-      ? `<a class="kurek" href="#ogrzewanie=${encodeURIComponent(p.pokoj)}" title="${esc(p.uwagi || p.pokoj)}"><b>${esc(p.nr)}</b><span>${esc(p.pokoj)}</span></a>`
+      ? `<a class="kurek" href="#ogrzewanie=${encodeURIComponent(p.pokoj)}" title="${esc(p.uwagi || p.pokoj)}"><b>${esc(p.nr)}</b><span>${esc(p.pokoj)}${petlaNiepewna(p) ? '<em class="wiar wiar-prawd" title="do potwierdzenia">do potw.</em>' : ''}</span></a>`
       : `<div class="kurek pusty" title="pomieszczenie jeszcze nieopisane"><b>${esc(p.nr)}</b><span>nieopisany</span></div>`).join('')}</div></div>` : ''}
-    ${wgPokoju.size ? `<div style="margin-top:10px">${[...wgPokoju].map(([pokoj, nry]) => `<div class="wiersz-fakt"><div class="tresc">
-      <b>${esc(pokoj)}</b> – ${nry.length > 1 ? 'kurki' : 'kurek'} ${nry.map(esc).join(', ')}</div>
+    ${wgPokoju.size ? `<div style="margin-top:10px">${[...wgPokoju].map(([pokoj, lp]) => `<div class="wiersz-fakt"><div class="tresc">
+      <b>${esc(pokoj)}</b> – ${lp.length > 1 ? 'kurki' : 'kurek'} ${lp.map((p) => esc(p.nr)).join(', ')}${lp.some(petlaNiepewna) ? ' <span class="wiar wiar-prawd">do potwierdzenia</span>' : ''}${lp.filter((p) => p.uwagi).map((p) => `<div class="male">${esc(p.nr)}: ${esc(p.uwagi)}</div>`).join('')}</div>
       <a class="link-model" href="#ogrzewanie=${encodeURIComponent(pokoj)}">pokaż rury</a></div>`).join('')}</div>` : ''}
     <p class="male">Rury na modelu to schemat (jak na zdjęciach z budowy), nie dokładny przebieg. ${chipWiar('niezweryfikowana')}</p>
     ${htmlBraki(braki)}
@@ -1054,7 +1058,7 @@ function zbudujIndeks() {
       hash: '#wyl=' + enc(x.nr), naModelu: ids.length ? '#punkty=' + ids.map(enc).join(',') : null,
       szukaj: [x.nr, x.opis, x.zasila, x.pokoje, 'wyłącznik bezpiecznik rozdzielnica'].join(' ') });
   }
-  for (const p of petleZArkusza()) w.push({ rodzaj: 'Kurek ogrzewania', ik: 'ogien', tytul: `Kurek ${p.nr}`, opis: p.pokoj || 'nieopisany',
+  for (const p of petleZArkusza()) w.push({ rodzaj: 'Kurek ogrzewania', ik: 'ogien', tytul: `Kurek ${p.nr}`, opis: p.pokoj ? p.pokoj + (petlaNiepewna(p) ? ' (do potwierdzenia)' : '') : 'nieopisany',
     hash: '#ogrzewanie', naModelu: p.pokoj ? '#ogrzewanie=' + enc(p.pokoj) : null, szukaj: ['kurek pętla ogrzewanie rozdzielacz', p.nr, p.pokoj, p.uwagi].join(' ') });
   for (const z of kartyCache.zawory?.wiersze || []) w.push({ rodzaj: 'Zawór', ik: 'kropla', tytul: String(z[0] || 'zawór'), opis: [z[3], z[1]].filter(Boolean).join(' · '),
     hash: '#hydraulika', naModelu: z[1] ? '#pokoj=' + enc(z[1]) : null, szukaj: ['zawór kurek woda', ...z].join(' ') });
