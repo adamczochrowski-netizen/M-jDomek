@@ -1710,6 +1710,30 @@
    "zrodlo": "pomiar+szacunek"
   },
   {
+   "nazwa": "Pompa ciepła – płyta",
+   "typ": "box",
+   "x0": 736.5999999999999,
+   "x1": 816.5999999999999,
+   "yd0": 790.25,
+   "yd1": 950.25,
+   "z0": -12.0,
+   "z1": 0.0,
+   "mat": "beton",
+   "zrodlo": "szacunek"
+  },
+  {
+   "nazwa": "Pompa ciepła – odpływ",
+   "typ": "cyl",
+   "x0": 771.0999999999999,
+   "x1": 782.0999999999999,
+   "yd0": 838.0833333333334,
+   "yd1": 849.0833333333334,
+   "z0": -10.0,
+   "z1": 3.0,
+   "mat": "rura_pvc",
+   "zrodlo": "szacunek"
+  },
+  {
    "nazwa": "Pompa ciepła – wentylator",
    "typ": "box",
    "x0": 802.9,

@@ -457,7 +457,7 @@ function zbudujPanel() {
     if (w.k === 'sciany') lb.append(suwakScian());
     if (w.k === 'urzadzenia' && !wylaczony) {    // uczciwie: co zmierzone, co szacowane
       const p = document.createElement('div'); p.className = 'podwiersz';
-      p.innerHTML = 'Miejsce zmierzone, wymiary z instrukcji Immergas, wysokość nad ziemią to szacunek. <span class="wiar wiar-prawd">prawdopodobna</span>';
+      p.innerHTML = 'Miejsce zmierzone, wymiary z instrukcji Immergas, wysokość nad ziemią to szacunek. Betonowa płyta pod pompą (80×160 cm) i odpływ skroplin – ze zdjęcia, szacunek. <span class="wiar wiar-prawd">prawdopodobna</span>';
       lb.append(p);
     }
     if (w.k === 'studnia' && !wylaczony) {
