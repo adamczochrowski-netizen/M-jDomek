@@ -203,3 +203,42 @@ export async function przeniesZRysunku() {
     stan.wysylanie = false; powiadom();
   }
 }
+
+// ---------------------------------------------------------------- zmiany z aplikacji (edytor)
+// zmiana położenia elementu: nowe x/yd/z na tej samej ścianie (face bez zmian), wersja +1, wpis do historii.
+// zmierzone = true → POTWIERDZONA (pomiar miarką), inaczej PRAWDOPODOBNA (przesunięte „na oko”)
+export function zmianaPolozenia(e, { x, yd, z }, { zmierzone = false, ktoNazwa = '', dzis = '' } = {}) {
+  const przed = { polozenie: e.polozenie, wiarygodnosc: e.wiarygodnosc || null };
+  const polozenie = { ...e.polozenie, x: mm(x), yd: mm(yd), z: mm(z) };
+  const wiarygodnosc = {
+    ...(e.wiarygodnosc || {}),
+    polozenie: zmierzone ? 'POTWIERDZONA' : 'PRAWDOPODOBNA',
+    zrodlo: zmierzone ? `pomiar miarką (${ktoNazwa || 'w aplikacji'})` : `przesunięte w aplikacji bez pomiaru (${ktoNazwa || '?'})`,
+    data: dzis,
+  };
+  return { dane: { polozenie, wiarygodnosc, wersja: (e.wersja || 0) + 1 },
+    hist: { operacja: zmierzone ? 'przesunięcie w aplikacji (zmierzone)' : 'przesunięcie w aplikacji', przed, po: { polozenie, wiarygodnosc } } };
+}
+// cofnięcie: przywraca położenie i wiarygodność sprzed zmiany (też jako nowa wersja – historia zostaje)
+export function zmianaCofniecia(e, przed) {
+  return { dane: { polozenie: przed.polozenie, wiarygodnosc: przed.wiarygodnosc, wersja: (e.wersja || 0) + 1 },
+    hist: { operacja: 'cofnięcie zmiany w aplikacji', przed: { polozenie: e.polozenie, wiarygodnosc: e.wiarygodnosc || null }, po: przed } };
+}
+
+// zapis jednej zmiany elementu. Zmiana od razu trafia do kopii na urządzeniu (widok się odświeża),
+// a obietnica `wyslano` kończy się po potwierdzeniu przez serwer – bez internetu czeka i wysyła się sama.
+export function zapiszZmiane(id, budujZmiane) {
+  const e = stan.elementy?.get(id);
+  const u = fb?.auth.currentUser;
+  if (!stan.aktywna || !e) throw new Error('Ten punkt nie jest jeszcze we wspólnej bazie.');
+  if (!u) throw new Error('Zaloguj się ponownie.');
+  const kto = u.uid, ktoNazwa = (u.displayName || u.email || '').split(' ')[0];
+  const { dane, hist } = budujZmiane(e, { ktoNazwa, dzis: new Date().toISOString().slice(0, 10) });
+  const teraz = fb.serverTimestamp();
+  const b = fb.writeBatch(fb.db);
+  b.update(fb.doc(fb.db, 'domy', fb.DOM_ID, 'elementy', id), { ...dane, zmienil: kto, zmienilNazwa: ktoNazwa, zmieniono: teraz });
+  b.set(fb.doc(fb.collection(fb.db, 'domy', fb.DOM_ID, 'historia')), {
+    kto, ktoNazwa, kiedy: teraz, element: id, ...hist, opis: `${ktoNazwa}: ${hist.operacja} – ${id}`,
+  });
+  return { przed: hist.przed, wyslano: b.commit() };
+}

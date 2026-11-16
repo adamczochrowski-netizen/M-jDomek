@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { elementZPunktu, punktZElementu, porownaj, rysunekPunktu } from '../js/dane/elementy.js';
+import { elementZPunktu, punktZElementu, porownaj, rysunekPunktu, zmianaPolozenia, zmianaCofniecia } from '../js/dane/elementy.js';
 
 const plik = ['../../skrypty/dane_modelu.json', '../dane_modelu.json'].map((p) => new URL(p, import.meta.url)).find((u) => existsSync(u));
 const PUNKTY = JSON.parse(readFileSync(plik, 'utf8')).items;
@@ -120,4 +120,34 @@ test('rysunekPunktu: wartości domyślne', () => {
   const r = rysunekPunktu({ type: 'Z', x: 1, yd: 2, z: 3, face: ['v', 1, 1] });
   assert.equal(r.n, 1); assert.equal(r.pion, false); assert.equal(r.opis, ''); assert.equal(r.size, 8);
   assert.equal('zrodlo' in r, false);
+});
+
+test('edytor: przesunięcie w aplikacji – wersja +1, ściana bez zmian, bez pomiaru PRAWDOPODOBNA', () => {
+  const baza = bazaZ(PUNKTY);
+  const e = baza.get(PUNKTY[0].id);
+  const { dane, hist } = zmianaPolozenia(e, { x: e.polozenie.x + 12.34, yd: e.polozenie.yd, z: 120 }, { ktoNazwa: 'Adam', dzis: '2026-11-16' });
+  assert.equal(dane.wersja, 2);
+  assert.deepEqual(dane.polozenie.face, e.polozenie.face);
+  assert.equal(dane.polozenie.x, Math.round((e.polozenie.x + 12.34) * 10) / 10);
+  assert.equal(dane.wiarygodnosc.polozenie, 'PRAWDOPODOBNA');
+  assert.deepEqual(hist.przed.polozenie, e.polozenie);
+  // po zapisie: rysunek bez zmian → punkt „zgodny”, nic do przeniesienia; zmiana rysunku → konflikt, nie nadpisanie
+  baza.set(e.id, { ...e, ...dane });
+  assert.equal(porownaj(PUNKTY, baza).doZapisu, 0);
+  const plik = kopia(PUNKTY); plik[0].z += 5;
+  const r = porownaj(plik, baza);
+  assert.deepEqual(r.konflikty.map((x) => x.id), [e.id]);
+  assert.equal(r.zmienione.length, 0);
+});
+
+test('edytor: „zmierzone miarką” daje POTWIERDZONA; cofnięcie przywraca stan jako nową wersję', () => {
+  const e = bazaZ(PUNKTY).get(PUNKTY[1].id);
+  const z1 = zmianaPolozenia(e, { x: e.polozenie.x, yd: e.polozenie.yd, z: 100 }, { zmierzone: true, ktoNazwa: 'Magda' });
+  assert.equal(z1.dane.wiarygodnosc.polozenie, 'POTWIERDZONA');
+  assert.match(z1.dane.wiarygodnosc.zrodlo, /Magda/);
+  const e2 = { ...e, ...z1.dane };
+  const c = zmianaCofniecia(e2, z1.hist.przed);
+  assert.equal(c.dane.wersja, 3);
+  assert.deepEqual(c.dane.polozenie, e.polozenie);
+  assert.deepEqual(c.dane.wiarygodnosc, e.wiarygodnosc);
 });

@@ -6,6 +6,7 @@ import { zbudujDom, zbudujSciany, materialy, teksturaWyboru, teksturaZnacznika, 
 import * as dane from './dane/elementy.js';
 import { WIAR_OPIS } from './ikony.js';
 import { ustawDane, ustawPunkty } from './status.js';
+import { utworzEdytor } from './edytor.js';
 
 // dane_modelu.json tworzy ODSWIEZ.bat (skrypty/generuj.py):
 //  - na komputerze (serwer.py) czytamy świeży plik ../skrypty/dane_modelu.json,
@@ -305,7 +306,7 @@ function przeliczBanki() {
     if (g.length > 1) grupy.push(g.map((k) => k.p));
   }
   for (const g of grupy) for (const p of g) p.wBance = true;
-  for (const p of stan.A.items) if (p.znacznikRef) pokazZnacznik(p, !p.wBance);
+  for (const p of stan.A.items) if (p.znacznikRef) pokazZnacznik(p, !p.wBance && !p.wEdycji);
   bankiEl.textContent = '';
   banki = grupy.map((punkty) => {
     const el = document.createElement('button');
@@ -643,7 +644,7 @@ canvas.addEventListener('pointerdown', (e) => {
   $('#podpowiedz').classList.add('schowana');
 });
 canvas.addEventListener('pointerup', (e) => {
-  if (!start) return;
+  if (!start || edytor.aktywny()) { start = null; return; }
   const ruch = Math.hypot(e.clientX - start.x, e.clientY - start.y), czas = performance.now() - start.t;
   start = null;
   if (ruch > 8 || czas > 600) return;
@@ -735,6 +736,7 @@ function pokazKarte(p) {
         <button type="button" data-akcja="rzut">Pokaż na rzucie</button>
         <button type="button" data-akcja="kopiuj">Kopiuj ID</button>
         <button type="button" data-akcja="link">Udostępnij link</button>
+        ${edytor.mozna(p) ? '<button type="button" data-akcja="przesun" class="akcja-edycji">Przesuń punkt</button>' : ''}
       </div>
       <p class="ostrzezenie">Część położeń pochodzi z rysunku i może odbiegać o ok. 10–15 cm. Przewody od puszki biegną zwykle w pionie lub poziomie – przed wierceniem w pobliżu sprawdź ścianę wykrywaczem.${stan.obw?.ogrzewanie_podlogowe ? `<br><b>Podłoga:</b> ${esc(stan.obw.ogrzewanie_podlogowe.uwagi || 'jest ogrzewanie podłogowe – nie wierć w posadzce.')}` : ''}</p>
     </div>`;
@@ -744,6 +746,29 @@ function pokazKarte(p) {
   k.querySelector('[data-akcja="kopiuj"]').addEventListener('click', (e) => kopiuj(p.id, e.currentTarget));
   k.querySelector('[data-akcja="rzut"]').addEventListener('click', () => pokazNaRzucie(p));
   k.querySelector('[data-akcja="link"]').addEventListener('click', (e) => udostepnij(p, T, e.currentTarget));
+  k.querySelector('[data-akcja="przesun"]')?.addEventListener('click', () => edytor.zacznij(p));
+}
+
+// edytor: przesuwanie punktu po ścianie i zapis do wspólnej bazy (js/edytor.js)
+const edytor = utworzEdytor({ THREE, canvas, kamera, sterowanie, stan, render, pokazKomunikat, wyborGeo, pokazZnacznik, planujBanki, esc, wybierz,
+  ikona: (p) => ikonaTypu(p.typ, p.wiar), widokNaPunkt });
+// kamera 3D przed ścianą z punktem (ok. 2,2 m od niej, lekko z góry); na komputerze punkt w widocznej części obok karty
+function widokNaPunkt(p) {
+  if (stan.tryb !== '3d') return;
+  stan.ujecie = null;
+  const c = p.znacznik, n = p.ax === 'v' ? new THREE.Vector3(p.s, 0, 0) : new THREE.Vector3(0, 0, p.s);
+  const telefon = matchMedia('(max-width: 760px)').matches, k = $('#karta');
+  // na komputerze cel przesunięty w prawo o pół szerokości karty (w przybliżeniu – w płaszczyźnie ściany)
+  const bok = new THREE.Vector3(0, 1, 0).cross(n).normalize();
+  const szer = 2 * 220 * Math.tan(THREE.MathUtils.degToRad(kamera3d.fov) / 2) * kamera3d.aspect;
+  const przes = !telefon && k && !k.hidden ? szer * ((k.offsetWidth + 24) / Math.max(1, kontener.clientWidth)) / 2 : 0;
+  // na telefonie karta zajmuje dół ekranu – patrzymy niżej, żeby punkt wypadł w górnej, odkrytej części
+  const wys = 2 * 220 * Math.tan(THREE.MathUtils.degToRad(kamera3d.fov) / 2);
+  const wDol = telefon && k && !k.hidden ? wys * (k.offsetHeight / Math.max(1, kontener.clientHeight)) / 2 : 0;
+  ster3d.target.copy(c).addScaledVector(bok, przes).add(new THREE.Vector3(0, -wDol, 0));   // w prawo od punktu → punkt na lewo od karty
+  kamera3d.position.copy(c).addScaledVector(n, 220).addScaledVector(bok, przes).add(new THREE.Vector3(0, 45 - wDol, 0));
+  ster3d.update();
+  render();
 }
 
 // rzut z góry przybliżony do punktu; na telefonie karta się chowa (dotknięcie punktu ją przywraca)
@@ -847,6 +872,7 @@ function zastosujDane(M, wersja, pierwszy) {
   stan.zrodloPunktow = zBazy ? 'baza' : 'plik';
   const Mw = zBazy ? { ...M, items: zBazy } : M;
   const A = analizuj(Mw);
+  edytor.przerwij();
   const wybranyId = stan.wybrany?.id;
   stan.M = Mw; stan.A = A; stan.wersjaDanych = wersja;
   zbudujScene();
