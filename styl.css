@@ -762,3 +762,30 @@ body.zbieranie #podpowiedz, body.zbieranie #karta { display: none; }
 .wstecz { display: inline-block; margin: 0 0 4px; padding: 6px 0; min-height: 32px; color: var(--akcent); text-decoration: none; font-weight: 600; }
 .kafelek.k-dom { border-color: var(--akcent); }
 .pasek .szukaj-przycisk { padding: 4px 10px; }
+/* „Dziś”, czerwona Awaria, braki w planie, znaczki pewności (17.11.2026) */
+.wiar.wiar-znak { min-width: 1.6em; padding: 1px 5px; text-align: center; font-weight: 800; cursor: help; }
+details.nota summary { cursor: pointer; list-style: none; display: flex; gap: 6px; align-items: center; color: var(--tekst2); }
+details.nota summary::-webkit-details-marker { display: none; }
+details.nota summary span:last-child { text-decoration: underline dotted; }
+details.nota > div { margin-top: 4px; }
+.dzis-awaria { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; padding: 14px 16px; border-radius: 12px; text-decoration: none;
+  background: #c92a2a; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.dzis-awaria b { font-size: 20px; }
+.dzis-awaria span { font-size: var(--fs-male); opacity: .92; }
+.dzis-awaria:focus-visible { outline: 3px solid var(--akcent); outline-offset: 2px; }
+.dzis-karta { margin-bottom: 12px; }
+.dzis-karta h3 { margin-top: 0; }
+.dzis-info { margin: 0 0 12px; }
+/* Awaria w menu: czerwony przycisk, nie zakładka */
+.menu a.menu-awaria { background: #c92a2a; color: #fff; opacity: 1; font-weight: 700; margin-left: 6px; }
+.menu a.menu-awaria:hover { background: #a61e1e; }
+.menu a.menu-awaria.aktywny { background: #a61e1e; color: #fff; box-shadow: inset 0 0 0 2px #fff; }
+.menu a.menu-awaria svg { fill: #fff; }
+@media (max-width: 760px) { .menu a.menu-awaria { margin-left: 4px; border-radius: 12px; } }
+.zad-braki { margin-top: 16px; }
+.zad-braki summary { cursor: pointer; font-weight: 650; min-height: 36px; display: flex; align-items: center; }
+.zad-braki-dzial { margin: 12px 0 6px; font-size: var(--fs-male); }
+.zad.brak { background: transparent; border-style: dashed; }
+.zad-brak-ikona { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800;
+  color: var(--uwaga); border: 2px dashed var(--uwaga); }
+.zad.brak .zad-akcje button { white-space: nowrap; font-size: var(--fs-male); padding: 0 10px; }

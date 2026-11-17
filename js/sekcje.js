@@ -2,7 +2,7 @@ import { TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
 import { ikonaTypu } from './ikony.js';
 import { stanBazy } from './dane/elementy.js';
 import { podsumowanie } from './status.js';
-import { otworzPlan } from './plan.js';
+import { otworzPlan, rysujDzis, ustawZrodloBrakow } from './plan.js';
 // Mój domek – menu (Widok / Instalacje / Ogrzewanie / Wyposażenie) i sekcje czytane z publicznego Arkusza Google „MójDomek”.
 // „MójDomek” sam pobiera (IMPORTRANGE) potrzebne kolumny z prywatnego arkusza „Domek Wirko”:
 // Wyposażenie w całości, Kupione bez kwot i bez „kto płacił”. Pompę, pętle, rozdzielnicę, zawory i studnię
@@ -32,12 +32,12 @@ const zapisz = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } c
 // ====================================================================== menu
 const SEKCJE = ['start', 'awaria', 'plan', 'widok', 'dom', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
 // działy schowane pod „Dom” – w menu podświetla się wtedy „Dom” (plan GUI, uproszczenie menu 17.11.2026)
-const W_DOMU = ['dom', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
+const W_DOMU = ['dom', 'instalacje', 'ogrzewanie', 'mamy'];
 const KLUCZ_SEKCJI = 'mojDomek.sekcja.v1';
 const naTelefonie = () => matchMedia('(max-width: 760px)').matches;
 const jakAplikacja = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 // stare i skrócone adresy: #pompa → Ogrzewanie, #elektryka / #hydraulika / #kanalizacja → Instalacje z podzakładką
-const ALIASY = { przeglady: 'plan', pompa: 'ogrzewanie', wyposazenie: 'mamy', elektryka: 'instalacje', hydraulika: 'instalacje', kanalizacja: 'instalacje' };
+const ALIASY = { przeglady: 'plan', braki: 'plan', pompa: 'ogrzewanie', wyposazenie: 'mamy', elektryka: 'instalacje', hydraulika: 'instalacje', kanalizacja: 'instalacje' };
 const PODZAKLADKI = ['elektryka', 'hydraulika', 'kanalizacja'];
 function sekcjaZAdresu() {
   const h = location.hash.replace(/^#/, '');
@@ -62,7 +62,7 @@ function pokazSekcje() {
   if (s === 'instalacje') otworzInstalacje();
   if (s === 'braki') otworzBraki();
   if (s === 'awaria') otworzAwarie();
-  if (s === 'plan') otworzPlan($('#plan-tresc'), location.hash === '#przeglady' ? 'przeglady' : null);
+  if (s === 'plan') otworzPlan($('#plan-tresc'), location.hash === '#przeglady' ? 'przeglady' : 'zadania', location.hash === '#braki');
 }
 
 // ====================================================================== arkusz: pobieranie, CSV
@@ -400,7 +400,11 @@ function chipWiar(tekst) {
   // PLANOWANE to nie stopień pewności, tylko stan (rozdz. 5) – osobny, fioletowy znaczek, żeby nie mylić z tym, co jest
   const [klasa, etyk] = n.startsWith('potw') ? ['wiar-potw', 'potwierdzona'] : n.startsWith('prawd') ? ['wiar-prawd', 'prawdopodobna']
     : n.startsWith('plan') ? ['wiar-plan', 'planowane'] : ['wiar-niezw', 'niezweryfikowana'];
-  return `<span class="wiar ${klasa}" title="${esc(tekst || 'brak informacji o źródle')}">${etyk}</span>`;
+  // w zwykłym przeglądaniu mały znaczek (✓ ≈ ?); pełny opis w podpowiedzi – „planowane” zostaje słowem (to stan, nie pewność)
+  const znak = { 'wiar-potw': '✓', 'wiar-prawd': '≈', 'wiar-niezw': '?' }[klasa];
+  const opis = esc(!tekst ? etyk : norm(tekst).startsWith(norm(etyk)) ? String(tekst).toLowerCase() : `${etyk} – ${tekst}`);
+  return znak ? `<span class="wiar ${klasa} wiar-znak" title="${opis}" aria-label="${opis}">${znak}</span>`
+    : `<span class="wiar ${klasa}" title="${opis}">${etyk}</span>`;
 }
 function zrodloWiar(tekst) {
   const m = /\(([^)]+)\)/.exec(tekst || '');
@@ -414,7 +418,7 @@ function htmlBraki(lista) {
   if (!lista.length) return '';
   return `<details class="braki"><summary>Do uzupełnienia (${lista.length})</summary>
     <ul class="checklista">${lista.map((b) => `<li>${b.html}</li>`).join('')}</ul>
-    <a class="link-model" href="#braki">Wszystko, co jest do uzupełnienia w domu →</a></details>`;
+    <a class="link-model" href="#braki">Wszystko do uzupełnienia – w Planie prac →</a></details>`;
 }
 const RE_BRAK = /\b(do potwierdzenia|do uzupełnienia)\b/i;
 const RE_BRAK_POCZ = /^\s*(do potwierdzenia|do uzupełnienia)\s*[:–-]?\s*/i;
@@ -595,7 +599,7 @@ function brakiRozdzielnicy() {
   if (!wyl.length) return [{ html: '<b>Rozdzielnica</b> – opisy wyłączników (ze zdjęcia skrzynki).' }];
   const b = [];
   const nieop = wyl.filter((w) => nieopisany(w) && !/ogranicznik|dehn|roznicow|rozlacznik|glowny/.test(norm(w.opis + ' ' + w.zasila))).map((w) => w.nr);
-  if (nieop.length) b.push({ html: `<b>Rozdzielnica</b> – co zasilają nieopisane wyłączniki: ${esc(nieop.join(', '))} (najlepiej ustalić z elektrykiem).` });
+  if (nieop.length) b.push({ html: `<b>Rozdzielnica</b> – co zasilają nieopisane wyłączniki: ${esc(nieop.join(', '))} (w aplikacji: przy wyłączniku „sprawdź w domu, co zasila”).` });
   const gn = wyl.filter((w) => /gniazd/.test(norm(w.zasila)) && !String(w.pokoje || '').trim()).map((w) => w.nr);
   if (gn.length) b.push({ html: `<b>Rozdzielnica</b> – które pomieszczenia są na wyłącznikach gniazdek ${esc(gn.join(', '))}.` });
   b.push({ html: '<b>Rozdzielnica</b> – w którym pomieszczeniu wisi szafa.' });
@@ -996,7 +1000,13 @@ async function otworzPompeCicho() {
   const r = await kartaDanych('pompa');
   stanPompy.wiersze = r.brak ? null : r.wiersze; stanPompy.blad = r.blad; stanPompy.wczytano = true;
 }
-// liczba braków (ekran startowy) – po wczytaniu kart arkusza
+// braki w opisie domu jako lista dla „Planu prac” (jedna lista zadań; 17.11.2026) – dział, link, tekst
+async function listaBrakow() {
+  await wczytajDoBrakow();
+  return DZIALY_BRAKOW.flatMap(([dzial, hash, f]) => f().map((b) => ({ dzial, hash, html: b.html })));
+}
+ustawZrodloBrakow(listaBrakow);
+// liczba braków – po wczytaniu kart arkusza
 export async function liczbaBrakow() {
   await wczytajDoBrakow();
   return DZIALY_BRAKOW.reduce((s, [, , f]) => s + f().length, 0);
@@ -1031,14 +1041,11 @@ function szkielet(n = 2, wTresci = false) {
 // ====================================================================== ekran startowy (plan GUI, pkt 9)
 // Kafelki prowadzą tylko do istniejących kart (bez własnych procedur awaryjnych – te dopiero z instrukcji producentów).
 async function otworzStart() {
+  rysujDzis($('#dzis'));
   const p = podsumowanie();
   const stanEl = $('#start-stan');
   if (stanEl) stanEl.textContent = p.tekst;
   rysujZmiany();
-  const n = $('#start-braki');
-  if (n && !n.textContent) {
-    try { const ile = await liczbaBrakow(); n.textContent = `(${ile})`; } catch { /* bez liczby */ }
-  }
 }
 // ostatnio zmienione elementy wspólnej bazy (tylko po zalogowaniu; odczyt, bez zapisu)
 function rysujZmiany() {

@@ -461,27 +461,22 @@ function zbudujPanel() {
     (w.k === 'ogrzewanie' ? $('#lista-ogrzewanie') : lb).append(wierszWarstwy(w.k, w.nazwa, { ile, wylaczony, tytul }));
     if (w.k === 'sciany') lb.append(suwakScian());
     if (w.k === 'urzadzenia' && !wylaczony) {    // uczciwie: co zmierzone, co szacowane
-      const p = document.createElement('div'); p.className = 'podwiersz';
-      p.innerHTML = 'Miejsce zmierzone, wymiary z instrukcji Immergas, wysokość nad ziemią to szacunek. Betonowa płyta pod pompą (80×160 cm) i odpływ skroplin – ze zdjęcia, szacunek. <span class="wiar wiar-prawd">prawdopodobna</span>';
-      lb.append(p);
+      lb.append(nota('Miejsce zmierzone, wymiary z instrukcji Immergas, wysokość nad ziemią to szacunek. Betonowa płyta pod pompą (80×160 cm) i odpływ skroplin – ze zdjęcia, szacunek.', 'wiar-prawd'));
     }
     // ocieplenie (dane_modelu.json → „ocieplenie”): pod „Podłogi” i „Sufity”, ze stopniem pewności
     const ocp = { podlogi: [M.ocieplenie?.podloga, 'Ocieplenie podłogi'], sufity: [M.ocieplenie?.strych, 'Ocieplenie strychu (nad sufitem)'] }[w.k];
     if (ocp?.[0]) {
       const o = ocp[0], p = document.createElement('div'); p.className = 'podwiersz';
-      p.innerHTML = `${esc(ocp[1])}: ${esc(o.material)} ${fmtLiczba(o.grubosc)} cm${o.uklad ? ` (${esc(o.uklad)})` : ''}. <span class="wiar ${/pomiar|potw/.test(o.zrodlo || '') ? 'wiar-potw">potwierdzona' : 'wiar-prawd">prawdopodobna'}</span>`;
-      p.title = 'Źródło: ' + (o.zrodlo || 'brak') + ' (Adam, 16.11.2026: „chyba”)';
+      const potw = /pomiar|potw/.test(o.zrodlo || '');
+      p.innerHTML = `${esc(ocp[1])}: ${esc(o.material)} ${fmtLiczba(o.grubosc)} cm ${znakWiar(potw ? 'potw' : 'prawd')}`;
+      p.title = `${o.uklad || ''} – źródło: ${o.zrodlo || 'brak'} (Adam, 16.11.2026: „chyba”)`;
       lb.append(p);
     }
     if (w.k === 'szambo' && !wylaczony) {
-      const p = document.createElement('div'); p.className = 'podwiersz';
-      p.innerHTML = 'Miejsce z zaznaczenia Adama (przy narożniku od strony Kuchni). Prawdopodobnie przydomowa oczyszczalnia Idmar 2000 l z polietylenu (Adam: „chyba ta”; w karcie produktu 240 cm szer., 160 cm wys.) – kształt i wymiary na modelu to szacunek. Dwa włazy w ramce z kostki – duży od strony domu, mały od strony rur (Adam); wielkość ze zdjęcia. Dwie rury po ok. 18 m (razem 36 m), 1 m od siebie, ok. 1 m pod ziemią – od Adama; łuk przy drzewie z jego rysunku. Zbiornik i rury są pod ziemią – widać go po wyłączeniu „Terenu”. <span class="wiar wiar-niezw">niezweryfikowana</span>';
-      lb.append(p);
+      lb.append(nota('Miejsce z zaznaczenia Adama (przy narożniku od strony Kuchni). Prawdopodobnie przydomowa oczyszczalnia Idmar 2000 l z polietylenu (Adam: „chyba ta”; w karcie produktu 240 cm szer., 160 cm wys.) – kształt i wymiary na modelu to szacunek. Dwa włazy w ramce z kostki – duży od strony domu, mały od strony rur (Adam); wielkość ze zdjęcia. Dwie rury po ok. 18 m (razem 36 m), 1 m od siebie, ok. 1 m pod ziemią – od Adama; łuk przy drzewie z jego rysunku. Zbiornik i rury są pod ziemią – widać go po wyłączeniu „Terenu”.', 'wiar-niezw'));
     }
     if (w.k === 'studnia' && !wylaczony) {
-      const p = document.createElement('div'); p.className = 'podwiersz';
-      p.innerHTML = 'Zmierzone 430 cm od frontu wiatrołapu. Położenie w bok (na wprost drzwi), wymiary ok. 150×150, głębokość ok. 150 cm oraz miejsce włazu i rury (ze zdjęć) to szacunek. W komorze hydrofor – rozmiar i miejsce ze zdjęcia (szacunek), pojemność do odczytania z tabliczki. Komora jest pod ziemią – widać ją po wyłączeniu „Terenu”. <span class="wiar wiar-prawd">prawdopodobna</span>';
-      lb.append(p);
+      lb.append(nota('Zmierzone 430 cm od frontu wiatrołapu. Położenie w bok (na wprost drzwi), wymiary ok. 150×150, głębokość ok. 150 cm oraz miejsce włazu i rury (ze zdjęć) to szacunek. W komorze hydrofor – rozmiar i miejsce ze zdjęcia (szacunek), pojemność do odczytania z tabliczki. Komora jest pod ziemią – widać ją po wyłączeniu „Terenu”.', 'wiar-prawd'));
     }
     if (w.k === 'okna' && (M.doors || []).length) lb.append(przelacznikDrzwi());
     if (w.k === 'meble' && wylaczony) {       // podpowiedź techniczna – tylko w trybie „Techniczny”
@@ -525,6 +520,20 @@ function zbudujPanel() {
 }
 
 // drzwi otwarte / zamknięte (prośba Adama, 16.11.2026) – bez przebudowy sceny, zapamiętywane
+// stopień pewności jako mały znaczek (✓ ≈ ?) – szczegóły w podpowiedzi albo po rozwinięciu (17.11.2026)
+const ZNAKI_WIAR = { potw: ['✓', 'potwierdzone'], prawd: ['≈', 'prawdopodobne – szacunek'], niezw: ['?', 'niezweryfikowane'] };
+function znakWiar(k) {
+  const [z, t] = ZNAKI_WIAR[k] || ZNAKI_WIAR.prawd;
+  return `<span class="wiar wiar-${k} wiar-znak" title="${t}" aria-label="${t}">${z}</span>`;
+}
+// opis szacunku pod warstwą: zwinięty – widać znaczek i „szczegóły”
+function nota(tekst, klasa) {
+  const d = document.createElement('details');
+  d.className = 'podwiersz nota';
+  d.innerHTML = `<summary>${znakWiar(klasa.replace('wiar-', ''))} <span>co jest zmierzone, a co szacowane</span></summary><div>${tekst}</div>`;
+  return d;
+}
+
 function przelacznikDrzwi() {
   const d = document.createElement('div');
   d.className = 'podwiersz';
