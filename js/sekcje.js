@@ -626,6 +626,25 @@ function htmlZlacza() {
       ${htmlBraki(BRAKI_ZLACZA)}
     </section>`;
 }
+// fotowoltaika i osobna rozdzielnica pompy ciepła (zdjęcia Adama 17.11.2026) – tylko to, co widać na zdjęciach
+const BRAKI_PV = [
+  { html: '<b>Fotowoltaika</b> – model i moc falownika (tabliczka z boku), ile paneli i jaka moc instalacji (kWp), od kiedy działa.' },
+  { html: '<b>Fotowoltaika</b> – czy pokrętło z boku skrzynki to rozłącznik DC.' },
+  { html: '<b>Rozdzielnica pompy ciepła</b> – co zasila każdy z wyłączników B20, B20, B16 i czym jest moduł 25 A; czy podlicznik mierzy wszystkie fazy.' },
+];
+function htmlFotowoltaiki() {
+  const el = (tytul, tresc) => `<div class="wiersz-fakt"><div class="tresc"><b>${tytul}</b><div class="male">${tresc}</div></div>${chipWiar('prawdopodobna (ze zdjęcia)')}</div>`;
+  return `
+    <section class="karta-strony">
+      <h3>Fotowoltaika i rozdzielnica pompy ciepła ${plakietkaBrakow(BRAKI_PV)}</h3>
+      <p class="male">W pomieszczeniu gospodarczym, na ścianie od domu (Adam). <a class="link-model" href="#miejsce=Fotowoltaika">pokaż na modelu</a></p>
+      ${el('Falownik (inwerter) FoxESS', 'Montował NexEnergy. Pod spodem przyłącza DC z paneli, moduł komunikacji (Wi-Fi/LAN) i wyjście AC.')}
+      ${el('Główny wyłącznik AC fotowoltaiki (skrzynka Noark)', 'Wyłącznik 3-biegunowy, ograniczniki przepięć AC (4×) i DC (3×) Projoy. Naklejka: „Instalacja fotowoltaiczna – zasilanie dwustronne”.')}
+      ${el('Mała rozdzielnica – najpewniej zasilanie pompy ciepła', 'Różnicówka Schneider iID 40 A / 30 mA (4-biegunowa), podlicznik F&F WZE-3, wyłączniki B20, B20, B16 i moduł F&F 25 A.')}
+      <p class="uwaga">„Zasilanie dwustronne”: przy włączonej fotowoltaice napięcie może być też od strony paneli i falownika – wyłączenie głównego wyłącznika domu tego nie odcina.</p>
+      ${htmlBraki(BRAKI_PV)}
+    </section>`;
+}
 const BRAKI_PUNKTOW = [
   { html: '<b>Trasy przewodów</b> – ze zdjęć ścian przed tynkiem (folder „Położenie kabli”: kuchnia, salon, sypialnia, biura); będą osobną warstwą modelu.' },
   { html: '<b>Puszki</b> rozgałęźne – gdzie są i co się w nich łączy.' },
@@ -644,7 +663,7 @@ function htmlElektryka() {
   const przelacznik = `<div class="przelacznik-widoku" role="group" aria-label="Widok rozdzielnicy">
       <button type="button" data-szafa="rysunek" class="${widok === 'rysunek' ? 'aktywny' : ''}" aria-pressed="${widok === 'rysunek'}">Rysunek</button>
       <button type="button" data-szafa="lista" class="${widok === 'lista' ? 'aktywny' : ''}" aria-pressed="${widok === 'lista'}">Lista</button></div>`;
-  return `${htmlZlacza()}
+  return `${htmlZlacza()}${htmlFotowoltaiki()}
     <section class="karta-strony">
       <h3>Rozdzielnica (skrzynka z bezpiecznikami) ${plakietkaBrakow(braki)}</h3>
       ${!kartyCache.rozdzielnica ? szkielet(1, true) : kartyCache.rozdzielnica.blad && !wyl.length ? htmlBladArkusza(kartyCache.rozdzielnica.blad) : wyl.length ? `${przelacznik}
@@ -985,7 +1004,7 @@ function htmlKanalizacja() {
 
 // ====================================================================== strona „Do uzupełnienia” – wszystkie braki domu w jednym miejscu
 const DZIALY_BRAKOW = [
-  ['Elektryka', '#elektryka', () => [...BRAKI_ZLACZA, ...brakiRozdzielnicy(), ...BRAKI_PUNKTOW]],
+  ['Elektryka', '#elektryka', () => [...BRAKI_ZLACZA, ...BRAKI_PV, ...brakiRozdzielnicy(), ...BRAKI_PUNKTOW]],
   ['Ogrzewanie', '#ogrzewanie', () => [...brakiPetli(), ...brakiPompy()]],
   ['Hydraulika', '#hydraulika', () => [...BRAKI_STUDNI, ...brakiZaworow()]],
   ['Kanalizacja', '#kanalizacja', () => BRAKI_KANALIZACJI],
@@ -1120,6 +1139,8 @@ function rysujAwarie() {
       ${wierszAw('Rozdzielnica (szafa z bezpiecznikami) – w domu', czeka(`${doUzup('w którym pomieszczeniu wisi szafa')}
         ${glowne.length ? `<br>Wyłącznik główny w szafie: ${wylLista(glowne, '')}` : ''}
         ${rcd.length ? `<br>Różnicówka: ${wylLista(rcd, '')}` : ''}`), '<a class="link-model" href="#elektryka">rozdzielnica</a>')}
+      ${wierszAw('Fotowoltaika – główny wyłącznik AC', `Skrzynka Noark w pomieszczeniu gospodarczym, na ścianie od domu, obok falownika FoxESS.
+        Naklejka „zasilanie dwustronne” – przy pracy paneli prąd może płynąć też od falownika. ${chipWiar('prawdopodobna (ze zdjęcia)')}`, linkMiejsca('Fotowoltaika'))}
       ${wierszAw(`Bezpieczniki – co zasilają${wczytane ? ` (${opisane.length} opisanych)` : ''}`, czeka(wylLista(opisane, 'Brak opisanych wyłączników.')
         + (nieop.length ? `<br>${doUzup(`co zasilają: ${nieop.map((w) => w.nr).join(', ')}`)}` : '')))}
     </section>
@@ -1138,7 +1159,10 @@ function rysujAwarie() {
     <section class="karta-strony" id="aw-cieplo">
       <h3>🔥 Ogrzewanie</h3>
       ${wierszAw('Pompa ciepła – jednostka zewnętrzna', `Immergas, na betonowej płycie przy ścianie od strony pomieszczenia gospodarczego. ${chipWiar('prawdopodobna')}`, linkMiejsca('Pompa ciepła'))}
-      ${wierszAw('Zasilanie pompy ciepła', czeka(pompaCiepla.length ? wylLista(pompaCiepla, '') : doUzup('który bezpiecznik zasila pompę ciepła')))}
+      ${wierszAw('Zasilanie pompy ciepła', `Osobna mała rozdzielnica w pomieszczeniu gospodarczym (ściana od domu): różnicówka 40 A / 30 mA, podlicznik,
+        wyłączniki B20, B20, B16 – najpewniej to zasilanie pompy. ${chipWiar('prawdopodobna (ze zdjęcia)')}
+        ${czeka(pompaCiepla.length ? '<br>W głównej rozdzielnicy: ' + wylLista(pompaCiepla, '') : '')}
+        <br>${doUzup('co zasila każdy z wyłączników B20, B20, B16')}`, linkMiejsca('Rozdzielnica pompy'))}
       ${wierszAw('Rozdzielacz ogrzewania podłogowego', `9 kurków – każdy to pętla rur jednego pomieszczenia. ${doUzup('gdzie stoi rozdzielacz')}`, '<a class="link-model" href="#ogrzewanie">kurki</a>')}
     </section>
 

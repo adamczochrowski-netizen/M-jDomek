@@ -1605,6 +1605,42 @@
    "zrodlo": "szacunek"
   },
   {
+   "nazwa": "Fotowoltaika – falownik FoxESS",
+   "typ": "box",
+   "x0": 534.8,
+   "x1": 579.8,
+   "yd0": 753.0,
+   "yd1": 773.0,
+   "z0": 115.0,
+   "z1": 175.0,
+   "mat": "urzadzenie",
+   "zrodlo": "szacunek"
+  },
+  {
+   "nazwa": "Fotowoltaika – wyłącznik AC i przepięciówki",
+   "typ": "box",
+   "x0": 602.3,
+   "x1": 642.3,
+   "yd0": 753.0,
+   "yd1": 768.0,
+   "z0": 115.0,
+   "z1": 150.0,
+   "mat": "urzadzenie",
+   "zrodlo": "szacunek"
+  },
+  {
+   "nazwa": "Rozdzielnica pompy ciepła (podlicznik)",
+   "typ": "box",
+   "x0": 527.3,
+   "x1": 567.3,
+   "yd0": 753.0,
+   "yd1": 765.0,
+   "z0": 80.0,
+   "z1": 105.0,
+   "mat": "urzadzenie",
+   "zrodlo": "szacunek"
+  },
+  {
    "nazwa": "Działka – siatka",
    "typ": "box",
    "x0": -25.0,
