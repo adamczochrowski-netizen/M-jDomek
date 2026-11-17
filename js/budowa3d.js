@@ -24,6 +24,7 @@ export function materialy() {
     teren: lambert(0x9fb48a),          // trawa i siatka – kolory z motywu (main.js: koloryTerenu)
     siatka: [0x7f9670, 0x8ea67e],
     belka: lambert(0x9e6634),
+    belkaSciana: lambert(0xeae7e0),     // belka obudowana w ścianie – kolor tynku, przycinana razem ze ścianami
     krawedzie: new THREE.LineBasicMaterial({ color: 0x4a4a4a, transparent: true, opacity: 0.45 }),
     meble: {
       'drewno': lambert(0xb38d61), 'biały': lambert(0xededeb), 'tkanina': lambert(0x737a85),
@@ -284,7 +285,7 @@ export function zbudujDom(M, A, mat, opcje = {}) {
 
   // belki
   for (const b of M.belki || []) {
-    const m = blokXY(b.x0, b.x1, b.yd0, b.yd1, b.z0 + POZIOM_PODLOGI, b.z1 + POZIOM_PODLOGI, mat.belka);
+    const m = blokXY(b.x0, b.x1, b.yd0, b.yd1, b.z0 + POZIOM_PODLOGI, b.z1 + POZIOM_PODLOGI, b.mat === 'sciana' ? mat.belkaSciana : mat.belka);
     m.userData.zaslania = true;
     grupa('belka').add(m);
   }

@@ -384,7 +384,7 @@ function zbudujScene() {
 // okna i drzwi przycinamy razem ze ścianami (płaszczyzna cięcia na wysokości ścian)
 const ciecie = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
 renderer.localClippingEnabled = true;
-for (const m of [mat.rama, mat.szklo, mat.drzwi, mat.drzwiZewn]) m.clippingPlanes = [ciecie];
+for (const m of [mat.rama, mat.szklo, mat.drzwi, mat.drzwiZewn, mat.belkaSciana]) m.clippingPlanes = [ciecie];
 function ustawCiecie() {
   ciecie.constant = stan.wysokoscScian != null && stan.A && stan.wysokoscScian < stan.A.zCeil
     ? stan.wysokoscScian + POZIOM_PODLOGI : 1e6;

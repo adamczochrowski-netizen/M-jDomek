@@ -1935,13 +1935,24 @@
  ],
  "belki": [
   {
-   "nazwa": "Belka (kuchnia | salon)",
+   "nazwa": "Belka w ścianie (obudowana)",
    "x0": 398.5,
+   "x1": 629.5,
+   "yd0": 370.5,
+   "yd1": 386.5,
+   "z0": 249.0,
+   "z1": 260.0,
+   "mat": "sciana"
+  },
+  {
+   "nazwa": "Belka (kuchnia | salon)",
+   "x0": 629.5,
    "x1": 985.5,
    "yd0": 370.5,
    "yd1": 386.5,
    "z0": 249.0,
-   "z1": 260.0
+   "z1": 260.0,
+   "mat": "drewno"
   }
  ],
  "kamery": [
