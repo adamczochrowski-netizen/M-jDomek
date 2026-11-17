@@ -4,6 +4,7 @@
 // Działy i ujednolicenie Adam ustali później – na razie prosta lista: status, dział, notatka, kolejność.
 import * as dane from './dane/elementy.js';
 import { ustawZapis } from './status.js';
+import { JEDNOSTKI, ZRODLA, MIESIACE, START_PRZEGLADOW, nastepnyTermin, stanTerminu, opisCzestosci, linkGoogle, plikIcs } from './przeglady.js';
 
 const STATUSY = ['do zrobienia', 'w toku', 'zrobione'];
 const DZIALY = ['Pomiary', 'Instalacje', 'Aplikacja', 'Dokumentacja', 'Dom', 'Inne'];
@@ -37,7 +38,7 @@ const START = [
   ['do zrobienia', 'Aplikacja', 'Test aplikacji na prawdziwym telefonie i dostęp Magdy', 'Magda: ponownie opublikować reguły bazy'],
 ];
 
-const stan = { edytowane: null, nowe: false, pokazZrobione: false, komunikat: '' };
+const stan = { edytowane: null, nowe: false, pokazZrobione: false, komunikat: '', zakladka: 'zadania' };
 let el = null, oczekujace = 0;
 
 const zadania = () => [...(dane.stanBazy().elementy?.values() || [])]
@@ -79,8 +80,9 @@ function nowy(pola) {
   } catch (err) { stan.komunikat = err.message; rysuj(); }
 }
 
-export function otworzPlan(element) {
+export function otworzPlan(element, zakladka) {
   el = element;
+  if (zakladka) stan.zakladka = zakladka;
   rysuj();
 }
 window.addEventListener('mojdomek:baza', () => { if (el && document.body.dataset.sekcja === 'plan') rysuj(); });
@@ -133,13 +135,19 @@ function rysuj() {
     return;
   }
   if (!b.elementy) { el.innerHTML = '<section class="karta-strony"><p class="male">Wczytywanie planu…</p></section>'; return; }
+  const pilne = przeglady().filter((p) => ['przeterminowane', 'ten-miesiac'].includes(stanTerminu(nastepnyTermin(p, dzis()), dzis()))).length;
+  const zakladki = `<div class="zakladki" role="tablist" aria-label="Plan">
+      <button type="button" role="tab" data-plan="tab" data-tab="zadania" aria-selected="${stan.zakladka === 'zadania'}" class="${stan.zakladka === 'zadania' ? 'aktywny' : ''}">Zadania</button>
+      <button type="button" role="tab" data-plan="tab" data-tab="przeglady" aria-selected="${stan.zakladka === 'przeglady'}" class="${stan.zakladka === 'przeglady' ? 'aktywny' : ''}">Przeglądy${pilne ? ` <span class="do-uzup">${pilne}</span>` : ''}</button>
+    </div>`;
+  if (stan.zakladka === 'przeglady') { el.innerHTML = zakladki + htmlPrzegladow(); podepnij(); return; }
   const wsz = zadania();
   const wToku = wsz.filter((z) => z.status === 'w toku');
   const doZr = wsz.filter((z) => z.status !== 'w toku' && z.status !== 'zrobione');
   const zrob = wsz.filter((z) => z.status === 'zrobione').sort((a, c) => String(c.zrobiono || '').localeCompare(String(a.zrobiono || '')));
   const lista = (l, tytul, klasa) => (l.length ? `<h3 class="zad-naglowek ${klasa}">${tytul} <span class="male">(${l.length})</span></h3>
     <ol class="zad-lista">${l.map((z, i) => wierszZadania(z, i, l)).join('')}</ol>` : '');
-  el.innerHTML = `
+  el.innerHTML = zakladki + `
     <section class="karta-strony plan">
       ${stan.komunikat ? `<p class="uwaga">${esc(stan.komunikat)}</p>` : ''}
       ${wsz.length ? `<div class="plan-postep" role="img" aria-label="Zrobione ${zrob.length} z ${wsz.length}">
@@ -191,10 +199,20 @@ function podepnij() {
         break;
       case 'start':
         wczytajStart(); break;
+      case 'tab': stan.zakladka = b.dataset.tab; stan.edytowane = null; stan.nowe = false; rysuj(); break;
+      case 'p-dzis':
+        zmien(id, { ostatnio: dzis() }, `przegląd zrobiony ${dzis()}`); break;
+      case 'p-ics': pobierzIcs(z); break;
+      case 'p-usun':
+        if (confirm(`Usunąć „${z.nazwa}”? Zostanie w historii bazy.`)) { stan.edytowane = null; zmien(id, { usuniety: true }, 'przegląd usunięty'); }
+        break;
+      case 'p-start': wczytajPrzeglady(); break;
       default:
     }
   };
   el.onsubmit = (e) => {
+    const fp = e.target.closest('[data-przeglad-form]');
+    if (fp) { e.preventDefault(); zapiszPrzeglad(fp); return; }
     const f = e.target.closest('[data-plan-form]');
     if (!f) return;
     e.preventDefault();
@@ -224,4 +242,113 @@ function wczytajStart() {
     })));
     sledz(w, 'lista startowa planu');
   } catch (err) { stan.komunikat = err.message; rysuj(); }
+}
+
+// ====================================================================== Przeglądy (js/przeglady.js – terminy i kalendarz)
+const przeglady = () => [...(dane.stanBazy().elementy?.values() || [])]
+  .filter((e) => e.kategoria === 'przeglad' && !e.usuniety);
+const dataPl = (iso) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('pl-PL') : '—');
+const ETYK_TERMINU = { przeterminowane: 'po terminie', 'ten-miesiac': 'w tym miesiącu', pozniej: '', brak: 'brak daty' };
+
+function htmlPrzegladow() {
+  const d = dzis();
+  const lista = przeglady().map((p) => ({ p, nast: nastepnyTermin(p, d) }))
+    .map((x) => ({ ...x, st: stanTerminu(x.nast, d) }))
+    .sort((a, c) => (a.nast || '9999').localeCompare(c.nast || '9999') || String(a.p.nazwa).localeCompare(String(c.p.nazwa)));
+  const ile = (st) => lista.filter((x) => x.st === st).length;
+  const [po, ten, brak] = [ile('przeterminowane'), ile('ten-miesiac'), ile('brak')];
+  const wiersz = ({ p, nast, st }) => {
+    if (stan.edytowane === p.id) return `<li class="zad edytowane" data-id="${esc(p.id)}">${formPrzegladu(p)}</li>`;
+    const start = nast && nast >= d ? nast : d;
+    return `<li class="prz t-${st}" data-id="${esc(p.id)}">
+      <div class="prz-gora">
+        <div><div class="zad-tytul">${esc(p.nazwa)}</div>
+          <div class="zad-meta">${p.urzadzenie ? (p.link ? `<a href="${esc(p.link)}">${esc(p.urzadzenie)}</a>` : `<span>${esc(p.urzadzenie)}</span>`) : ''}</div></div>
+        ${ETYK_TERMINU[st] ? `<span class="prz-stan">${ETYK_TERMINU[st]}</span>` : ''}
+      </div>
+      <div class="prz-terminy">${esc(opisCzestosci(p))} · ostatnio: <b>${dataPl(p.ostatnio)}</b> · następny: <b>${nast ? dataPl(nast) : 'po wpisaniu „ostatnio”'}</b></div>
+      <div class="zad-meta"><span class="wiar ${/instrukcj|gwarancj/.test(p.zrodlo || '') ? 'wiar-potw' : 'wiar-prawd'}">${esc(p.zrodlo || ZRODLA[0])}</span>
+        ${p.notatka ? `<span class="male">${esc(p.notatka)}</span>` : ''}</div>
+      <div class="prz-akcje">
+        <button type="button" class="glowny" data-plan="p-dzis">Zrobione dziś</button>
+        <a class="przycisk" href="${esc(linkGoogle(p, start))}" target="_blank" rel="noopener">Kalendarz Google</a>
+        <button type="button" data-plan="p-ics" title="Plik do Kalendarza na iPhonie i innych kalendarzy">Do kalendarza (.ics)</button>
+        <button type="button" data-plan="edytuj" aria-label="Edytuj">✎</button>
+      </div>
+    </li>`;
+  };
+  return `<section class="karta-strony plan">
+    ${stan.komunikat ? `<p class="uwaga">${esc(stan.komunikat)}</p>` : ''}
+    ${lista.length ? `<div class="prz-podsumowanie">
+        <span class="prz-licz t-przeterminowane">Po terminie: <b>${po}</b></span>
+        <span class="prz-licz t-ten-miesiac">W tym miesiącu: <b>${ten}</b></span>
+        ${brak ? `<span class="prz-licz t-brak">Bez daty „ostatnio”: <b>${brak}</b></span>` : ''}
+      </div>` : ''}
+    ${stan.nowe ? formPrzegladu(null) : '<button type="button" class="plan-dodaj" data-plan="nowe">+ Dodaj przegląd / czynność</button>'}
+    ${lista.length ? `<ol class="zad-lista">${lista.map(wiersz).join('')}</ol>` : `<p>Nie ma jeszcze przeglądów. Możesz dodać je po jednym albo wczytać
+      listę startową (${START_PRZEGLADOW.length}: oczyszczalnia, woda i hydrofor, pompa ciepła, ogrzewanie podłogowe, elektryka, czujniki).
+      Częstotliwości są orientacyjne – oznaczone „szacunek – do sprawdzenia w instrukcji”.</p>
+      <button type="button" class="glowny" data-plan="p-start">Wczytaj przeglądy startowe (${START_PRZEGLADOW.length})</button>`}
+    <p class="male">„Zrobione dziś” zapisuje datę i liczy następny termin. „Kalendarz Google” albo „Do kalendarza (.ics)” dodaje powtarzające się
+      wydarzenie z przypomnieniem – telefon przypomni sam. Po zmianie częstotliwości dodaj wydarzenie jeszcze raz (stare usuń w kalendarzu).</p>
+  </section>`;
+}
+
+function formPrzegladu(p) {
+  const jedn = p?.jedn || 'mies';
+  return `<form class="zad-form" data-przeglad-form="${p ? esc(p.id) : 'nowe'}">
+    <label><span>Co zrobić</span><input name="nazwa" required maxlength="200" value="${esc(p?.nazwa || '')}" placeholder="np. wymiana filtra wody"></label>
+    <label><span>Urządzenie</span><input name="urzadzenie" maxlength="200" value="${esc(p?.urzadzenie || '')}" placeholder="np. hydrofor w studni"></label>
+    <div class="zad-form-rzad">
+      <label><span>Co ile</span><input name="co" type="number" min="1" max="999" inputmode="numeric" value="${esc(p?.co ?? 12)}"></label>
+      <label><span>Jednostka</span><select name="jedn">${Object.entries(JEDNOSTKI).map(([k, f]) => `<option value="${k}" ${k === jedn ? 'selected' : ''}>${f[2]}</option>`).join('')}</select></label>
+    </div>
+    <div class="zad-form-rzad">
+      <label><span>Albo co roku w miesiącu</span><select name="miesiac"><option value="">—</option>${MIESIACE.map((m, i) => `<option value="${i + 1}" ${Number(p?.miesiac) === i + 1 ? 'selected' : ''}>${m}</option>`).join('')}</select></label>
+      <label><span>Ostatnio zrobione</span><input name="ostatnio" type="date" value="${esc(p?.ostatnio || '')}"></label>
+    </div>
+    <label><span>Skąd częstotliwość</span><select name="zrodlo">${ZRODLA.map((z) => `<option ${z === (p?.zrodlo || ZRODLA[0]) ? 'selected' : ''}>${esc(z)}</option>`).join('')}</select></label>
+    <label><span>Notatka</span><input name="notatka" maxlength="500" value="${esc(p?.notatka || '')}" placeholder="opcjonalnie"></label>
+    <div class="zad-form-przyciski">
+      <button type="submit" class="glowny">${p ? 'Zapisz' : 'Dodaj'}</button>
+      <button type="button" data-plan="anuluj">Anuluj</button>
+      ${p ? '<button type="button" data-plan="p-usun" class="zad-usun">Usuń</button>' : ''}
+    </div>
+  </form>`;
+}
+
+function zapiszPrzeglad(f) {
+  const d = Object.fromEntries(new FormData(f));
+  const nazwa = String(d.nazwa || '').trim();
+  if (!nazwa) return;
+  const pola = { nazwa, urzadzenie: String(d.urzadzenie || '').trim(), co: Math.max(1, Number(d.co) || 1), jedn: d.jedn || 'mies',
+    miesiac: d.miesiac ? Number(d.miesiac) : null, ostatnio: d.ostatnio || null, zrodlo: d.zrodlo || ZRODLA[0], notatka: String(d.notatka || '').trim() };
+  stan.nowe = false; stan.edytowane = null;
+  if (f.dataset.przegladForm !== 'nowe') { zmien(f.dataset.przegladForm, pola, 'przegląd: edycja'); return; }
+  const id = dane.wolnyId('przeglad-', dane.zajeteId(), 3);
+  try {
+    sledz(dane.utworzElement(() => ({ dane: { id, kategoria: 'przeglad', link: '', usuniety: false, ...pola, wersja: 1 },
+      hist: { operacja: 'nowy przegląd', przed: null, po: pola } })), 'nowy przegląd');
+  } catch (err) { stan.komunikat = err.message; rysuj(); }
+}
+
+function wczytajPrzeglady() {
+  if (przeglady().length) return;
+  try {
+    sledz(dane.utworzWiele(START_PRZEGLADOW.map(([nazwa, urzadzenie, link, co, jedn, miesiac, notatka], i) => ({
+      dane: { id: 'przeglad-' + String(i + 1).padStart(3, '0'), kategoria: 'przeglad', nazwa, urzadzenie, link, co, jedn,
+        miesiac: miesiac || null, ostatnio: null, zrodlo: ZRODLA[0], notatka, usuniety: false, wersja: 1 },
+      hist: { operacja: 'przeglądy startowe', przed: null, po: { nazwa, co, jedn } },
+    }))), 'przeglądy startowe');
+  } catch (err) { stan.komunikat = err.message; rysuj(); }
+}
+
+function pobierzIcs(p) {
+  const d = dzis(), nast = nastepnyTermin(p, d);
+  const blob = new Blob([plikIcs(p, nast && nast >= d ? nast : d)], { type: 'text/calendar;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${String(p.nazwa).replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 50)}.ics`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
