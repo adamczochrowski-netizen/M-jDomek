@@ -8,7 +8,7 @@ const PAMIEC = 'mojdomek-v2';
 const SZKIELET = [
   './', 'index.html', 'styl.css', 'manifest.webmanifest', 'obwody.json', 'dane_modelu.json',
   'js/main.js', 'js/sekcje.js', 'js/konto.js', 'js/motyw.js', 'js/status.js', 'js/ikony.js',
-  'js/analiza.js', 'js/budowa3d.js', 'js/firebase.js', 'js/dane/elementy.js', 'js/edytor.js',
+  'js/analiza.js', 'js/budowa3d.js', 'js/firebase.js', 'js/dane/elementy.js', 'js/edytor.js', 'js/plan.js',
   'lib/three.module.min.js', 'lib/OrbitControls.js', 'ikony/ikona-192.png',
 ];
 

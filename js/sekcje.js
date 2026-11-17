@@ -2,6 +2,7 @@ import { TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
 import { ikonaTypu } from './ikony.js';
 import { stanBazy } from './dane/elementy.js';
 import { podsumowanie } from './status.js';
+import { otworzPlan } from './plan.js';
 // Mój domek – menu (Widok / Instalacje / Ogrzewanie / Wyposażenie) i sekcje czytane z publicznego Arkusza Google „MójDomek”.
 // „MójDomek” sam pobiera (IMPORTRANGE) potrzebne kolumny z prywatnego arkusza „Domek Wirko”:
 // Wyposażenie w całości, Kupione bez kwot i bez „kto płacił”. Pompę, pętle, rozdzielnicę, zawory i studnię
@@ -29,7 +30,7 @@ const czytaj = (k, dom) => { try { return JSON.parse(localStorage.getItem(k) || 
 const zapisz = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* tryb prywatny */ } };
 
 // ====================================================================== menu
-const SEKCJE = ['start', 'awaria', 'widok', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
+const SEKCJE = ['start', 'awaria', 'plan', 'widok', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
 const KLUCZ_SEKCJI = 'mojDomek.sekcja.v1';
 const naTelefonie = () => matchMedia('(max-width: 760px)').matches;
 const jakAplikacja = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -58,6 +59,7 @@ function pokazSekcje() {
   if (s === 'instalacje') otworzInstalacje();
   if (s === 'braki') otworzBraki();
   if (s === 'awaria') otworzAwarie();
+  if (s === 'plan') otworzPlan($('#plan-tresc'));
 }
 
 // ====================================================================== arkusz: pobieranie, CSV
@@ -1042,7 +1044,8 @@ function rysujZmiany() {
   if (!el || !b.elementy) return;
   const lista = [...b.elementy.values()].filter((e) => e.zmieniono?.toDate)
     .sort((x, y) => y.zmieniono.toMillis() - x.zmieniono.toMillis()).slice(0, 5);
-  el.innerHTML = lista.length ? `<ul>${lista.map((e) => `<li><a href="#punkt=${encodeURIComponent(e.id)}">${esc(e.id)}</a>
+  el.innerHTML = lista.length ? `<ul>${lista.map((e) => `<li>${e.kategoria === 'zadanie' ? `<a href="#plan">plan: ${esc(e.tytul || e.id)}</a>`
+    : `<a href="#punkt=${encodeURIComponent(e.id)}">${esc(e.id)}</a>`}
     – ${esc(e.zmienilNazwa || '')}, ${e.zmieniono.toDate().toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}${e.usuniety ? ' (usunięty)' : ''}</li>`).join('')}</ul>`
     : 'Brak zmian w bazie.';
 }

@@ -62,14 +62,14 @@ const godz = (d) => (d ? d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute
 function htmlBazy() {
   const b = dane.stanBazy(), r = b.roznice;
   let h = '<div class="k-baza"><h4>Wspólne dane domu</h4>';
-  const ileWBazie = b.elementy ? [...b.elementy.values()].filter((e) => !e.usuniety).length : 0;
+  const ileWBazie = b.elementy ? [...b.elementy.values()].filter((e) => !e.usuniety && e.kategoria === 'elektryka').length : 0;
   if (b.blad) h += `<p class="uwaga">Baza: ${esc(b.blad)}</p>`;
   else if (!b.elementy) h += '<p class="male">Wczytywanie danych z bazy…</p>';
   else if (ileWBazie) h += `<p>Punkty elektryczne z bazy: <b>${ileWBazie}</b><br><span class="male">${b.zKopii
     ? 'kopia na tym urządzeniu (bez potwierdzenia serwera)' : 'zsynchronizowano ' + godz(b.czas)}</span></p>`;
   else h += '<p>W bazie nie ma jeszcze punktów – widok pokazuje punkty z rysunku (plik).</p>';
   if (r && (r.doZapisu || r.konflikty.length)) {
-    const pierwszy = !b.elementy.size;
+    const pierwszy = ![...b.elementy.values()].some((e) => e.kategoria === 'elektryka');
     const czesci = [[r.nowe, ['nowy', 'nowe', 'nowych']], [r.zmienione, ['zmieniony', 'zmienione', 'zmienionych']],
       [r.przywrocone, ['wrócił na rysunek', 'wróciły na rysunek', 'wróciło na rysunek']],
       [r.usuniete, ['zniknął z rysunku', 'zniknęły z rysunku', 'zniknęło z rysunku']], [r.konflikty, ['z konfliktem', 'z konfliktem', 'z konfliktem']]]

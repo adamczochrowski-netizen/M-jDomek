@@ -698,3 +698,42 @@ html.plik .tylko-plik { display: flex; }
 #obwod-pasek .ob-przyciski { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 8px 0 4px; }
 #obwod-pasek button { min-height: 44px; font-weight: 600; }
 body.zbieranie #podpowiedz, body.zbieranie #karta { display: none; }
+/* Plan prac (js/plan.js) */
+.kafelek.k-plan { border-color: var(--akcent); }
+.plan-postep { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.plan-pasek { flex: 1; height: 8px; border-radius: 999px; background: var(--linia); overflow: hidden; }
+.plan-pasek span { display: block; height: 100%; background: var(--ok); }
+.plan-dodaj { width: 100%; min-height: var(--dotyk, 44px); border-style: dashed; font-weight: 600; margin-bottom: 6px; }
+.zad-naglowek { margin: 16px 0 6px; font-size: var(--fs); }
+.zad-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.zad { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; padding: 8px 10px;
+  border: 1px solid var(--linia); border-radius: 10px; background: var(--panel); }
+.zad-status { width: 34px; height: 34px; min-height: 34px; padding: 0; border-radius: 50%; border: 2px solid var(--tekst2);
+  font-weight: 800; font-size: 17px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.zad.st-w-toku .zad-status { border-color: var(--akcent); color: var(--akcent); }
+.zad.st-zrobione .zad-status { border-color: var(--ok); background: var(--ok); color: var(--panel); }
+.zad.st-zrobione .zad-tytul { text-decoration: line-through; color: var(--tekst2); }
+.zad-tytul { font-weight: 600; line-height: 1.35; }
+.zad-meta { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; margin-top: 3px; }
+.zad-dzial { font-size: var(--fs-plak); padding: 1px 8px; border-radius: 999px; background: var(--akcent-tlo); color: var(--akcent); font-weight: 650; }
+.zad-wtoku { font-size: var(--fs-plak); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--akcent); color: var(--akcent); font-weight: 650; }
+.zad-akcje { display: flex; gap: 4px; }
+.zad-akcje button { min-width: 36px; min-height: 36px; padding: 0 6px; }
+.zad-akcje button:disabled { opacity: .35; }
+.zad.edytowane { display: block; }
+.zad-form { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--akcent); border-radius: 10px; margin-bottom: 6px; }
+.zad.edytowane .zad-form { border: 0; padding: 0; margin: 0; }
+.zad-form label { display: grid; gap: 4px; font-size: var(--fs-male); color: var(--tekst2); }
+.zad-form input, .zad-form select { font-size: 16px; min-height: var(--dotyk, 40px); padding: 4px 10px; border: 1px solid var(--linia);
+  border-radius: 8px; background: var(--tlo); color: var(--tekst); width: 100%; box-sizing: border-box; }
+.zad-form-rzad { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.zad-form-przyciski { display: flex; gap: 6px; flex-wrap: wrap; }
+.zad-form-przyciski button { min-height: var(--dotyk, 40px); padding: 0 16px; font-weight: 600; }
+.zad-usun { margin-left: auto; color: var(--uwaga); border-color: var(--uwaga); background: transparent; }
+.zad-zrobione { margin-top: 16px; }
+.zad-zrobione summary { cursor: pointer; font-weight: 650; min-height: 36px; display: flex; align-items: center; }
+@media (max-width: 760px) {
+  .menu a { font-size: 11px; }
+  .zad { grid-template-columns: auto 1fr; }
+  .zad-akcje { grid-column: 2; justify-content: flex-end; }
+}

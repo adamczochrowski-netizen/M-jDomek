@@ -256,14 +256,14 @@ export function nowyElement({ id, kod, x, yd, z, face, n = 1, pion = false, opis
 }
 
 // następny wolny numer: kuchnia-Z07 po kuchnia-Z06 (liczą się też usunięte – identyfikatory się nie powtarzają)
-export function wolnyId(prefiks, zajete) {
+export function wolnyId(prefiks, zajete, cyfry = 2) {
   let max = 0;
   for (const id of zajete) {
     if (!id.startsWith(prefiks)) continue;
     const reszta = id.slice(prefiks.length);
     if (/^\d+$/.test(reszta)) max = Math.max(max, Number(reszta));
   }
-  return prefiks + String(max + 1).padStart(2, '0');
+  return prefiks + String(max + 1).padStart(cyfry, '0');
 }
 
 // zapis jednej zmiany elementu. Zmiana od razu trafia do kopii na urządzeniu (widok się odświeża),
@@ -301,3 +301,22 @@ export function utworzElement(budujNowy) {
   return { id: dane.id, wyslano: b.commit() };
 }
 export const zajeteId = () => [...(stan.elementy?.keys() || [])];
+
+// kilka nowych elementów jednym zapisem (np. lista startowa planu prac); każdy z wersją 1 i wpisem w historii
+export function utworzWiele(lista) {
+  const u = fb?.auth.currentUser;
+  if (!stan.aktywna || !stan.elementy) throw new Error('Wspólna baza nie jest jeszcze wczytana.');
+  if (!u) throw new Error('Zaloguj się ponownie.');
+  if (lista.length > 200) throw new Error('Za dużo naraz (najwyżej 200).');
+  const kto = u.uid, ktoNazwa = (u.displayName || u.email || '').split(' ')[0];
+  const teraz = fb.serverTimestamp();
+  const b = fb.writeBatch(fb.db);
+  for (const { dane, hist } of lista) {
+    if (stan.elementy.has(dane.id)) throw new Error(`Identyfikator ${dane.id} jest już zajęty.`);
+    b.set(fb.doc(fb.db, 'domy', fb.DOM_ID, 'elementy', dane.id), { ...dane, zmienil: kto, zmienilNazwa: ktoNazwa, zmieniono: teraz, utworzono: teraz });
+    b.set(fb.doc(fb.collection(fb.db, 'domy', fb.DOM_ID, 'historia')), {
+      kto, ktoNazwa, kiedy: teraz, element: dane.id, ...hist, opis: `${ktoNazwa}: ${hist.operacja} – ${dane.id}`,
+    });
+  }
+  return { wyslano: b.commit() };
+}
