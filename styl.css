@@ -757,3 +757,8 @@ body.zbieranie #podpowiedz, body.zbieranie #karta { display: none; }
 .prz-licz { padding: 6px 12px; border-radius: 10px; border: 1px solid var(--linia); font-size: var(--fs-male); }
 .prz-licz.t-przeterminowane b { color: var(--uwaga); }
 .prz-licz.t-ten-miesiac b { color: var(--akcent); }
+/* uproszczone menu (17.11.2026): motyw w panelu konta, „Dom” z kafelkami działów */
+.k-motyw { display: block; }
+.wstecz { display: inline-block; margin: 0 0 4px; padding: 6px 0; min-height: 32px; color: var(--akcent); text-decoration: none; font-weight: 600; }
+.kafelek.k-dom { border-color: var(--akcent); }
+.pasek .szukaj-przycisk { padding: 4px 10px; }

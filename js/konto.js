@@ -97,7 +97,7 @@ function htmlBazy() {
   return h + '</div>';
 }
 
-// wybór motywu (na telefonie – tutaj; na komputerze ten sam wybór jest w nagłówku, a ta sekcja jest ukryta w CSS)
+// wybór motywu – tylko tutaj (z nagłówka zniknął przy upraszczaniu menu, 17.11.2026)
 function htmlMotyw() {
   const w = window.mojDomekMotyw?.wybor() || 'ciemny';
   const opcja = (k, t) => `<button type="button" class="${w === k ? 'aktywny' : ''}" aria-pressed="${w === k}" data-konto="motyw-${k}">${t}</button>`;

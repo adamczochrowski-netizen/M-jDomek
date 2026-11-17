@@ -30,7 +30,9 @@ const czytaj = (k, dom) => { try { return JSON.parse(localStorage.getItem(k) || 
 const zapisz = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* tryb prywatny */ } };
 
 // ====================================================================== menu
-const SEKCJE = ['start', 'awaria', 'plan', 'widok', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
+const SEKCJE = ['start', 'awaria', 'plan', 'widok', 'dom', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
+// działy schowane pod „Dom” – w menu podświetla się wtedy „Dom” (plan GUI, uproszczenie menu 17.11.2026)
+const W_DOMU = ['dom', 'instalacje', 'ogrzewanie', 'mamy', 'braki'];
 const KLUCZ_SEKCJI = 'mojDomek.sekcja.v1';
 const naTelefonie = () => matchMedia('(max-width: 760px)').matches;
 const jakAplikacja = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -42,14 +44,15 @@ function sekcjaZAdresu() {
   if (PODZAKLADKI.includes(h)) stanInst.zakladka = h;
   if (h.startsWith('wyl=')) { stanInst.zakladka = 'elektryka'; return 'instalacje'; }   // wyłącznik z wyszukiwarki
   // pusty adres: aplikacja z ekranu głównego – ostatnio używana sekcja; telefon – lekki ekran startowy; komputer – widok domu
-  if (!h) return (jakAplikacja() && czytaj(KLUCZ_SEKCJI, null)) || (naTelefonie() ? 'start' : 'widok');
+  if (!h) return (jakAplikacja() && czytaj(KLUCZ_SEKCJI, null)) || 'start';
   const s = ALIASY[h] || h;
   return SEKCJE.includes(s) ? s : 'widok';      // #punkt=…, #pokoj=…, #ogrzewanie=… = widok domu
 }
 function pokazSekcje() {
   const s = sekcjaZAdresu();
   for (const k of SEKCJE) $('#sekcja-' + k).hidden = s !== k;
-  document.querySelectorAll('.menu a').forEach((a) => a.classList.toggle('aktywny', a.dataset.sekcja === s));
+  const wMenu = W_DOMU.includes(s) ? 'dom' : s;
+  document.querySelectorAll('.menu a').forEach((a) => a.classList.toggle('aktywny', a.dataset.sekcja === wMenu));
   document.body.dataset.sekcja = s;
   zapisz(KLUCZ_SEKCJI, s);
   window.dispatchEvent(new CustomEvent('mojdomek:sekcja', { detail: s }));   // np. model 3D buduje się dopiero w „Widoku”

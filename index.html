@@ -70,20 +70,13 @@
     <h1><a href="#start" title="Ekran startowy">Mój domek</a></h1>
     <button type="button" id="status" class="status-chip" hidden aria-label="Stan danych – szczegóły w panelu konta"></button>
   </div>
-  <button type="button" id="btn-szukaj" class="szukaj-przycisk" aria-label="Szukaj (skrót: /)" title="Szukaj (skrót: /)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke-width="2.4"/><path d="M15.5 15.5 21 21" fill="none" stroke-width="2.6" stroke-linecap="round"/></svg><span>Szukaj</span></button>
+  <button type="button" id="btn-szukaj" class="szukaj-przycisk" aria-label="Szukaj (skrót: /)" title="Szukaj (skrót: /)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke-width="2.4"/><path d="M15.5 15.5 21 21" fill="none" stroke-width="2.6" stroke-linecap="round"/></svg></button>
   <div id="konto" class="konto"></div>
-  <div class="motyw-przelacznik" role="radiogroup" aria-label="Motyw">
-    <button type="button" role="radio" data-motyw="ciemny" title="Ciemny" aria-label="Ciemny"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg></button>
-    <button type="button" role="radio" data-motyw="jasny" title="Jasny" aria-label="Jasny"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1" fill="none" stroke-width="2" stroke-linecap="round"/></svg></button>
-    <button type="button" role="radio" data-motyw="system" title="Jak w systemie (telefonie)" aria-label="Jak w systemie"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke-width="2"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z"/></svg></button>
-  </div>
   <nav class="menu" aria-label="Menu">
     <a href="#awaria" data-sekcja="awaria" class="menu-awaria"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2 1 21h22L12 2zm-1 7h2v6h-2zm0 8h2v2h-2z"/></svg><span>Awaria</span></a>
     <a href="#plan" data-sekcja="plan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" fill="none" stroke-width="2.4" stroke-linecap="round"/><path d="M3.5 6.5l1.5 1.5 2.5-3" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/></svg><span>Plan</span></a>
-    <a href="#widok" data-sekcja="widok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/></svg><span>Widok</span></a>
-    <a href="#instalacje" data-sekcja="instalacje"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg><span>Instalacje</span></a>
-    <a href="#ogrzewanie" data-sekcja="ogrzewanie"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-3 2-4 2-7 2 1 3 3 3 5 1-2 0-6 0-9z"/></svg><span>Ogrzewanie</span></a>
-    <a href="#mamy" data-sekcja="mamy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke-width="2.4" stroke-linecap="round"/></svg><span>Wyposażenie</span></a>
+    <a href="#widok" data-sekcja="widok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8v8l9 5 9-5V8z" fill="none" stroke-width="2" stroke-linejoin="round"/><path d="M3 8l9 5 9-5M12 13v8" fill="none" stroke-width="2" stroke-linejoin="round"/></svg><span>Widok</span></a>
+    <a href="#dom" data-sekcja="dom"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/></svg><span>Dom</span></a>
   </nav>
 </header>
 
@@ -169,11 +162,13 @@
     <nav class="kafelki" aria-label="Na skróty">
       <a class="kafelek k-awaria" href="#awaria"><b>Awaria – gdzie co wyłączyć</b><span>Prąd, woda, ogrzewanie, ścieki i telefony – na jednym ekranie</span></a>
       <a class="kafelek k-plan" href="#plan"><b>Plan prac</b><span>Co po kolei zrobić i co już zrobione</span></a>
+      <a class="kafelek k-przeglady" href="#przeglady"><b>Przeglądy</b><span>Terminy, przypomnienia</span></a>
+      <a class="kafelek k-model" href="#widok"><b>Widok domu</b><span>Model 3D i rzut z góry</span></a>
+      <a class="kafelek k-dom" href="#dom"><b>Dom – wszystkie działy</b><span>Elektryka, woda, kanalizacja, ogrzewanie, wyposażenie</span></a>
       <a class="kafelek k-prad" href="#elektryka"><b>Nie ma prądu</b><span>Rozdzielnica: wyłączniki i co zasilają</span></a>
       <a class="kafelek k-woda" href="#hydraulika"><b>Nie ma wody</b><span>Studnia, hydrofor, zawory</span></a>
       <a class="kafelek k-cieplo" href="#ogrzewanie"><b>Zimno w domu</b><span>Pompa ciepła i kurki rozdzielacza</span></a>
       <button type="button" class="kafelek k-szukaj" data-otworz-szukaj><b>Szukaj</b><span>Pokój, gniazdko, wyłącznik, kurek, wyposażenie</span></button>
-      <a class="kafelek k-model" href="#widok"><b>Widok domu</b><span>Model 3D i rzut z góry</span></a>
       <a class="kafelek k-braki" href="#braki"><b>Do uzupełnienia <span id="start-braki" class="liczba"></span></b><span>Czego jeszcze brakuje w opisie domu</span></a>
     </nav>
     <section id="start-zmiany" class="karta-strony tylko-zalogowani">
@@ -198,8 +193,25 @@
   </div>
 </section>
 
+<section id="sekcja-dom" class="strona" hidden>
+  <div class="strona-srodek">
+    <h2 class="strona-tytul">Dom</h2>
+    <nav class="kafelki" aria-label="Działy domu">
+      <a class="kafelek k-prad" href="#elektryka"><b>Elektryka</b><span>Złącze, rozdzielnica, bezpieczniki, gniazdka</span></a>
+      <a class="kafelek k-woda" href="#hydraulika"><b>Woda</b><span>Studnia, hydrofor, zawory</span></a>
+      <a class="kafelek k-scieki" href="#kanalizacja"><b>Kanalizacja</b><span>Odpływy, oczyszczalnia</span></a>
+      <a class="kafelek k-cieplo" href="#ogrzewanie"><b>Ogrzewanie</b><span>Pompa ciepła, kurki rozdzielacza</span></a>
+      <a class="kafelek k-mamy" href="#mamy"><b>Wyposażenie i zakupy</b><span>Co mamy, co dokupić</span></a>
+      <a class="kafelek k-przeglady" href="#przeglady"><b>Przeglądy</b><span>Terminy i przypomnienia w kalendarzu</span></a>
+      <a class="kafelek k-braki" href="#braki"><b>Do uzupełnienia</b><span>Czego jeszcze brakuje w opisie domu</span></a>
+    </nav>
+    <p class="male">Kolejne działy (np. Dokumentacja: instrukcje, gwarancje) pojawią się tutaj.</p>
+  </div>
+</section>
+
 <section id="sekcja-instalacje" class="strona" hidden>
   <div class="strona-srodek">
+    <a class="wstecz" href="#dom">‹ Dom</a>
     <h2 class="strona-tytul">Instalacje</h2>
     <div class="zakladki" role="tablist" id="instalacje-zakladki">
       <button type="button" role="tab" data-inst="elektryka">Elektryka</button>
@@ -212,6 +224,7 @@
 
 <section id="sekcja-ogrzewanie" class="strona" hidden>
   <div class="strona-srodek">
+    <a class="wstecz" href="#dom">‹ Dom</a>
     <h2 class="strona-tytul">Ogrzewanie</h2>
     <div id="pompa-tresc"></div>
   </div>
@@ -219,6 +232,7 @@
 
 <section id="sekcja-braki" class="strona" hidden>
   <div class="strona-srodek">
+    <a class="wstecz" href="#dom">‹ Dom</a>
     <h2 class="strona-tytul">Do uzupełnienia</h2>
     <div id="braki-tresc"></div>
   </div>
@@ -226,6 +240,7 @@
 
 <section id="sekcja-mamy" class="strona" hidden>
   <div class="strona-srodek">
+    <a class="wstecz" href="#dom">‹ Dom</a>
     <h2 class="strona-tytul">Wyposażenie i zakupy</h2>
     <div id="mamy-tresc"></div>
   </div>
