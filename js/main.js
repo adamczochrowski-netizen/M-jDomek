@@ -30,6 +30,7 @@ const WARSTWY_BUDYNKU = [
   { k: 'studnia', nazwa: 'Studnia', wl: true },
   { k: 'zlacze', nazwa: 'Złącze z licznikiem (na zewnątrz)', wl: true },
   { k: 'szambo', nazwa: 'Oczyszczalnia ścieków (szambo)', wl: true },
+  { k: 'dzialka', nazwa: 'Działka (siatka)', wl: true },
   { k: 'teren', nazwa: 'Teren (siatka co 1 m)', wl: true },
   { k: 'nazwy', nazwa: 'Nazwy pomieszczeń', wl: true },
 ];
@@ -40,7 +41,7 @@ const TRYBY = {
   instalacje: { opis: 'Elektryka i rury ogrzewania podłogowego (schemat).', wid: { ogrzewanie: true, sufity: false, meble: false } },
   techniczny: { opis: 'Wszystkie warstwy oraz informacje o plikach (wymiary.ini, obwody.json).', wid: { ogrzewanie: true, sufity: true, meble: true } },
 };
-const PODSTAWA_TRYBU = { sciany: true, okna: true, podlogi: true, belka: true, sanitariaty: true, urzadzenia: true, studnia: true, zlacze: true, szambo: true, teren: true, nazwy: true };
+const PODSTAWA_TRYBU = { sciany: true, okna: true, podlogi: true, belka: true, sanitariaty: true, urzadzenia: true, studnia: true, zlacze: true, szambo: true, dzialka: true, teren: true, nazwy: true };
 
 const $ = (s) => document.querySelector(s);
 const dotyk = matchMedia('(pointer: coarse)').matches;
@@ -446,10 +447,11 @@ function zbudujPanel() {
       if (!(M.furniture || []).length) { wylaczony = true; ile = 'wyłączone'; tytul = 'Włącz w wymiary.ini: [Meble] pokaż = tak, potem ODSWIEZ.bat'; }
     }
     if (w.k === 'sanitariaty') ile = String((M.sanitariaty || []).length);
-    const jestStudnia = (f) => /^studnia/i.test(f.nazwa || ''), jestZlacze = (f) => /^złącze/i.test(f.nazwa || ''), jestSzambo = (f) => /^szambo/i.test(f.nazwa || '');
+    const jestStudnia = (f) => /^studnia/i.test(f.nazwa || ''), jestZlacze = (f) => /^złącze/i.test(f.nazwa || ''), jestSzambo = (f) => /^szambo/i.test(f.nazwa || ''), jestDzialka = (f) => /^działka/i.test(f.nazwa || '');
+    if (w.k === 'dzialka') { wylaczony = !(M.urzadzenia || []).some(jestDzialka); ile = wylaczony ? 'brak danych' : ''; }
     if (w.k === 'szambo') { wylaczony = !(M.urzadzenia || []).some(jestSzambo); ile = wylaczony ? 'brak danych' : 'szacunek'; }
     if (w.k === 'zlacze') { wylaczony = !(M.urzadzenia || []).some(jestZlacze); ile = wylaczony ? 'brak danych' : 'szacunek'; }
-    if (w.k === 'urzadzenia') { wylaczony = !(M.urzadzenia || []).filter((f) => !jestStudnia(f) && !jestZlacze(f) && !jestSzambo(f)).length; ile = wylaczony ? 'brak danych' : ''; }
+    if (w.k === 'urzadzenia') { wylaczony = !(M.urzadzenia || []).filter((f) => !jestStudnia(f) && !jestZlacze(f) && !jestSzambo(f) && !jestDzialka(f)).length; ile = wylaczony ? 'brak danych' : ''; }
     if (w.k === 'studnia') { wylaczony = !(M.urzadzenia || []).some(jestStudnia); ile = wylaczony ? 'brak danych' : ''; }
     if (w.k === 'belka') { ile = String((M.belki || []).length); wylaczony = !(M.belki || []).length; }
     if (w.k === 'sufity') ile = `${A.ceilings.length} wys.`;
@@ -472,6 +474,7 @@ function zbudujPanel() {
       p.title = `${o.uklad || ''} – źródło: ${o.zrodlo || 'brak'} (Adam, 16.11.2026: „chyba”)`;
       lb.append(p);
     }
+    if (w.k === 'dzialka' && !wylaczony) lb.append(nota('Siatka: odległość od ściany Biura - Adam zmierzona dalmierzem (338,1 cm); początek, koniec i wysokość (150 cm) to szacunek. Brama i stodoły – do dorysowania.', 'wiar-prawd'));
     if (w.k === 'szambo' && !wylaczony) {
       lb.append(nota('Miejsce z zaznaczenia Adama (przy narożniku od strony Kuchni). Prawdopodobnie przydomowa oczyszczalnia Idmar 2000 l z polietylenu (Adam: „chyba ta”; w karcie produktu 240 cm szer., 160 cm wys.) – kształt i wymiary na modelu to szacunek. Dwa włazy w ramce z kostki – duży od strony domu, mały od strony rur (Adam); wielkość ze zdjęcia. Dwie rury po ok. 18 m (razem 36 m), 1 m od siebie, ok. 1 m pod ziemią – od Adama; łuk przy drzewie z jego rysunku. Zbiornik i rury są pod ziemią – widać go po wyłączeniu „Terenu”.', 'wiar-niezw'));
     }
@@ -939,7 +942,7 @@ function obsluzAdres() {
 }
 // urządzenie na działce (#miejsce=Studnia, Złącze, Szambo, Pompa ciepła): jego warstwa włączona, rzut z góry na nie
 const normN = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
-const WARSTWA_MIEJSCA = [[/^studnia/, 'studnia'], [/^zlacze/, 'zlacze'], [/^szambo/, 'szambo']];
+const WARSTWA_MIEJSCA = [[/^studnia/, 'studnia'], [/^zlacze/, 'zlacze'], [/^szambo/, 'szambo'], [/^dzialka/, 'dzialka']];
 function pokazMiejsce(prefiks) {
   const lista = (stan.M?.urzadzenia || []).filter((f) => normN(f.nazwa).startsWith(normN(prefiks)));
   if (!lista.length) { pokazKomunikat(`Nie ma „${prefiks}” na modelu`); return; }

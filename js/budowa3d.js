@@ -31,7 +31,7 @@ export function materialy() {
       'tkanina_ciemna': lambert(0x383a42), 'pościel': lambert(0xe0e0ea), 'poduszka': lambert(0xf7f7f7),
       'ciemny': lambert(0x141414), 'stal': lambert(0xb8babf), 'ceramika': lambert(0xf8f8f8),
       'blat': lambert(0x4d4a47), 'lodówka': lambert(0xd9dbdd), 'pompa': lambert(0xe9eaec), 'beton': lambert(0x9c9a94), 'bloczek': lambert(0xa3a19b), 'styropian': lambert(0xf4f5f2),
-      'wlaz': lambert(0x3b3a38), 'rura_pvc': lambert(0x8d9095), 'hydrofor': lambert(0x1f8fb3), 'zlacze': lambert(0xc9cbc6), 'szambo': lambert(0x3f5a3a), 'wlaz_pe': lambert(0x6f8a80), 'kostka': lambert(0xb5aea2),
+      'wlaz': lambert(0x3b3a38), 'rura_pvc': lambert(0x8d9095), 'hydrofor': lambert(0x1f8fb3), 'zlacze': lambert(0xc9cbc6), 'szambo': lambert(0x3f5a3a), 'wlaz_pe': lambert(0x6f8a80), 'siatka': new THREE.MeshLambertMaterial({ color: 0x2f5d3a, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false }), 'kostka': lambert(0xb5aea2),
     },
     el: Object.fromEntries(KOLEJNOSC_TYPOW.map((t) => [t, lambert(TYPY[t].kolor)])),
     lampaObudowa: lambert(0x1b1b1e),
@@ -377,8 +377,8 @@ export function zbudujDom(M, A, mat, opcje = {}) {
   for (const f of M.sanitariaty || []) dodajMebel(f, 'sanitariaty');
   // urządzenia na zewnątrz – ten sam format co meble, z od podłogi domu; studnia osobną warstwą
   // (komora leży pod ziemią – widać ją po wyłączeniu warstwy „Teren”)
-  grupa('urzadzenia'); grupa('studnia'); grupa('zlacze'); grupa('szambo');
-  for (const f of M.urzadzenia || []) dodajMebel(f, /^studnia/i.test(f.nazwa || '') ? 'studnia' : /^złącze/i.test(f.nazwa || '') ? 'zlacze' : /^szambo/i.test(f.nazwa || '') ? 'szambo' : 'urzadzenia');
+  grupa('urzadzenia'); grupa('studnia'); grupa('zlacze'); grupa('szambo'); grupa('dzialka');
+  for (const f of M.urzadzenia || []) dodajMebel(f, /^studnia/i.test(f.nazwa || '') ? 'studnia' : /^złącze/i.test(f.nazwa || '') ? 'zlacze' : /^szambo/i.test(f.nazwa || '') ? 'szambo' : /^działka/i.test(f.nazwa || '') ? 'dzialka' : 'urzadzenia');
 
   // elektryka: prawdziwej wielkości puszki + znaczniki (kółka o stałej wielkości na ekranie)
   const poz = { };
