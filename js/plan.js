@@ -471,6 +471,7 @@ export function rysujDzis(element) {
 // Harmonogram w etapach (kolejność ważna) i rzeczy: mamy / do kupienia / do ustalenia. Dane we wspólnej bazie
 // (elementy, kategoria „projekt”, projekt „lazienka”) – odhacza Adam (wujek nie ma konta). Pełny spis: dokumentacja (poza repo).
 const PROJEKT = 'lazienka';
+const odmPl = (n, [a, b, c]) => `${n} ${n === 1 ? a : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? b : c}`;
 const ETAPY = ['Etap 0 – decyzje, zanim cokolwiek się zakryje', 'Etap 1 – instalacje w ścianach i suficie', 'Etap 2 – zabudowy',
   'Etap 3 – podłoże pod płytki', 'Etap 4 – płytki', 'Etap 5 – wykończenie'];
 const STAN_RZECZY = ['mamy', 'do kupienia', 'do ustalenia'];
@@ -485,6 +486,7 @@ const KROKI_START = [
   [1, 'Zatrzeć bruzdy, poprawić tynk', ''],
   [2, 'Obudowa stelaża WC płytą g-k zieloną (otwór na przycisk)', 'przycisk kupić wcześniej – od niego zależy otwór'],
   [2, 'Wanna: ustawienie, odpływ i przelew, obudowa z rewizją do syfonu', ''],
+  [2, 'Wnęka nad wanną (za głową) z półeczkami podświetlonymi LED-em', 'jedno z 3 miejsc LED: zaplanować wymiar i kabel, potem hydroizolacja wnęki'],
   [3, 'Wyrównanie podłogi, jeśli trzeba', 'wylewka samopoziomująca'],
   [3, 'Gruntowanie ścian i podłogi', ''],
   [3, 'Folia w płynie 2× + taśmy w narożnikach i mankiety', 'cała podłoga + pas na ścianach, pole wanny, okolice umywalki'],
@@ -498,21 +500,40 @@ const KROKI_START = [
   [5, 'Zdjęcia gotowej łazienki → do aplikacji', 'gdzie co jest'],
 ];
 const RZECZY_START = [
-  ['mamy', 'Płytki 120×60 jasnobeżowe', 'ilość: ?'], ['mamy', 'Umywalka nablatowa (morele)', ''], ['mamy', 'Baterie', 'szczegóły: ?'],
-  ['mamy', 'Zestaw prysznicowy do wanny', ''], ['mamy', 'Zasilacze LED MW Power AF6024Y 24 V / 60 W IP67', 'ilość: ?; taśmy muszą być 24 V'],
-  ['mamy', 'Stelaż WC Cersanit', 'zamontowany'], ['mamy', 'Miska WC podwieszana', ''], ['mamy', 'Przycisk spłukujący (stary)', 'będzie nowy'],
-  ['mamy', 'Meble łazienkowe', 'wymiary później'], ['mamy', 'Folia w płynie', 'ilość: ?'],
-  ['mamy', 'Klej Mapei Keraflex Extra S1 Zero 25 kg', 'ilość: ? – potrzeba ok. 5 worków'],
-  ['mamy', 'Lustro Sensea „Modern” LED ok. 120×80, 230 V', ''], ['mamy', 'Wentylator Bosch Fan 1500 W Ø125', 'włącza się ze światłem'],
-  ['do kupienia', 'Rura wentylacyjna Ø125 izolowana + wyjście dachowe', ''],
+  ['mamy', 'Wanna – w zabudowie, ok. 170×60 lub 170×70', 'dokładny wymiar – do ustalenia'],
+  ['mamy', 'Płytki 120×60 jasnobeżowe', 'ilość paczek – do ustalenia'],
+  ['mamy', 'Płytki strefy wanny', 'zamówione, do odbioru'],
+  ['mamy', 'Umywalka nablatowa (morele) na szafce', ''],
+  ['mamy', 'Baterie (przy umywalce wysoka)', ''],
+  ['mamy', 'Zestaw prysznicowy do wanny', ''],
+  ['mamy', 'Zasilacze LED MW Power AF6024Y 24 V / 60 W (3 szt.)', ''],
+  ['mamy', 'Taśmy LED', 'muszą być 24 V'],
+  ['mamy', 'Stelaż WC Cersanit', 'zamontowany'],
+  ['mamy', 'Miska WC podwieszana', ''],
+  ['mamy', 'Meble łazienkowe: szafki i półki', ''],
+  ['mamy', 'Folia w płynie', ''],
+  ['mamy', 'Taśma narożnikowa', ''],
+  ['mamy', 'Klej Mapei Keraflex Extra S1 Zero', 'ok. 5 worków'],
+  ['mamy', 'Grunt', 'jakiś jest – czy pasuje, do sprawdzenia'],
+  ['mamy', 'System poziomujący do płytek', ''],
+  ['mamy', 'Płyta g-k', ''],
+  ['mamy', 'Silikon sanitarny', ''],
+  ['mamy', 'Lustro Sensea „Modern” LED ok. 120×80, 230 V', ''],
+  ['mamy', 'Wentylator Bosch Fan 1500 W Ø125', 'włącza się ze światłem'],
+  ['mamy', 'Grzejnik łazienkowy', 'na razie bez podłączenia'],
+  ['do kupienia', 'Syfon z odpływem i przelewem do wanny', 'Adam: „chyba nie ma” – dopytać'],
+  ['do kupienia', 'Syfon do umywalki + korek klik-klak bez przelewu', ''],
+  ['do kupienia', 'Fuga', 'kolor do dobrania'],
+  ['do kupienia', 'Mankiety na rury i odpływy (do folii)', ''],
+  ['do kupienia', 'Deska WC', ''],
   ['do kupienia', 'Przycisk spłukujący do stelaża Cersanit', 'przed obudową stelaża!'],
-  ['do kupienia', 'Płyta g-k zielona + wkręty', ''], ['do kupienia', 'Taśmy LED 24 V (3 miejsca)', ''],
-  ['do kupienia', 'Taśma narożnikowa i mankiety do folii', ''], ['do kupienia', 'Grunt', ''],
-  ['do kupienia', 'System poziomujący do płytek', ''], ['do kupienia', 'Fuga, silikon sanitarny', ''], ['do kupienia', 'Klej – jeśli brakuje', ''],
-  ['do ustalenia', 'Wanna: czy jest, wymiar, typ, ściana', ''], ['do ustalenia', 'Płytki strefy wanny', ''],
-  ['do ustalenia', 'Wysokość płytek ściennych', ''], ['do ustalenia', 'Ilość płytek', ''], ['do ustalenia', 'Szafka pod umywalkę', ''],
-  ['do ustalenia', 'Syfony i odpływ wanny', ''], ['do ustalenia', 'Deska WC', ''], ['do ustalenia', 'Grzejnik', ''],
-  ['do ustalenia', 'Sterowanie LED', 'osobny włącznik / ze światłem / czujnik'], ['do ustalenia', 'Wylewka', ''],
+  ['do kupienia', 'Akcesoria: wieszaki, uchwyt na papier', ''],
+  ['do kupienia', 'Rura wentylacyjna Ø125 izolowana + wyjście dachowe', ''],
+  ['do ustalenia', 'Dokładny wymiar wanny (170×60 czy 170×70)', ''],
+  ['do ustalenia', 'Ilość paczek płytek', ''],
+  ['do ustalenia', 'Waga worków kleju (czy 5 wystarczy)', ''],
+  ['do ustalenia', 'Czy grunt pasuje', ''],
+  ['do ustalenia', 'Sterowanie LED', 'osobny włącznik / ze światłem / czujnik'],
   ['do ustalenia', 'Podział pracy wujek / Adam', ''],
 ];
 const pozycje = () => [...(dane.stanBazy().elementy?.values() || [])]
@@ -525,9 +546,9 @@ function htmlLazienki() {
   const zrob = kroki.filter((k) => k.status === 'zrobione').length;
   const nastepny = kroki.find((k) => k.status !== 'zrobione');
   if (!wsz.length) return `<section class="karta-strony plan">
-      <p>Remont łazienki: harmonogram (21 kroków w 6 etapach) i rzeczy – co mamy, co kupić, co ustalić.
-        Lista startowa jest ze spisu prowadzonego przez sesję „Projekt DOMEK” (stan 18.11.2026).</p>
-      <button type="button" class="glowny" data-plan="l-start">Wczytaj listę łazienki (${KROKI_START.length} kroków, ${RZECZY_START.length} rzeczy)</button>
+      <p>Remont łazienki: harmonogram (${odmPl(KROKI_START.length, ['krok', 'kroki', 'kroków'])} w 6 etapach) i rzeczy – co mamy, co kupić, co ustalić.
+        Lista startowa jest ze spisu prowadzonego przez sesję „Projekt DOMEK” (stan 18.11.2026, z odpowiedziami Adama).</p>
+      <button type="button" class="glowny" data-plan="l-start">Wczytaj listę łazienki (${odmPl(KROKI_START.length, ['krok', 'kroki', 'kroków'])}, ${odmPl(RZECZY_START.length, ['rzecz', 'rzeczy', 'rzeczy'])})</button>
     </section>`;
   const wiersz = (p, i) => {
     if (stan.edytowane === p.id) return `<li class="zad edytowane" data-id="${esc(p.id)}">${formPozycji(p.rodzaj, p)}</li>`;
