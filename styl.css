@@ -789,3 +789,12 @@ details.nota > div { margin-top: 4px; }
 .zad-brak-ikona { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800;
   color: var(--uwaga); border: 2px dashed var(--uwaga); }
 .zad.brak .zad-akcje button { white-space: nowrap; font-size: var(--fs-male); padding: 0 10px; }
+/* Łazienka (projekt w Planie) */
+.lazienka .l-etap, .lazienka .l-grupa { margin: 8px 0; }
+.lazienka .l-etap summary, .lazienka .l-grupa summary { cursor: pointer; font-weight: 650; min-height: 36px; display: flex; align-items: center; gap: 6px; }
+.lazienka .zad.st-do-zrobienia .zad-status { font-size: 13px; color: var(--tekst2); }
+.lazienka .l-nastepny { border-color: var(--akcent); box-shadow: inset 3px 0 0 var(--akcent); }
+.lazienka .l-rzecz { grid-template-columns: 1fr auto; }
+.lazienka .l-rzecz select { font-size: 14px; min-height: 36px; border: 1px solid var(--linia); border-radius: 8px; background: var(--tlo); color: var(--tekst); padding: 0 6px; }
+.lazienka .l-dodaj { margin-top: 6px; }
+@media (max-width: 760px) { .lazienka .l-rzecz { grid-template-columns: 1fr; } .lazienka .l-rzecz .zad-akcje { grid-column: 1; justify-content: flex-start; } }

@@ -37,7 +37,7 @@ const KLUCZ_SEKCJI = 'mojDomek.sekcja.v1';
 const naTelefonie = () => matchMedia('(max-width: 760px)').matches;
 const jakAplikacja = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 // stare i skrócone adresy: #pompa → Ogrzewanie, #elektryka / #hydraulika / #kanalizacja → Instalacje z podzakładką
-const ALIASY = { przeglady: 'plan', braki: 'plan', pompa: 'ogrzewanie', wyposazenie: 'mamy', elektryka: 'instalacje', hydraulika: 'instalacje', kanalizacja: 'instalacje' };
+const ALIASY = { przeglady: 'plan', braki: 'plan', lazienka: 'plan', pompa: 'ogrzewanie', wyposazenie: 'mamy', elektryka: 'instalacje', hydraulika: 'instalacje', kanalizacja: 'instalacje' };
 const PODZAKLADKI = ['elektryka', 'hydraulika', 'kanalizacja'];
 function sekcjaZAdresu() {
   const h = location.hash.replace(/^#/, '');
@@ -62,7 +62,7 @@ function pokazSekcje() {
   if (s === 'instalacje') otworzInstalacje();
   if (s === 'braki') otworzBraki();
   if (s === 'awaria') otworzAwarie();
-  if (s === 'plan') otworzPlan($('#plan-tresc'), location.hash === '#przeglady' ? 'przeglady' : 'zadania', location.hash === '#braki');
+  if (s === 'plan') otworzPlan($('#plan-tresc'), location.hash === '#przeglady' ? 'przeglady' : location.hash === '#lazienka' ? 'lazienka' : 'zadania', location.hash === '#braki');
 }
 
 // ====================================================================== arkusz: pobieranie, CSV

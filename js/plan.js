@@ -151,8 +151,10 @@ function rysuj() {
   const zakladki = `<div class="zakladki" role="tablist" aria-label="Plan">
       <button type="button" role="tab" data-plan="tab" data-tab="zadania" aria-selected="${stan.zakladka === 'zadania'}" class="${stan.zakladka === 'zadania' ? 'aktywny' : ''}">Zadania</button>
       <button type="button" role="tab" data-plan="tab" data-tab="przeglady" aria-selected="${stan.zakladka === 'przeglady'}" class="${stan.zakladka === 'przeglady' ? 'aktywny' : ''}">Przeglądy${pilne ? ` <span class="do-uzup">${pilne}</span>` : ''}</button>
+      <button type="button" role="tab" data-plan="tab" data-tab="lazienka" aria-selected="${stan.zakladka === 'lazienka'}" class="${stan.zakladka === 'lazienka' ? 'aktywny' : ''}">Łazienka</button>
     </div>`;
   if (stan.zakladka === 'przeglady') { el.innerHTML = zakladki + htmlPrzegladow(); podepnij(); return; }
+  if (stan.zakladka === 'lazienka') { el.innerHTML = zakladki + htmlLazienki(); podepnij(); return; }
   const wsz = zadania();
   const wToku = wsz.filter((z) => z.status === 'w toku');
   const doZr = wsz.filter((z) => z.status !== 'w toku' && z.status !== 'zrobione');
@@ -217,6 +219,16 @@ function podepnij() {
         if (br) nowy({ tytul: tekstZHtml(br.html), dzial: br.dzial, notatka: 'z listy „Do uzupełnienia”', brak: br.klucz, link: br.hash });
         break;
       }
+      case 'l-krok': {
+        const nastK = z.status === 'zrobione' ? 'do zrobienia' : 'zrobione';
+        zmien(id, { status: nastK, zrobiono: nastK === 'zrobione' ? dzis() : null }, `łazienka: krok ${nastK}`);
+        break;
+      }
+      case 'l-nowe': stan.nowe = b.dataset.rodzaj; stan.edytowane = null; rysuj(); el.querySelector('.zad-form input')?.focus(); break;
+      case 'l-start': wczytajLazienke(); break;
+      case 'l-usun':
+        if (confirm(`Usunąć „${z.nazwa}”? Zostanie w historii bazy.`)) { stan.edytowane = null; zmien(id, { usuniety: true }, 'łazienka: usunięte'); }
+        break;
       case 'tab': stan.zakladka = b.dataset.tab; stan.edytowane = null; stan.nowe = false; rysuj(); break;
       case 'p-dzis':
         zmien(id, { ostatnio: dzis() }, `przegląd zrobiony ${dzis()}`); break;
@@ -228,7 +240,14 @@ function podepnij() {
       default:
     }
   };
+  el.onchange = (e) => {
+    const s = e.target.closest('[data-l-status]');
+    if (!s) return;
+    zmien(s.closest('[data-id]').dataset.id, { status: s.value }, `łazienka: ${s.value}`);
+  };
   el.onsubmit = (e) => {
+    const fl = e.target.closest('[data-projekt-form]');
+    if (fl) { e.preventDefault(); zapiszPozycje(fl); return; }
     const fp = e.target.closest('[data-przeglad-form]');
     if (fp) { e.preventDefault(); zapiszPrzeglad(fp); return; }
     const f = e.target.closest('[data-plan-form]');
@@ -446,4 +465,154 @@ export function rysujDzis(element) {
     if (btn.dataset.dzis === 'p-dzis') zmien(id, { ostatnio: dzis() }, `przegląd zrobiony ${dzis()}`);
   };
   if (!stan.braki) wczytajBraki();
+}
+
+// ====================================================================== Łazienka (remont) – projekt w Planie (prośba Adama, 18.11.2026)
+// Harmonogram w etapach (kolejność ważna) i rzeczy: mamy / do kupienia / do ustalenia. Dane we wspólnej bazie
+// (elementy, kategoria „projekt”, projekt „lazienka”) – odhacza Adam (wujek nie ma konta). Pełny spis: dokumentacja (poza repo).
+const PROJEKT = 'lazienka';
+const ETAPY = ['Etap 0 – decyzje, zanim cokolwiek się zakryje', 'Etap 1 – instalacje w ścianach i suficie', 'Etap 2 – zabudowy',
+  'Etap 3 – podłoże pod płytki', 'Etap 4 – płytki', 'Etap 5 – wykończenie'];
+const STAN_RZECZY = ['mamy', 'do kupienia', 'do ustalenia'];
+const KROKI_START = [
+  [0, 'Rozrysować na ścianach: wanna, meble, lustro, umywalka, 3 LED-y, wentylator', 'kredą / markerem – widać, gdzie kable, kołki i płytki'],
+  [0, 'Podział płytek: gdzie 120×60, strefa wanny, do jakiej wysokości', ''],
+  [0, 'Zdjęcia z miarką rur i kabli przed zakryciem', 'do projektu / aplikacji'],
+  [1, 'Bruzdy i kable do 3 LED-ów + dostępne puszki na zasilacze', 'przed hydroizolacją i płytkami'],
+  [1, 'Wentylacja: otwór w suficie, rura Ø125 izolowana przez strych na dach, kabel 3-żyłowy', ''],
+  [1, 'Sprawdzić kable: lustro 230 V, gniazdka umywalka / pralka, grzejnik', ''],
+  [1, 'Próba szczelności wody i drożność odpływów (wanna, umywalka, pralka, WC)', ''],
+  [1, 'Zatrzeć bruzdy, poprawić tynk', ''],
+  [2, 'Obudowa stelaża WC płytą g-k zieloną (otwór na przycisk)', 'przycisk kupić wcześniej – od niego zależy otwór'],
+  [2, 'Wanna: ustawienie, odpływ i przelew, obudowa z rewizją do syfonu', ''],
+  [3, 'Wyrównanie podłogi, jeśli trzeba', 'wylewka samopoziomująca'],
+  [3, 'Gruntowanie ścian i podłogi', ''],
+  [3, 'Folia w płynie 2× + taśmy w narożnikach i mankiety', 'cała podłoga + pas na ścianach, pole wanny, okolice umywalki'],
+  [4, 'Płytki na podłogę 120×60', 'klej na podłoże i płytkę, system poziomujący'],
+  [4, 'Płytki ścienne 120×60, potem strefa wanny', 'od listwy, nie od podłogi'],
+  [4, 'Fugi i silikon sanitarny', ''],
+  [5, 'Malowanie powyżej płytek', 'jeśli płytki nie idą do sufitu'],
+  [5, 'Biały montaż: WC + przycisk, umywalka, baterie, wanna', ''],
+  [5, 'Meble, lustro, LED-y, wentylator, osprzęt, grzejnik', ''],
+  [5, 'Pralka – woda i odpływ', ''],
+  [5, 'Zdjęcia gotowej łazienki → do aplikacji', 'gdzie co jest'],
+];
+const RZECZY_START = [
+  ['mamy', 'Płytki 120×60 jasnobeżowe', 'ilość: ?'], ['mamy', 'Umywalka nablatowa (morele)', ''], ['mamy', 'Baterie', 'szczegóły: ?'],
+  ['mamy', 'Zestaw prysznicowy do wanny', ''], ['mamy', 'Zasilacze LED MW Power AF6024Y 24 V / 60 W IP67', 'ilość: ?; taśmy muszą być 24 V'],
+  ['mamy', 'Stelaż WC Cersanit', 'zamontowany'], ['mamy', 'Miska WC podwieszana', ''], ['mamy', 'Przycisk spłukujący (stary)', 'będzie nowy'],
+  ['mamy', 'Meble łazienkowe', 'wymiary później'], ['mamy', 'Folia w płynie', 'ilość: ?'],
+  ['mamy', 'Klej Mapei Keraflex Extra S1 Zero 25 kg', 'ilość: ? – potrzeba ok. 5 worków'],
+  ['mamy', 'Lustro Sensea „Modern” LED ok. 120×80, 230 V', ''], ['mamy', 'Wentylator Bosch Fan 1500 W Ø125', 'włącza się ze światłem'],
+  ['do kupienia', 'Rura wentylacyjna Ø125 izolowana + wyjście dachowe', ''],
+  ['do kupienia', 'Przycisk spłukujący do stelaża Cersanit', 'przed obudową stelaża!'],
+  ['do kupienia', 'Płyta g-k zielona + wkręty', ''], ['do kupienia', 'Taśmy LED 24 V (3 miejsca)', ''],
+  ['do kupienia', 'Taśma narożnikowa i mankiety do folii', ''], ['do kupienia', 'Grunt', ''],
+  ['do kupienia', 'System poziomujący do płytek', ''], ['do kupienia', 'Fuga, silikon sanitarny', ''], ['do kupienia', 'Klej – jeśli brakuje', ''],
+  ['do ustalenia', 'Wanna: czy jest, wymiar, typ, ściana', ''], ['do ustalenia', 'Płytki strefy wanny', ''],
+  ['do ustalenia', 'Wysokość płytek ściennych', ''], ['do ustalenia', 'Ilość płytek', ''], ['do ustalenia', 'Szafka pod umywalkę', ''],
+  ['do ustalenia', 'Syfony i odpływ wanny', ''], ['do ustalenia', 'Deska WC', ''], ['do ustalenia', 'Grzejnik', ''],
+  ['do ustalenia', 'Sterowanie LED', 'osobny włącznik / ze światłem / czujnik'], ['do ustalenia', 'Wylewka', ''],
+  ['do ustalenia', 'Podział pracy wujek / Adam', ''],
+];
+const pozycje = () => [...(dane.stanBazy().elementy?.values() || [])]
+  .filter((e) => e.kategoria === 'projekt' && e.projekt === PROJEKT && !e.usuniety)
+  .sort((a, c) => (a.kolejnosc ?? 0) - (c.kolejnosc ?? 0));
+
+function htmlLazienki() {
+  const wsz = pozycje();
+  const kroki = wsz.filter((p) => p.rodzaj === 'krok'), rzeczy = wsz.filter((p) => p.rodzaj === 'rzecz');
+  const zrob = kroki.filter((k) => k.status === 'zrobione').length;
+  const nastepny = kroki.find((k) => k.status !== 'zrobione');
+  if (!wsz.length) return `<section class="karta-strony plan">
+      <p>Remont łazienki: harmonogram (21 kroków w 6 etapach) i rzeczy – co mamy, co kupić, co ustalić.
+        Lista startowa jest ze spisu prowadzonego przez sesję „Projekt DOMEK” (stan 18.11.2026).</p>
+      <button type="button" class="glowny" data-plan="l-start">Wczytaj listę łazienki (${KROKI_START.length} kroków, ${RZECZY_START.length} rzeczy)</button>
+    </section>`;
+  const wiersz = (p, i) => {
+    if (stan.edytowane === p.id) return `<li class="zad edytowane" data-id="${esc(p.id)}">${formPozycji(p.rodzaj, p)}</li>`;
+    if (p.rodzaj === 'krok') return `<li class="zad st-${p.status === 'zrobione' ? 'zrobione' : 'do-zrobienia'}${p === nastepny ? ' l-nastepny' : ''}" data-id="${esc(p.id)}">
+        <button type="button" class="zad-status" data-plan="l-krok" aria-label="${p.status === 'zrobione' ? 'Zrobione – odznacz' : 'Oznacz jako zrobione'}">${p.status === 'zrobione' ? '✓' : esc(p.nr ?? '')}</button>
+        <div class="zad-tresc"><div class="zad-tytul">${esc(p.nazwa)}</div>
+          <div class="zad-meta">${p === nastepny ? '<span class="zad-wtoku">następny krok</span>' : ''}${p.notatka ? `<span class="male">${esc(p.notatka)}</span>` : ''}</div></div>
+        <div class="zad-akcje"><button type="button" data-plan="edytuj" aria-label="Edytuj">✎</button></div></li>`;
+    return `<li class="zad l-rzecz" data-id="${esc(p.id)}">
+        <div class="zad-tresc"><div class="zad-tytul">${esc(p.nazwa)}</div>${p.notatka ? `<div class="zad-meta"><span class="male">${esc(p.notatka)}</span></div>` : ''}</div>
+        <div class="zad-akcje"><select data-l-status aria-label="Stan">${STAN_RZECZY.map((s) => `<option ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
+          <button type="button" data-plan="edytuj" aria-label="Edytuj">✎</button></div></li>`;
+  };
+  const grupaRzeczy = (st, tytul) => {
+    const l = rzeczy.filter((r) => r.status === st);
+    return `<details class="l-grupa" open><summary>${tytul} <span class="male">(${l.length})</span></summary>
+      <ul class="zad-lista">${l.map(wiersz).join('')}</ul>
+      ${stan.nowe === 'rzecz:' + st ? formPozycji('rzecz', null, st) : `<button type="button" class="plan-dodaj l-dodaj" data-plan="l-nowe" data-rodzaj="rzecz:${st}">+ Dodaj</button>`}</details>`;
+  };
+  return `<section class="karta-strony plan lazienka">
+    ${stan.komunikat ? `<p class="uwaga">${esc(stan.komunikat)}</p>` : ''}
+    <p class="male">Start 18.11.2026 · robi głównie wujek, Adam prowadzi plan i odhacza · łazienka ok. 278 × 188 cm, sufit 244 cm.</p>
+    <h3 class="zad-naglowek">Harmonogram <span class="male">(zrobione ${zrob} z ${kroki.length})</span></h3>
+    <div class="plan-postep"><div class="plan-pasek"><span style="width:${kroki.length ? Math.round(100 * zrob / kroki.length) : 0}%"></span></div></div>
+    ${ETAPY.map((nazwa, e) => {
+      const l = kroki.filter((k) => (k.etap ?? 0) === e);
+      if (!l.length) return '';
+      const gotowe = l.every((k) => k.status === 'zrobione');
+      return `<details class="l-etap" ${gotowe ? '' : 'open'}><summary>${esc(nazwa)} ${gotowe ? '✓' : `<span class="male">(${l.filter((k) => k.status === 'zrobione').length}/${l.length})</span>`}</summary>
+        <ol class="zad-lista">${l.map(wiersz).join('')}</ol></details>`;
+    }).join('')}
+    ${stan.nowe === 'krok' ? formPozycji('krok', null) : '<button type="button" class="plan-dodaj l-dodaj" data-plan="l-nowe" data-rodzaj="krok">+ Dodaj krok</button>'}
+    <h3 class="zad-naglowek">Rzeczy</h3>
+    ${grupaRzeczy('mamy', 'Posiadane rzeczy')}
+    ${grupaRzeczy('do kupienia', 'Do kupienia')}
+    ${grupaRzeczy('do ustalenia', 'Do ustalenia')}
+    <p class="male">Kółko przy kroku odhacza go (drugie dotknięcie odznacza). Przy rzeczy wybierz stan: mamy / do kupienia / do ustalenia.</p>
+  </section>`;
+}
+
+function formPozycji(rodzaj, p, stanRzeczy) {
+  const krok = rodzaj === 'krok';
+  return `<form class="zad-form" data-projekt-form="${p ? esc(p.id) : 'nowe:' + rodzaj + ':' + (stanRzeczy || '')}">
+    <label><span>${krok ? 'Krok' : 'Rzecz'}</span><input name="nazwa" required maxlength="200" value="${esc(p?.nazwa || '')}"></label>
+    ${krok ? `<label><span>Etap</span><select name="etap">${ETAPY.map((n, i) => `<option value="${i}" ${i === (p?.etap ?? 0) ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>` : ''}
+    <label><span>Notatka</span><input name="notatka" maxlength="500" value="${esc(p?.notatka || '')}" placeholder="${krok ? 'opcjonalnie' : 'np. ilość, gdzie kupić'}"></label>
+    <div class="zad-form-przyciski">
+      <button type="submit" class="glowny">${p ? 'Zapisz' : 'Dodaj'}</button>
+      <button type="button" data-plan="anuluj">Anuluj</button>
+      ${p ? '<button type="button" data-plan="l-usun" class="zad-usun">Usuń</button>' : ''}
+    </div>
+  </form>`;
+}
+
+function zapiszPozycje(f) {
+  const d = Object.fromEntries(new FormData(f));
+  const nazwa = String(d.nazwa || '').trim();
+  if (!nazwa) return;
+  const pola = { nazwa, notatka: String(d.notatka || '').trim(), ...(d.etap !== undefined ? { etap: Number(d.etap) } : {}) };
+  stan.nowe = false; stan.edytowane = null;
+  const cel = f.dataset.projektForm;
+  if (!cel.startsWith('nowe:')) { zmien(cel, pola, 'łazienka: edycja'); return; }
+  const [, rodzaj, st] = cel.split(':');
+  const ost = pozycje().filter((p) => p.rodzaj === rodzaj).at(-1);
+  const id = dane.wolnyId('lazienka-', dane.zajeteId(), 3);
+  try {
+    sledz(dane.utworzElement(() => ({
+      dane: { id, kategoria: 'projekt', projekt: PROJEKT, rodzaj, status: rodzaj === 'krok' ? 'do zrobienia' : (st || 'do ustalenia'),
+        nr: rodzaj === 'krok' ? pozycje().filter((p) => p.rodzaj === 'krok').length + 1 : null,
+        kolejnosc: (ost?.kolejnosc ?? 0) + 10, usuniety: false, ...pola, wersja: 1 },
+      hist: { operacja: 'łazienka: nowa pozycja', przed: null, po: pola },
+    })), 'łazienka: nowa pozycja');
+  } catch (err) { stan.komunikat = err.message; rysuj(); }
+}
+
+function wczytajLazienke() {
+  if (pozycje().length) return;
+  const lista = [
+    ...KROKI_START.map(([etap, nazwa, notatka], i) => ({ rodzaj: 'krok', etap, nazwa, notatka, status: 'do zrobienia', nr: i + 1, kolejnosc: (i + 1) * 10 })),
+    ...RZECZY_START.map(([status, nazwa, notatka], i) => ({ rodzaj: 'rzecz', status, nazwa, notatka, kolejnosc: 1000 + (i + 1) * 10 })),
+  ];
+  try {
+    sledz(dane.utworzWiele(lista.map((p, i) => ({
+      dane: { id: 'lazienka-' + String(i + 1).padStart(3, '0'), kategoria: 'projekt', projekt: PROJEKT, usuniety: false, ...p, wersja: 1 },
+      hist: { operacja: 'łazienka: lista startowa', przed: null, po: { nazwa: p.nazwa, status: p.status } },
+    }))), 'łazienka: lista startowa');
+  } catch (err) { stan.komunikat = err.message; rysuj(); }
 }
