@@ -1595,6 +1595,19 @@
  ],
  "wyprowadzenia": [
   {
+   "nazwa": "biuro_adam_kinkiet",
+   "x": 619.5,
+   "yd": 320.5,
+   "z": 197.0,
+   "face": [
+    "v",
+    629.5,
+    -1
+   ],
+   "opis": "kinkiet",
+   "zrodlo": "pomiar"
+  },
+  {
    "nazwa": "łazienka_led_nad_wc",
    "x": 194.0,
    "yd": 483.0,
