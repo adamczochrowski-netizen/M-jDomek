@@ -948,7 +948,7 @@
   },
   {
    "type": "W",
-   "x": 540.0,
+   "x": 539.5,
    "yd": 364.5,
    "z": 120.0,
    "face": [
@@ -961,7 +961,7 @@
    "pion": false,
    "id": "biuro-adam-W02",
    "opis": "podwójny",
-   "zrodlo": "pomiar+szacunek"
+   "zrodlo": "pomiar"
   },
   {
    "type": "W",
