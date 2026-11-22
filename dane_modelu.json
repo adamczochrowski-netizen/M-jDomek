@@ -948,7 +948,7 @@
   },
   {
    "type": "W",
-   "x": 524.5,
+   "x": 561.5,
    "yd": 364.5,
    "z": 120.0,
    "face": [
@@ -960,8 +960,8 @@
    "n": 1,
    "pion": false,
    "id": "biuro-adam-W02",
-   "opis": "",
-   "zrodlo": "rysunek"
+   "opis": "podwójny",
+   "zrodlo": "pomiar+szacunek"
   },
   {
    "type": "W",
@@ -1403,6 +1403,23 @@
    "pion": false,
    "id": "pomieszczenie-gospodarcze-S03",
    "opis": "natynkowe",
+   "zrodlo": "pomiar"
+  },
+  {
+   "type": "Z",
+   "x": 561.5,
+   "yd": 364.5,
+   "z": 40.5,
+   "face": [
+    "h",
+    374.5,
+    -1
+   ],
+   "size": 8.0,
+   "n": 1,
+   "pion": false,
+   "id": "biuro-adam-Z05",
+   "opis": "",
    "zrodlo": "pomiar"
   },
   {

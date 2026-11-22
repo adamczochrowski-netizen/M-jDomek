@@ -320,12 +320,39 @@ function przeliczBanki() {
     el.setAttribute('aria-label', `${punkty.length} punkty blisko siebie: ${punkty.map((p) => p.id).join(', ')} – przybliż`);
     el.title = punkty.map((p) => p.id).join(', ');
     const srodek = punkty.reduce((s, p) => s.add(p.znacznik), new THREE.Vector3()).multiplyScalar(1 / punkty.length);
-    el.addEventListener('click', () => przyblizDo(srodek));
+    el.addEventListener('click', () => (przyblizenieNieRozdzieli(punkty) ? pokazWyborZBanki(punkty) : przyblizDo(srodek)));
     bankiEl.append(el);
     return { el, srodek };
   });
   aktualizujBanki();
   render();
+}
+// punkty jeden nad drugim (to samo miejsce na ścianie, różna wysokość): na rzucie żadne przybliżenie ich nie
+// rozdzieli. Nie rozsuwamy ich – bańka pokazuje listę od góry ściany do podłogi.
+function przyblizenieNieRozdzieli(punkty) {
+  if (stan.tryb !== 'gora') return false;
+  const pxNaCm = kontener.clientWidth * sterGora.maxZoom / (kameraGora.right - kameraGora.left);
+  const R = dotyk ? 28 : 20;
+  return punkty.every((a) => punkty.every((b) => Math.hypot(a.znacznik.x - b.znacznik.x, a.znacznik.z - b.znacznik.z) * pxNaCm <= R));
+}
+function pokazWyborZBanki(punkty) {
+  zamknijKarte();
+  const lista = [...punkty].sort((a, b) => b.z - a.z);
+  const k = $('#karta');
+  k.innerHTML = `
+    <div class="karta-naglowek karta-naglowek-pokoju">
+      <div><h3>Punkty jeden nad drugim</h3><div class="pod">od góry ściany do podłogi</div></div>
+      <button type="button" class="zamknij" aria-label="Zamknij">✕</button>
+    </div>
+    <div class="karta-tresc wybor-z-banki">${lista.map((p, i) => `
+      <button type="button" data-wybor="${i}"><img src="${ikonaTypu(p.typ, p.wiar)}" alt="">
+        <span><b>${esc(TYPY[p.typ]?.nazwa || p.typ)}${p.opisDanych ? ` – ${esc(p.opisDanych)}` : ''}</b>
+          <small>${cm(p.z)} nad podłogą · ${esc(p.id)}</small></span></button>`).join('')}
+    </div>`;
+  k.hidden = false;
+  k.scrollTop = 0;
+  k.querySelector('.zamknij').addEventListener('click', zamknijKarte);
+  k.querySelectorAll('[data-wybor]').forEach((b) => b.addEventListener('click', () => wybierz(lista[Number(b.dataset.wybor)])));
 }
 function aktualizujBanki() {
   if (!banki.length) return;

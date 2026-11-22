@@ -565,6 +565,11 @@ body.tryb-techniczny .podwiersz.tylko-techniczny { display: block; }
 }
 .karta-naglowek img { width: 28px; height: 28px; }
 .karta-naglowek.karta-naglowek-pokoju { grid-template-columns: 1fr auto; }
+.wybor-z-banki { display: grid; gap: 6px; }
+.wybor-z-banki button { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 10px; text-align: left; }
+.wybor-z-banki img { width: 28px; height: 28px; flex: none; }
+.wybor-z-banki b, .wybor-z-banki small { display: block; }
+.wybor-z-banki small { color: var(--tekst2); font-size: var(--fs-male); }
 .karta-naglowek h3 { margin: 0; font-size: 17px; line-height: 1.3; }
 .karta-naglowek .pod { font-size: var(--fs-male); color: var(--tekst2); }
 .karta-naglowek button { border: 0; background: none; font-size: 20px; padding: 4px 8px; line-height: 1; min-width: var(--dotyk); }
