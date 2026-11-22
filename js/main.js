@@ -1,7 +1,7 @@
 // Mój domek – podgląd 3D: kamery, warstwy, legenda, karta punktu, odświeżanie danych.
 import * as THREE from 'three';
 import { OrbitControls } from '../lib/OrbitControls.js';
-import { analizuj, TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
+import { analizuj, TYPY, KOLEJNOSC_TYPOW, cmDokladnie, wymiaryPokoju } from './analiza.js';
 import { zbudujDom, zbudujSciany, materialy, teksturaWyboru, teksturaZnacznika, ikonaTypu, POZIOM_PODLOGI, KOLOR_RUR } from './budowa3d.js';
 import * as dane from './dane/elementy.js';
 import { WIAR_OPIS } from './ikony.js';
@@ -227,13 +227,15 @@ function zbudujEtykiety() {
     el.className = 'etykieta';
     const b = document.createElement('b');
     b.innerHTML = r.lines.map(esc).join('<br>');
-    const s = document.createElement('span');
-    s.textContent = `sufit ${fmtLiczba(r.sufit)} cm`;
-    el.append(b, s);
+    el.append(b);
+    const w = wymiaryPokoju(r);
+    const linie = w ? [`${w.zmierzone ? '' : '≈ '}${w.wymiary}`, [w.powierzchnia, `sufit ${cmDokladnie(r.sufit)}`].filter(Boolean).join(' · ')]
+      : [`sufit ${cmDokladnie(r.sufit)} cm`];
+    for (const t of linie) { const s = document.createElement('span'); s.textContent = t; el.append(s); }
     etykietyEl.append(el);
     const [x, z] = r.centre3d;
     return {
-      el, poz: new THREE.Vector3(x, POZIOM_PODLOGI + 2, z),
+      el, pokoj: r, poz: new THREE.Vector3(x, POZIOM_PODLOGI + 2, z),
       // blednie tylko, gdy żaden z tych punktów pomieszczenia nie jest widoczny
       proby: [POZIOM_PODLOGI + 2, 120, r.sufit - 15].map((y) => new THREE.Vector3(x, y, z)),
     };
@@ -671,9 +673,10 @@ canvas.addEventListener('pointerup', (e) => {
   if (ruch > 8 || czas > 600) return;
   const p = punktPod(e.clientX, e.clientY);
   if (stan.zbieranie) { if (p) przelaczWZbieraniu(p); return; }
-  if (p) wybierz(p);
-  else if (document.body.classList.contains('panel-otwarty')) document.body.classList.remove('panel-otwarty');
-  else zamknijKarte();
+  if (p) { wybierz(p); return; }
+  if (document.body.classList.contains('panel-otwarty')) { document.body.classList.remove('panel-otwarty'); return; }
+  const r = pokojPodEtykieta(e.clientX, e.clientY);
+  if (r) pokazKartePokoju(r); else zamknijKarte();
 });
 if (!dotyk) {
   let czeka = false, ostatni = null;
@@ -687,6 +690,7 @@ if (!dotyk) {
 
 function wybierz(p) {
   stan.wybrany = p;
+  stan.wybranyPokoj = null;
   wyborGeo.attributes.position.setXYZ(0, p.znacznik.x, p.znacznik.y, p.znacznik.z);
   wyborGeo.attributes.position.needsUpdate = true;
   wyborGeo.computeBoundingSphere();
@@ -702,6 +706,7 @@ function wybierz(p) {
 }
 function zamknijKarte() {
   stan.wybrany = null;
+  stan.wybranyPokoj = null;
   wyborPkt.visible = false;
   wyborIkona.visible = false;
   przygasZnaczniki(false);
@@ -798,6 +803,42 @@ function widokNaPunkt(p) {
   kamera3d.position.copy(c).addScaledVector(n, 220).addScaledVector(bok, przes).add(new THREE.Vector3(0, 45 - wDol, 0));
   ster3d.update();
   render();
+}
+
+// karta pomieszczenia (dotknięcie nazwy na modelu, wyszukiwarka, #pokoj=…): wymiary i co z nich jest zmierzone
+function pokojPodEtykieta(x, y) {
+  if (!stan.wid.nazwy) return null;
+  return etykiety.find(({ el }) => {
+    if (el.style.display === 'none') return false;
+    const b = el.getBoundingClientRect();
+    return x >= b.left && x <= b.right && y >= b.top && y <= b.bottom;
+  })?.pokoj || null;
+}
+function pokazKartePokoju(r) {
+  zamknijKarte();
+  stan.wybranyPokoj = r.nazwa;
+  const w = wymiaryPokoju(r);
+  const wiersze = w ? [
+    ['Szerokość', `${cmDokladnie(r.wymiary.szerokosc)} cm <span class="male">(lewo–prawo na rzucie)</span>`],
+    ['Głębokość', `${cmDokladnie(r.wymiary.glebokosc)} cm <span class="male">(góra–dół na rzucie)</span>`],
+    ...(w.powierzchnia ? [['Powierzchnia', esc(w.powierzchnia)]] : []),
+    ['Sufit', `${cmDokladnie(r.sufit)} cm`],
+    ['Skąd wymiary', `${znakWiar(w.zmierzone ? 'potw' : 'prawd')} ${esc(w.uwaga || 'brak informacji o źródle')}`],
+  ] : [['Sufit', `${cmDokladnie(r.sufit)} cm`], ['Wymiary', 'brak danych']];
+  const k = $('#karta');
+  k.innerHTML = `
+    <div class="karta-naglowek karta-naglowek-pokoju">
+      <div><h3>${esc(r.nazwa)}</h3>${w ? `<div class="pod">${w.zmierzone ? '' : '≈ '}${esc([w.wymiary, w.powierzchnia, `sufit ${cmDokladnie(r.sufit)} cm`].filter(Boolean).join(' · '))}</div>` : ''}</div>
+      <button type="button" class="zamknij" aria-label="Zamknij">✕</button>
+    </div>
+    <div class="karta-tresc">
+      <dl>${wiersze.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>
+      <div class="karta-akcje karta-akcje-pokoju"><button type="button" data-akcja="rzut">Pokaż na rzucie</button></div>
+    </div>`;
+  k.hidden = false;
+  k.scrollTop = 0;
+  k.querySelector('.zamknij').addEventListener('click', zamknijKarte);
+  k.querySelector('[data-akcja="rzut"]').addEventListener('click', () => pokazPokoj(r.nazwa, false));
 }
 
 // rzut z góry przybliżony do punktu; na telefonie karta się chowa (dotknięcie punktu ją przywraca)
@@ -902,7 +943,7 @@ function zastosujDane(M, wersja, pierwszy) {
   const Mw = zBazy ? { ...M, items: zBazy } : M;
   const A = analizuj(Mw);
   edytor.przerwij();
-  const wybranyId = stan.wybrany?.id;
+  const wybranyId = stan.wybrany?.id, wybranyPokoj = stan.wybranyPokoj;
   stan.M = Mw; stan.A = A; stan.wersjaDanych = wersja;
   zbudujScene();
   zbudujPanel();
@@ -914,7 +955,8 @@ function zastosujDane(M, wersja, pierwszy) {
   if (pierwszy) stan.dopasowano = false;
   rozmiar();
   const p = wybranyId && A.items.find((q) => q.id === wybranyId);
-  if (p) wybierz(p); else zamknijKarte();
+  const pokoj = wybranyPokoj && A.rooms.find((r) => r.nazwa === wybranyPokoj);
+  if (p) wybierz(p); else if (pokoj) pokazKartePokoju(pokoj); else zamknijKarte();
   if (pierwszy) obsluzAdres();
   window.dispatchEvent(new Event('mojdomek:dane'));      // dla modułów (np. Elektryka: punkty w pomieszczeniach)
   dane.ustawPlik(M.items, !NA_GITHUB);                   // porównanie rysunku z bazą (panel konta) – tylko na komputerze
@@ -990,20 +1032,27 @@ function pokazPokoj(nazwa, ogrzewanie) {
     zastosujWidocznosc();
     podswietlOgrzewanie(c.nazwa);
   }
+  const pokoj = !ogrzewanie && stan.A.rooms.find((r) => r.nazwa === c.nazwa);
+  if (pokoj) pokazKartePokoju(pokoj); else if (stan.wybranyPokoj) zamknijKarte();
   // rzut z góry przybliżony do pomieszczenia
   const x0 = Math.min(...c.cells.map((k) => k[0])), x1 = Math.max(...c.cells.map((k) => k[1]));
   const y0 = Math.min(...c.cells.map((k) => k[2])), y1 = Math.max(...c.cells.map((k) => k[3]));
   widokGora();
-  const cx = (x0 + x1) / 2, cz = (y0 + y1) / 2;
+  // karta zasłania prawy bok (komputer) albo dół (telefon) – pokój mieści się i wypada w odkrytej części
+  const k = $('#karta'), telefon = matchMedia('(max-width: 760px)').matches, sw = kontener.clientWidth, sh = kontener.clientHeight;
+  const bok = pokoj && !telefon ? k.offsetWidth + 24 : 0, dol = pokoj && telefon ? k.offsetHeight + 16 : 0;
+  const szer = kameraGora.right - kameraGora.left, wys = kameraGora.top - kameraGora.bottom;
+  kameraGora.zoom = Math.max(0.3, Math.min(szer * (1 - bok / sw) / (x1 - x0 + 160), wys * (1 - dol / sh) / (y1 - y0 + 160)));
+  const naCm = szer / kameraGora.zoom / sw;
+  const cx = (x0 + x1) / 2 + (bok / 2) * naCm, cz = (y0 + y1) / 2 + (dol / 2) * naCm;
   sterGora.target.set(cx, 0, cz);
   kameraGora.position.set(cx, 3000, cz);
-  const szer = kameraGora.right - kameraGora.left, wys = kameraGora.top - kameraGora.bottom;
-  kameraGora.zoom = Math.max(0.3, Math.min(szer / (x1 - x0 + 160), wys / (y1 - y0 + 160)));
   kameraGora.updateProjectionMatrix();
   kameraGora.lookAt(cx, 0, cz);
   sterGora.update();
   render();
-  pokazKomunikat(ogrzewanie ? `Ogrzewanie podłogowe: ${c.nazwa}` : c.nazwa);
+  if (ogrzewanie) pokazKomunikat(`Ogrzewanie podłogowe: ${c.nazwa}`);
+  else if (!pokoj) pokazKomunikat(c.nazwa);                        // z kartą nazwa jest już w jej nagłówku
 }
 // rury jednego pomieszczenia wyraźne, pozostałe przygaszone (null = wszystkie normalnie)
 function podswietlOgrzewanie(nazwa) {

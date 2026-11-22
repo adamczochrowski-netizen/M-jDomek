@@ -380,7 +380,13 @@
     121.6
    ],
    "size3d": 24,
-   "sufit": 246.5
+   "sufit": 246.5,
+   "wymiary": {
+    "szerokosc": 398.5,
+    "glebokosc": 293.0,
+    "powierzchnia_m2": 12.43,
+    "uwaga": "wcześniejszy pomiar, nie sprawdzany 16.11.2026; do tego wnęka przy drzwiach 108.5 × 69.5"
+   }
   },
   {
    "lines": [
@@ -395,7 +401,13 @@
     136.6
    ],
    "size3d": 24,
-   "sufit": 247.0
+   "sufit": 247.0,
+   "wymiary": {
+    "szerokosc": 219.0,
+    "glebokosc": 374.5,
+    "powierzchnia_m2": 8.2,
+    "uwaga": "zmierzone 16.11.2026"
+   }
   },
   {
    "lines": [
@@ -410,7 +422,13 @@
     191.6
    ],
    "size3d": 24,
-   "sufit": 249.0
+   "sufit": 249.0,
+   "wymiary": {
+    "szerokosc": 344.0,
+    "glebokosc": 386.5,
+    "powierzchnia_m2": 13.3,
+    "uwaga": "szerokość: wcześniejszy pomiar; głębokość do belki wyliczona"
+   }
   },
   {
    "lines": [
@@ -425,7 +443,13 @@
     371.6
    ],
    "size3d": 24,
-   "sufit": 244.0
+   "sufit": 244.0,
+   "wymiary": {
+    "szerokosc": 278.0,
+    "glebokosc": 188.0,
+    "powierzchnia_m2": 5.23,
+    "uwaga": "wcześniejszy pomiar, nie sprawdzany 16.11.2026"
+   }
   },
   {
    "lines": [
@@ -440,7 +464,13 @@
     616.6
    ],
    "size3d": 24,
-   "sufit": 260.0
+   "sufit": 260.0,
+   "wymiary": {
+    "szerokosc": 318.0,
+    "glebokosc": 223.0,
+    "powierzchnia_m2": 7.09,
+    "uwaga": "wcześniejszy pomiar, nie sprawdzany 16.11.2026"
+   }
   },
   {
    "lines": [
@@ -455,7 +485,13 @@
     558.1
    ],
    "size3d": 24,
-   "sufit": 260.0
+   "sufit": 260.0,
+   "wymiary": {
+    "szerokosc": 655.5,
+    "glebokosc": 341.5,
+    "powierzchnia_m2": 22.81,
+    "uwaga": "wyliczone z rzutu, bez holu (powierzchnia z holem); długość zmierzona 16.11.2026: 654"
+   }
   },
   {
    "lines": [
@@ -470,7 +506,13 @@
     859.6
    ],
    "size3d": 24,
-   "sufit": 244.0
+   "sufit": 244.0,
+   "wymiary": {
+    "szerokosc": 210.0,
+    "glebokosc": 177.0,
+    "powierzchnia_m2": 3.72,
+    "uwaga": "wcześniejszy pomiar, nie sprawdzany 16.11.2026"
+   }
   },
   {
    "lines": [
@@ -486,7 +528,13 @@
     849.8
    ],
    "size3d": 16,
-   "sufit": 257.4
+   "sufit": 257.4,
+   "wymiary": {
+    "szerokosc": 174.8,
+    "glebokosc": 177.0,
+    "powierzchnia_m2": 3.09,
+    "uwaga": "szerokość zmierzona 16.11.2026; głębokość zmierzona 178, na rzucie jak wiatrołap"
+   }
   }
  ],
  "items": [

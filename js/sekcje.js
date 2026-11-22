@@ -1,4 +1,4 @@
-import { TYPY, KOLEJNOSC_TYPOW } from './analiza.js';
+import { TYPY, KOLEJNOSC_TYPOW, cmDokladnie, wymiaryPokoju } from './analiza.js';
 import { ikonaTypu } from './ikony.js';
 import { stanBazy } from './dane/elementy.js';
 import { podsumowanie } from './status.js';
@@ -1189,11 +1189,16 @@ const svgIkona = (k) => `<svg class="ik-zast" viewBox="0 0 24 24" aria-hidden="t
 const szukajPanel = $('#szukaj'), szukajPole = $('#szukaj-pole'), szukajWyniki = $('#szukaj-wyniki');
 let indeks = [], wynikiTeraz = [], wczytujeIndeks = false;
 const enc = encodeURIComponent;
+// „219 × 374,5 cm · 8,20 m² · sufit 247 cm”; ≈ na początku, gdy nie wszystko jest zmierzone
+function opisPokoju(r) {
+  const w = wymiaryPokoju(r), sufit = `sufit ${cmDokladnie(r.sufit)} cm`;
+  return w ? `${w.zmierzone ? '' : '≈ '}${[w.wymiary, w.powierzchnia, sufit].filter(Boolean).join(' · ')}` : sufit;
+}
 function zbudujIndeks() {
   const A = window.mojDomek?.stan?.A;
   const w = [];
   if (A) {
-    for (const r of A.rooms) w.push({ rodzaj: 'Pomieszczenie', ik: 'dom', tytul: r.nazwa, opis: `sufit ${String(r.sufit).replace('.', ',')} cm`, hash: '#pokoj=' + enc(r.nazwa), szukaj: r.nazwa + ' pokój pomieszczenie' });
+    for (const r of A.rooms) w.push({ rodzaj: 'Pomieszczenie', ik: 'dom', tytul: r.nazwa, opis: opisPokoju(r), hash: '#pokoj=' + enc(r.nazwa), szukaj: r.nazwa + ' pokój pomieszczenie' });
     for (const p of A.items) {
       const T = TYPY[p.typ] || { nazwa: p.typ };
       const pok = p.naZewnatrz ? 'na zewnątrz' : (p.pokoj?.nazwa || '');

@@ -52,6 +52,22 @@ function opisAuto(p) {
   return s.charAt(0).toUpperCase() + s.slice(1) + '.';
 }
 
+// wymiary pomieszczeń do pokazania (karta, etykieta, wyszukiwarka). Dokładność 1 mm (174,8 zostaje 174,8).
+// Powierzchni nie liczymy z szer. × głęb. – są pokoje z wnęką i salon z holem.
+// Potwierdzone w całości tylko wtedy, gdy uwaga to samo „zmierzone DD.MM.RRRR”; każdy dopisek = szacunek (≈).
+export const cmDokladnie = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
+export function wymiaryPokoju(r) {
+  const w = r?.wymiary;
+  if (!(w?.szerokosc > 0 && w?.glebokosc > 0)) return null;
+  const uwaga = String(w.uwaga || '').trim();
+  return {
+    wymiary: `${cmDokladnie(w.szerokosc)} × ${cmDokladnie(w.glebokosc)} cm`,
+    powierzchnia: w.powierzchnia_m2 > 0 ? `${w.powierzchnia_m2.toFixed(2).replace('.', ',')} m²` : '',
+    uwaga,
+    zmierzone: /^zmierzone \d{2}\.\d{2}\.\d{4}$/.test(uwaga),
+  };
+}
+
 export function analizuj(M) {
   const HG = M.heights || {};
   const zSill = HG.parapet ?? 85;
@@ -62,6 +78,7 @@ export function analizuj(M) {
   const rooms = (M.rooms || []).map((r) => ({
     nazwa: r.lines.join(' '), lines: r.lines, centre: r.centre,
     centre3d: r.centre3d || r.centre, sufit: r.sufit ?? sufitDom, region: -1,
+    wymiary: r.wymiary || null,   // {szerokosc, glebokosc, powierzchnia_m2, uwaga} z generuj.py
   }));
   const zCeil = Math.max(sufitDom, ...rooms.map((r) => r.sufit));
   const doors = M.doors || [], windows = M.windows || [];
