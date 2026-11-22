@@ -1199,6 +1199,9 @@ function zbudujIndeks() {
   const w = [];
   if (A) {
     for (const r of A.rooms) w.push({ rodzaj: 'Pomieszczenie', ik: 'dom', tytul: r.nazwa, opis: opisPokoju(r), hash: '#pokoj=' + enc(r.nazwa), szukaj: r.nazwa + ' pokój pomieszczenie' });
+    for (const p of A.kable) w.push({ rodzaj: TYPY.K.nazwa, ikona: ikonaTypu('K', p.wiar), tytul: p.opisDanych || p.id,
+      opis: [TYPY.K.nazwa, p.pokoj?.nazwa, `${cmDokladnie(p.z)} cm nad podłogą`].filter(Boolean).join(' · '),
+      hash: '#punkt=' + enc(p.id), szukaj: [p.id, p.opisDanych, p.pokoj?.nazwa, 'kabel przewód wyprowadzenie wiercić ściana'].join(' ') });
     for (const p of A.items) {
       const T = TYPY[p.typ] || { nazwa: p.typ };
       const pok = p.naZewnatrz ? 'na zewnątrz' : (p.pokoj?.nazwa || '');

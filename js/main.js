@@ -57,6 +57,7 @@ const stan = {
 };
 for (const w of WARSTWY_BUDYNKU) stan.wid[w.k] = w.wl;
 for (const t of KOLEJNOSC_TYPOW) stan.wid['el_' + t] = true;
+stan.wid.el_K = true;                                    // kable w ścianie
 try {
   const zap = JSON.parse(localStorage.getItem(KLUCZ_USTAWIEN) || 'null');
   if (zap && zap.wid) Object.assign(stan.wid, zap.wid);
@@ -288,7 +289,7 @@ function przeliczBanki() {
   if (!w || !h) return;
   const R = dotyk ? 28 : 20;
   const kand = [];
-  for (const p of stan.A.items) {
+  for (const p of punktyModelu()) {
     p.wBance = false;
     if (!widocznyPunkt(p) || p === stan.wybrany) continue;
     _v.copy(p.znacznik).project(cam);
@@ -310,7 +311,7 @@ function przeliczBanki() {
     if (g.length > 1) grupy.push(g.map((k) => k.p));
   }
   for (const g of grupy) for (const p of g) p.wBance = true;
-  for (const p of stan.A.items) if (p.znacznikRef) pokazZnacznik(p, !p.wBance && !p.wEdycji);
+  for (const p of punktyModelu()) if (p.znacznikRef) pokazZnacznik(p, !p.wBance && !p.wEdycji);
   bankiEl.textContent = '';
   banki = grupy.map((punkty) => {
     const el = document.createElement('button');
@@ -535,6 +536,11 @@ function zbudujPanel() {
   lw.innerHTML = '<div class="male">Pewność położenia (znaczek na ikonie):</div>' + ['P', 'R', 'N'].map((w) =>
     `<div class="lw"><img src="${ikonaTypu('Z', w)}" alt=""><span>${esc(WIAR_OPIS[w])}</span><span class="ile">${ileW[w]}</span></div>`).join('');
   le.append(lw);
+  if (A.kable.length) {
+    le.append(wierszWarstwy('el_K', 'Kable w ścianie – nie wiercić', { ikona: ikonaTypu('K', 'R'), ile: `${A.kable.length} szt.` }));
+    le.append(nota('Pokazane są tylko miejsca, w których kabel wychodzi ze ściany. Trasy kabli w ścianie nie są znane, więc nie są rysowane. Kable nie liczą się do punktów.',
+      A.kable.every((k) => k.wiar === 'P') ? 'wiar-potw' : 'wiar-prawd'));
+  }
   if (edytor.moznaDodac()) {           // po zalogowaniu: nowy punkt dotknięciem ściany (js/edytor.js)
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'dodaj-punkt'; b.textContent = '+ Dodaj punkt (gniazdko, włącznik…)';
@@ -650,6 +656,8 @@ function pokazInfoObwodow(blad) {
 
 // ---------------------------------------------------------------- wybieranie punktów
 const raycaster = new THREE.Raycaster();
+// co da się dotknąć na modelu: punkty elektryczne + wyprowadzenia kabli (te są osobną listą, patrz analiza.js)
+function punktyModelu() { return [...stan.A.items, ...stan.A.kable]; }
 function widocznyPunkt(p) { return !!stan.wid['el_' + p.typ] && p.znacznik; }
 function zaslaniajace() {
   const lista = [];
@@ -673,7 +681,7 @@ function punktPod(clientX, clientY) {
   const cam = kamera();
   const promien = dotyk ? 24 : 16;                     // ok. 48 px średnicy na telefonie
   const kand = [];
-  for (const p of stan.A.items) {
+  for (const p of punktyModelu()) {
     if (!widocznyPunkt(p) || p.wBance) continue;
     _v.copy(p.znacznik).project(cam);
     if (_v.z < -1 || _v.z > 1) continue;
@@ -699,7 +707,7 @@ canvas.addEventListener('pointerup', (e) => {
   start = null;
   if (ruch > 8 || czas > 600) return;
   const p = punktPod(e.clientX, e.clientY);
-  if (stan.zbieranie) { if (p) przelaczWZbieraniu(p); return; }
+  if (stan.zbieranie) { if (p && !p.kabel) przelaczWZbieraniu(p); return; }
   if (p) { wybierz(p); return; }
   if (document.body.classList.contains('panel-otwarty')) { document.body.classList.remove('panel-otwarty'); return; }
   const r = pokojPodEtykieta(e.clientX, e.clientY);
@@ -757,13 +765,24 @@ function pokazKarte(p) {
   if (p.pion && p.n > 1) wys += ' (środek dolnego gniazda)';
   if (p.naZewnatrz && A.teren) wys += ` · ${cm(p.z + A.teren)} nad terenem`;
   const opis = wpis.opis || p.opisDanych || p.opisAuto;
+  const wielka = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   // osprzęt: własny wpis punktu albo domyślny dla typu (tylko wewnątrz domu) – z obwody.json
   const osp = wpis.osprzet ? { nazwa: wpis.osprzet } : (!p.naZewnatrz && stan.obw?.osprzet?.[p.typ]) || null;
   let ospHost = '';
   try { if (osp?.link) ospHost = new URL(osp.link).hostname.replace(/^www\./, ''); } catch { /* zły link */ }
   const osprzet = osp ? esc(osp.nazwa || '') + (ospHost ? ` <a class="opcja" href="${esc(osp.link)}" target="_blank" rel="noopener noreferrer">${esc(ospHost)}</a>` : '') : null;
   const gdzie = p.naZewnatrz ? `Na zewnątrz${s && s.za.typ === 'pokoj' ? ` – ściana ${s.za.pokoj?.nazwa ? 'pomieszczenia ' + s.za.pokoj.nazwa : ''}` : ''}` : (p.pokoj?.nazwa || '—');
-  const wiersze = [
+  // wyprowadzenie kabla: bez ramki, osprzętu i edycji
+  const wiersze = p.kabel ? [
+    ['Do czego', esc(wielka(opis || '—'))],
+    ['Pomieszczenie', esc(gdzie)],
+    ['Ściana', s ? `${esc(p.stronaSciany)} (na rzucie) · ${cm(s.grubosc)}, ${zewnetrzna ? 'zewnętrzna' : 'wewnętrzna'}` : esc(p.stronaSciany)],
+    ['Za ścianą', esc(za)],
+    ['Wysokość', esc(wys)],
+    ['Wzdłuż ściany', esc(wzdluz)],
+    ['Pewność położenia', wiarZPliku(p)],
+    ['Trasa w ścianie', '<span class="male">nieznana – pokazane jest tylko miejsce wyjścia kabla</span>'],
+  ] : [
     ['Pomieszczenie', esc(gdzie)],
     ['Ściana', s ? `${esc(p.stronaSciany)} (na rzucie) · ${cm(s.grubosc)}, ${zewnetrzna ? 'zewnętrzna' : 'wewnętrzna'}` : esc(p.stronaSciany)],
     ['Za ścianą', esc(za)],
@@ -792,7 +811,7 @@ function pokazKarte(p) {
         <button type="button" data-akcja="link">Udostępnij link</button>
         ${edytor.mozna(p) ? '<button type="button" data-akcja="przesun" class="akcja-edycji">Edytuj punkt (przesuń, rodzaj, ramka)</button>' : ''}
       </div>
-      <p class="ostrzezenie">Część położeń pochodzi z rysunku i może odbiegać o ok. 10–15 cm. Przewody od puszki biegną zwykle w pionie lub poziomie – przed wierceniem w pobliżu sprawdź ścianę wykrywaczem.${stan.obw?.ogrzewanie_podlogowe ? `<br><b>Podłoga:</b> ${esc(stan.obw.ogrzewanie_podlogowe.uwagi || 'jest ogrzewanie podłogowe – nie wierć w posadzce.')}` : ''}</p>
+      <p class="ostrzezenie">${p.kabel ? '<b>Nie wierć tutaj – w ścianie jest kabel.</b> Traktuj go jak będący pod napięciem. Trasa jest nieznana: przed wierceniem nad nim, pod nim i obok sprawdź ścianę wykrywaczem.<br>' : ''}Część położeń pochodzi z rysunku i może odbiegać o ok. 10–15 cm. Przewody od puszki biegną zwykle w pionie lub poziomie – przed wierceniem w pobliżu sprawdź ścianę wykrywaczem.${stan.obw?.ogrzewanie_podlogowe ? `<br><b>Podłoga:</b> ${esc(stan.obw.ogrzewanie_podlogowe.uwagi || 'jest ogrzewanie podłogowe – nie wierć w posadzce.')}` : ''}</p>
     </div>`;
   k.hidden = false;
   k.scrollTop = 0;
@@ -981,7 +1000,7 @@ function zastosujDane(M, wersja, pierwszy) {
   ustawPunkty(zBazy ? 'baza' : 'plik');
   if (pierwszy) stan.dopasowano = false;
   rozmiar();
-  const p = wybranyId && A.items.find((q) => q.id === wybranyId);
+  const p = wybranyId && punktyModelu().find((q) => q.id === wybranyId);
   const pokoj = wybranyPokoj && A.rooms.find((r) => r.nazwa === wybranyPokoj);
   if (p) wybierz(p); else if (pokoj) pokazKartePokoju(pokoj); else zamknijKarte();
   if (pierwszy) obsluzAdres();
@@ -1202,7 +1221,7 @@ function rysujPasekObwodu() {
 // link do punktu: …/#punkt=kuchnia-Z06
 function punktZAdresu() {
   const m = /punkt=([^&]+)/.exec(location.hash);
-  const p = m && stan.A?.items.find((q) => q.id === decodeURIComponent(m[1]));
+  const p = m && stan.A && punktyModelu().find((q) => q.id === decodeURIComponent(m[1]));
   if (!p) return;
   stan.wid['el_' + p.typ] = true;
   const i = document.querySelector(`#lista-elektryka input[data-k="el_${p.typ}"]`);
@@ -1299,6 +1318,7 @@ document.querySelectorAll('[data-el]').forEach((b) => b.addEventListener('click'
   const wl = b.dataset.el === 'wszystkie';
   ustawTryb(null);
   for (const t of KOLEJNOSC_TYPOW) stan.wid['el_' + t] = wl;
+  stan.wid.el_K = wl;
   document.querySelectorAll('#lista-elektryka input').forEach((i) => { if (!i.disabled) i.checked = wl; });
   zapiszUstawienia();
   zastosujWidocznosc();
@@ -1330,6 +1350,7 @@ function ustawTryb(k) {
 function zastosujTryb(k) {
   Object.assign(stan.wid, PODSTAWA_TRYBU, TRYBY[k].wid);
   for (const t of KOLEJNOSC_TYPOW) stan.wid['el_' + t] = true;
+  stan.wid.el_K = true;
   if (k !== 'techniczny') stan.wysokoscScian = null;
   ustawTryb(k);
   zapiszUstawienia();

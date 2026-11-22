@@ -190,7 +190,8 @@ w wylewce, w całym domu – nie wiercić w posadzce), sufity (każde pomieszcze
 wysokości, niebieskie płaszczyzny), belka, meble, sanitariaty, pompa ciepła (jednostka zewnętrzna; wysokość nad
 ziemią to szacunek), studnia (komora pod ziemią – widać ją po wyłączeniu
 terenu; położenie w bok i głębokość to szacunek), teren (siatka co 1 m),
-nazwy pomieszczeń, a w części „Elektryka” każdy typ osobno i lampy zewnętrzne.
+nazwy pomieszczeń, a w części „Elektryka” każdy typ osobno, lampy zewnętrzne i kable w ścianie
+(czarny trójkąt: miejsce wyjścia kabla z klucza „wyprowadzenia” – nie wiercić; trasy nie są rysowane).
 Przy każdym typie jest liczba: ramki i gniazda (np. potrójne gniazdko = 1 ramka, 3 gniazda).
 Meble są wyłączone w wymiary.ini ([Meble] pokaż = nie) – po zmianie na „tak” i ODSWIEZ.bat
 pojawią się w aplikacji.

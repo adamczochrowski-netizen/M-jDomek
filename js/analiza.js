@@ -11,8 +11,10 @@ export const TYPY = {
   D: { nazwa: 'Dzwonek (przycisk)', kolor: '#ffd43b', tekst: '#1d1d1d', ksztalt: 'romb' },
   G: { nazwa: 'Gong dzwonka', kolor: '#ffd43b', tekst: '#1d1d1d', ksztalt: 'romb' },
   L: { nazwa: 'Lampa zewnętrzna', kolor: '#ffd43b', tekst: '#1d1d1d', ksztalt: 'gwiazda' },
+  // wyprowadzenie kabla (klucz „wyprowadzenia”): to NIE punkt z items – nie liczy się, nie edytuje, nie idzie do bazy
+  K: { nazwa: 'Kabel w ścianie', kolor: '#262626', tekst: '#ffd43b', ksztalt: 'trojkat' },
 };
-export const KOLEJNOSC_TYPOW = ['Z', 'S', 'I', 'W', 'D', 'G', 'L'];
+export const KOLEJNOSC_TYPOW = ['Z', 'S', 'I', 'W', 'D', 'G', 'L'];   // rodzaje punktów (bez K – to nie punkt)
 
 const uniq = (a) => [...new Set(a)].sort((p, q) => p - q);
 const mids = (a) => a.slice(1).map((v, i) => (a[i] + v) / 2);
@@ -253,8 +255,28 @@ export function analizuj(M) {
     // pewność położenia: z bazy, a bez logowania – ze źródła w pliku (tylko „pomiar” = potwierdzona; nigdy na wyrost)
     const pol = it.baza?.wiarygodnosc?.polozenie || (it.zrodlo === 'pomiar' ? 'POTWIERDZONA' : 'PRAWDOPODOBNA');
     p.wiar = pol === 'POTWIERDZONA' ? 'P' : pol === 'NIEZWERYFIKOWANA' ? 'N' : 'R';
-    const along = ax === 'v' ? it.yd : it.x;
-    const m = ax === 'v' ? miejsce(c + s * 5, it.yd) : miejsce(it.x, c + s * 5);
+    opisPolozenia(p);
+    p.opisAuto = opisAuto(p);
+    return p;
+  });
+  // miejsca, gdzie kabel wychodzi ze ściany (tylko samo wyjście – tras nie znamy i nie rysujemy)
+  const kable = (M.wyprowadzenia || []).map((it) => {
+    const [ax, c, s] = it.face;
+    const p = {
+      kabel: true, typ: 'K', id: 'kabel-' + slug(String(it.nazwa).replace(/_/g, ' ')),
+      x: it.x, yd: it.yd, z: it.z, n: 1, pion: false, ax, c, s, size: 3,
+      opisDanych: it.opis || '', baza: null, zrodlo: it.zrodlo || null,
+      wiar: it.zrodlo === 'pomiar' ? 'P' : 'R',
+    };
+    opisPolozenia(p);
+    return p;
+  });
+
+  // pomieszczenie, ściana i odległości wzdłuż niej (punkty i wyprowadzenia kabli)
+  function opisPolozenia(p) {
+    const { ax, c, s } = p;
+    const along = ax === 'v' ? p.yd : p.x;
+    const m = ax === 'v' ? miejsce(c + s * 5, p.yd) : miejsce(p.x, c + s * 5);
     p.naZewnatrz = m.typ !== 'pokoj';
     p.pokoj = m.pokoj || null;
     p.sciana = przezSciane(ax, c, s, along);
@@ -263,9 +285,7 @@ export function analizuj(M) {
     const pierwsza = ax === 'v' ? 'lewa' : 'górna', druga = ax === 'v' ? 'prawa' : 'dolna';
     p.stronaSciany = p.naZewnatrz ? (s < 0 ? pierwsza : druga) : (s > 0 ? pierwsza : druga);
     p.kierunki = ax === 'v' ? ['↑', '↓'] : ['←', '→'];
-    p.opisAuto = opisAuto(p);
-    return p;
-  });
+  }
 
   // identyfikatory: pomieszczenie-TYPnn, numeracja w kolejności czytania rzutu (z góry na dół, od lewej)
   const grupy = new Map();
@@ -290,7 +310,7 @@ export function analizuj(M) {
   return {
     xs, ys, cx, cy, nx, ny, isWall, outside, region, regions, foot,
     rooms, regionRooms, zones, openings, zSill, zWin, zCeil, teren,
-    floors, ceilings: [...ceilMap.values()], thresholds, items, liczniki,
+    floors, ceilings: [...ceilMap.values()], thresholds, items, kable, liczniki,
     bbox: { x0: xs[0], x1: xs[xs.length - 1], y0: ys[0], y1: ys[ys.length - 1] },
   };
 }

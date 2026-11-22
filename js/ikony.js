@@ -1,7 +1,7 @@
 // Mój domek – ikony punktów elektrycznych (model 3D, legenda, listy w Instalacjach, karta punktu).
 // Rodzaj punktu poznajemy po KSZTAŁCIE i literze, nie po kolorze (rozdz. 17: elektryka = żółto-pomarańczowa):
 // gniazdko – kółko, do sprzętu – kwadrat, indukcja – sześciokąt, włącznik – szeroki prostokąt,
-// dzwonek i gong – romb, lampa – gwiazdka.
+// dzwonek i gong – romb, lampa – gwiazdka, wyprowadzenie kabla – czarny trójkąt (ostrzeżenie: nie wierć).
 // Pewność położenia: POTWIERDZONA – zielony znaczek ✓; PRAWDOPODOBNA – zwykła ikona;
 // NIEZWERYFIKOWANA – przygaszona, szara, ze znakiem „?”.
 import { TYPY } from './analiza.js';
@@ -29,6 +29,7 @@ function sciezka(x, ksztalt) {
     case 'prostokat': zaokr(8, 30, 120, 98, 16); break;
     case 'romb': wielokat(4, 56); break;
     case 'gwiazda': wielokat(5, 60, -Math.PI / 2, 27); break;
+    case 'trojkat': x.moveTo(64, 10); x.lineTo(119, 110); x.lineTo(9, 110); x.closePath(); break;
     default: x.arc(64, 64, 50, 0, Math.PI * 2);
   }
 }
@@ -49,9 +50,9 @@ export function kanwaZnacznika(t, w = 'R') {
   x.fillStyle = niezw ? '#c4c4c4' : T.kolor; x.fill();
   x.lineWidth = 4; x.strokeStyle = niezw ? '#6b6b6b' : '#3d2a00'; x.stroke();
   x.fillStyle = niezw ? '#555555' : (T.tekst || '#1d1d1d');
-  x.font = `bold ${T.ksztalt === 'gwiazda' ? 44 : 58}px system-ui, Segoe UI, Arial, sans-serif`;
+  x.font = `bold ${T.ksztalt === 'gwiazda' ? 44 : T.ksztalt === 'trojkat' ? 52 : 58}px system-ui, Segoe UI, Arial, sans-serif`;
   x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.fillText(t, 64, T.ksztalt === 'gwiazda' ? 70 : 67);
+  x.fillText(t, 64, T.ksztalt === 'gwiazda' ? 70 : T.ksztalt === 'trojkat' ? 80 : 67);
   if (w === 'P' || niezw) {                                                   // znaczek w prawym górnym rogu
     x.beginPath(); x.arc(102, 26, 22, 0, Math.PI * 2);
     x.fillStyle = niezw ? '#4a4a4a' : '#1f8a3a'; x.fill();

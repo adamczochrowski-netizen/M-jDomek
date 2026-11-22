@@ -423,5 +423,24 @@ export function zbudujDom(M, A, mat, opcje = {}) {
       grupa('el_' + t).add(pts);
     }
   }
+  // wyprowadzenia kabli: krótki koniec kabla w miejscu wyjścia ze ściany + znacznik (trasy nie rysujemy)
+  grupa('el_K');
+  const kableWg = {};
+  for (const p of A.kable) {
+    const { ax, c, s } = p, z = p.z + POZIOM_PODLOGI;
+    grupa('el_K').add(ax === 'v' ? blok(c + s * 2.5, p.yd, z, 5, 3, 3, mat.lampaObudowa) : blok(p.x, c + s * 2.5, z, 3, 5, 3, mat.lampaObudowa));
+    p.znacznik = new THREE.Vector3(...(ax === 'v' ? P(c + s * 8, p.yd, z) : P(p.x, c + s * 8, z)));
+    (kableWg[p.wiar] = kableWg[p.wiar] || []).push(p);
+  }
+  for (const [w, lista] of Object.entries(kableWg)) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(lista.flatMap((p) => [p.znacznik.x, p.znacznik.y, p.znacznik.z]), 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 22, sizeAttenuation: false, map: teksturaZnacznika('K', w), transparent: true, alphaTest: 0.2 }));
+    pts.renderOrder = 3;
+    pts.userData.pelna = 1;
+    lista.forEach((p, i) => { p.znacznikRef = { pts, i }; });
+    znaczniki['K' + w] = pts;
+    grupa('el_K').add(pts);
+  }
   return { warstwy: W, znaczniki };
 }
